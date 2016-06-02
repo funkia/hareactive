@@ -11,11 +11,11 @@ module.exports = {
   },
   devtool: 'inline-source-map',
   module: {
-    loaders:[
+    loaders: [
       {test: /\.tsx?$/, loader: 'awesome-typescript-loader' },
     ]
   },
-  devServer:{
+  devServer: {
     contentBase: "./",
     port: 8080
   }
