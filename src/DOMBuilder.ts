@@ -1,26 +1,37 @@
 import {Observable, publish, subscribe, isObservable} from './Observable'
 
-type Children = any[] | string
+type Children = Observable<string>[] | string[]
 
-export const h = (tag: string, children: Children = []): any => {
+type Component = {
+  elm: HTMLElement,
+  on: (event: string) => Observable<any>
+}
+
+interface EventsTable {
+  [index: string]: Observable<any>;
+}
+
+export const h = (tag: string, children: Children = []): Component => {
   const elm = document.createElement(tag);
 
   [].concat(children).forEach((ch) => {
 
     if (isObservable(ch)) {
-      const text = document.createElement("span");
-      subscribe((t) => text.innerText = t, ch);
+      const text = document.createElement('span');
+      subscribe((t: string) => text.innerText = t, ch);
       elm.appendChild(text);
     } else {
-      elm.appendChild((typeof ch === "string") ? document.createTextNode(ch) : ch.elm)
+      elm.appendChild((typeof ch === 'string') ? document.createTextNode(ch) : ch.elm)
     }
 
   });
 
-  var events = {};
+  var events: EventsTable = {};
 
-  const on = (eventname) => {
-    if(events[eventname]) return events[eventname];
+  const on = (eventname: string) => {
+    if (events[eventname]) {
+      return events[eventname];
+    }
 
     const event$ = Observable();
     elm.addEventListener(eventname, (ev) => publish(ev, event$))

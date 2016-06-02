@@ -1,7 +1,7 @@
 import {Observable} from './Observable'
 
 type HasElement = {elm: HTMLElement}
-type RenderFn = (...Observable) => HasElement
+type RenderFn = (...obs: Observable<any>[]) => HasElement
 
 export default (sel: string, render: RenderFn) => {
   let initialObservables: Observable<any>[] = []

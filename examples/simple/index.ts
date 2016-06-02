@@ -1,16 +1,15 @@
-import {map} from '../../src/Observable';
+import {Observable, map} from '../../src/Observable';
 import {h} from '../../src/DOMBuilder';
 import run from '../../src/run';
 
 
-const app = (input$) => {
-
-  var inputOn;
+const app = (input$: Observable<string>) => {
+  let inputOn;
 
   const DOM = h('div', [
     h('label', ['Name: ']),
     h('br'),
-    h('span','Hello '), h('span', input$),
+    h('span', ['Hello ']), h('span', [input$]),
     h('h1', [
       {on: inputOn} = h('input'),
       input$
