@@ -8,7 +8,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postinstall": "./node_modules/.bin/typings install",
+    "pretest": "./node_modules/.bin/tsc test/*.spec.ts --module commonjs --target ES5",
+    "test": "./node_modules/.bin/mocha test/**/*.spec.js"
   },
   "repository": {
     "type": "git",
@@ -26,7 +28,10 @@
   "dependencies": {},
   "devDependencies": {
     "awesome-typescript-loader": "^0.17.0",
+    "chai": "^3.5.0",
+    "mocha": "^2.5.3",
     "typescript": "^1.8.10",
+    "typings": "^1.0.4",
     "webpack": "^1.13.1"
   }
 }
