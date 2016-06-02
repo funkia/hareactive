@@ -1,0 +1,32 @@
+{
+  "name": "hareactive",
+  "version": "0.0.1",
+  "description": "Experimental FRP library for building web applications.",
+  "main": "index.js",
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paldepind/hareactive.git"
+  },
+  "keywords": [
+    "frp"
+  ],
+  "author": "Simon Friis Vindum",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/paldepind/hareactive/issues"
+  },
+  "homepage": "https://github.com/paldepind/hareactive#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "awesome-typescript-loader": "^0.17.0",
+    "typescript": "^1.8.10",
+    "webpack": "^1.13.1"
+  }
+}
