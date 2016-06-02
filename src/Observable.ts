@@ -21,3 +21,9 @@ export const Observable = (): Observable<any> => {
     }
   }
 }
+
+export const map = (fn: ((any) => any), obs: Observable<any>): Observable<any> => {
+  const o = Observable();
+  subscribe((item) => publish(fn(item), o), obs)
+  return o;
+};

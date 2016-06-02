@@ -2,7 +2,7 @@ import {Observable, publish, subscribe, isObservable} from './Observable'
 
 type Children = any[] | string
 
-export const h = (tag: string, children: Children = [], events = []): any => {
+export const h = (tag: string, children: Children = []): any => {
   const elm = document.createElement(tag);
 
   [].concat(children).forEach((ch) => {
@@ -12,16 +12,21 @@ export const h = (tag: string, children: Children = [], events = []): any => {
       subscribe((t) => text.innerText = t, ch);
       elm.appendChild(text);
     } else {
-      elm.appendChild(
-      (typeof ch === "string") ?document.createTextNode(ch) : ch.elm)
+      elm.appendChild((typeof ch === "string") ? document.createTextNode(ch) : ch.elm)
+    }
 
-  }});
-
-  var observables = {};
-  [].concat(events).forEach(eventname => {
-    const value = Observable();
-    elm.addEventListener('input', (ev: any) => publish(ev.target.value, value))
-    observables[eventname] = value;
   });
-  return {elm, events: observables};
+
+  var events = {};
+
+  const on = (eventname) => {
+    if(events[eventname]) return events[eventname];
+
+    const event$ = Observable();
+    elm.addEventListener(eventname, (ev) => publish(ev, event$))
+    events[eventname] = event$;
+    return event$;
+  };
+
+  return {elm, on};
 };
