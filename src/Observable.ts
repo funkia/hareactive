@@ -1,29 +1,31 @@
 export type Observable<V> = {
   subscribers: ((V) => void)[];
-  def: any;
+  def: Observable<V>;
 }
 
-export const publish = (v: any, obs: Observable<any>): void =>
+export function publish<V>(v: V, obs: Observable<V>) {
   obs.subscribers.forEach((fn) => fn(v))
+}
 
-export const subscribe = (fn: ((any) => any), obs: Observable<any>): number =>
+export function subscribe<V>(fn: ((V) => any), obs: Observable<V>) {
   obs.subscribers.push(fn)
+}
 
 export const isObservable = (obs : any) : boolean =>
   (typeof obs === 'object' && 'subscribers' in obs)
 
-export const Observable = (): Observable<any> => {
+export function Observable<V>(): Observable<V> {
   return {
     subscribers: [],
-    set def(obs: Observable<any>) {
+    set def(obs) {
       obs.subscribers.push(...this.subscribers)
       this.subscribers = obs.subscribers
     }
   }
 }
 
-export const map = (fn: ((any) => any), obs: Observable<any>): Observable<any> => {
-  const o = Observable();
+export function map<A, B>(fn: ((A) => B), obs: Observable<A>): Observable<B> {
+  const o = Observable<B>();
   subscribe((item) => publish(fn(item), o), obs)
   return o;
 };
