@@ -16,7 +16,6 @@ const app = (input$: Observable<string>) => {
     ])
   ]);
 
-
   const inputEvent$ = inputOn('input');
   input$.def = map(ev => ev.target.value, inputEvent$);
 
@@ -24,3 +23,4 @@ const app = (input$: Observable<string>) => {
 };
 
 run('body', app);
+
