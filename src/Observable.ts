@@ -25,7 +25,16 @@ export function Observable<V>(): Observable<V> {
 }
 
 export function map<A, B>(fn: ((a: A) => B), obs: Observable<A>): Observable<B> {
-  const o = Observable<B>();
-  subscribe((item) => publish(fn(item), o), obs)
-  return o;
+  const newObs = Observable<B>();
+  subscribe((item) => publish(fn(item), newObs), obs)
+  return newObs;
 };
+
+export function filter<V>(fn: ((v: V) => boolean), obs: Observable<V>): Observable<V> {
+  const newObs = Observable<V>();
+  subscribe((item) => {
+    if (fn(item))
+      publish(item, newObs)
+  }, obs);
+  return newObs;
+}
