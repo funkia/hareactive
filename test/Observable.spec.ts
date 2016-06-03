@@ -75,6 +75,29 @@ describe("Observable API:", function() {
 
   });
 
+  describe('map', function() {
+    it('should be a function', function() {
+      assert.isFunction($.map);
+    });
+
+    it('should map the published values', function() {
+      const obs = $.Observable();
+      const callback = spy();
+
+      const addTwo = (v :number) :number => v+2;
+
+      const mappedObs = $.map(addTwo, obs);
+
+      $.subscribe(callback, mappedObs);
+
+      for(var i = 0; i < 5; i++) {
+        $.publish(i, obs);
+      }
+      assert.deepEqual(callback.args, [[2], [3], [4], [5], [6]], "Wrong or no value was recieved");
+    });
+  });
+
+
 
   describe('filter', function() {
 
