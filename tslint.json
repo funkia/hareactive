@@ -3,7 +3,6 @@
         "align": [
             true,
             "parameters",
-            "arguments",
             "statements"
         ],
         "class-name": true,
