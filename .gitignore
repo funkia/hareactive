@@ -4,5 +4,3 @@ bundle.js.map
 node_modules/
 *~
 typings
-src/**/*.js
-test/**/*.js
