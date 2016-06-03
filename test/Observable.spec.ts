@@ -2,16 +2,17 @@
 
 import * as $ from "../src/Observable";
 import {assert} from "chai";
+import {spy} from "sinon";
 
-describe("Observable API", () => {
+describe("Observable API:", function() {
 
-  describe('Observable()', () => {
+  describe('Observable()', function() {
 
-    it('should be a function', () => {
+    it('should be a function', function() {
       assert.isFunction($.Observable);
     });
 
-    it("should create an Observable", () => {
+    it("should create an Observable", function() {
       const obs = $.Observable();
 
       assert.isObject(obs);
@@ -23,77 +24,78 @@ describe("Observable API", () => {
 
   });
 
+  describe('subscribe', function() {
 
-  describe('subscribe', () => {
-
-    it('should be a function', () => {
+    it('should be a function', function() {
       assert.isFunction($.subscribe)
     });
 
-
-    it('should add the subscribtions to the observable', () => {
-      const addSubs = (obs :any) => {
-        $.subscribe(() => null, obs);
-      }
-      const obs = $.Observable();
-      addSubs(obs);
-      assert.lengthOf(obs.subscribers, 1);
-      addSubs(obs);
-      assert.lengthOf(obs.subscribers, 2);
-    });
-
   });
 
-  describe('publish', () => {
+  describe('publish', function() {
 
-    it('should be a function', () => {
+    it('should be a function', function() {
       assert.isFunction($.publish);
     });
 
-    it('should call subscribtions on publish', () => {
+    it('should call the subscribers', function() {
       const obs = $.Observable();
-      let a = 0;
-      let b = 0;
-      $.subscribe((v : number) => a = v, obs);
-      $.subscribe((v : number) => b = v, obs);
+      const callback = spy();
+      $.subscribe(callback, obs);
 
-      $.publish(1, obs);
-      assert.equal(a, 1);
-      assert.equal(b, 1);
+      assert.equal(callback.callCount, 0);
 
-      $.publish(1123, obs);
-      assert.equal(a, 1123);
-      assert.equal(b, 1123);
+      $.publish("value", obs);
+      assert.equal(callback.callCount, 1);
+
+      $.publish("value", obs);
+      assert.equal(callback.callCount, 2);
+    });
+
+    it('should pass the published value to subscribers', function() {
+      const obs = $.Observable();
+      const callback1 = spy();
+      const callback2 = spy();
+
+      $.subscribe(callback1, obs);
+      $.subscribe(callback2, obs);
+
+
+      const err1 = "Wrong or no value was recieved after publish.";
+      $.publish("random value", obs);
+      assert(callback1.calledWith("random value"), err1);
+      assert(callback2.calledWith("random value"), err1);
+
+      const err2 = "Wrong or no value was recieved after a second publish.";
+      $.publish("another random value", obs);
+      assert(callback1.calledWith("another random value"), err2);
+      assert(callback2.calledWith("another random value"), err2);
+
     });
 
   });
 
 
-  describe('filter', () => {
+  describe('filter', function() {
 
-    it('should be a function', () => {
+    it('should be a function', function() {
       assert.isFunction($.filter);
     });
 
-    it('should filter the unwanted publishions', () => {
+    it('should filter the unwanted publishions', function() {
       const obs = $.Observable();
-      let a = 0;
+      const callback = spy();
 
-      const filteredObs = $.filter((v) => v > 100, obs)
+      const isEven = (v :number) :boolean => !(v%2);
 
-      $.subscribe((v : number) => a = v, filteredObs);
+      const filteredObs = $.filter(isEven, obs)
 
-      $.publish(100, obs);
-      assert.equal(a, 0);
+      $.subscribe(callback, filteredObs);
 
-      $.publish(101, obs);
-      assert.equal(a, 101);
+      for(var i = 0; i < 10; i++) {
+        $.publish(i, obs);
+      }
+      assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]], "Wrong or no value was recieved");
     });
-
-
   });
-
-
-
-
 });
