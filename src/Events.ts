@@ -40,6 +40,13 @@ export class Events<A> {
     this.eventListeners.push(e);
     return e;
   }
+
+  public filter(fn: ((a: A) => boolean)): Events<A> {
+    const e = new Events<A>();
+    e.body = new FilterBody(fn, e, this);
+    this.eventListeners.push(e);
+    return e;
+  }
 }
 
 class MapBody<A, B> implements Body {
@@ -78,12 +85,38 @@ class NoopBody<A> implements Body {
   }
 }
 
-// function NoopBody(srcEv) {
-//   this.ev = srcEv;
+class FilterBody<A> implements Body {
+  private fn: ((a: A) => boolean);
+  private source: Events<A>;  // srcE
+  private target: Events<A>;   // ev
+
+  constructor(fn: ((a: A) => boolean), target: Events<A>, source: Events<A>) {
+    this.fn = fn;
+    this.target = target;
+    this.source = source;
+  }
+
+  public run: ((a: A) => void) = a => {
+    if (this.fn(a)) {
+      this.target.publish(a);
+    }
+  }
+
+  public pull: (() => A) = () => {
+    let a = (this.source.last !== undefined) ? this.source.last : this.source.body.pull();
+    return this.fn(a) ? a : undefined;
+  }
+}
+
+// function ChainBody(srcE, fn, e) {
+//   this.srcE = srcE;
+//   this.fn = fn;
+//   this.e = e;
 // }
 
-// NoopBody.prototype.run = function(v) {
-//   this.ev.push(v);
+// ChainBody.prototype.run = function(v) {
+//   var newE = this.fn(v);
+//   newE.eventListeners.push(this.e);
 // };
 
 // function at(b) {
@@ -299,6 +332,10 @@ export function merge<A, B>(a: Events<A>, b: Events<B>): Events<(A|B)> {
 
 export function map<A, B>(fn: ((a: A) => B), events: Events<A>): Events<B> {
   return events.map(fn);
+}
+
+export function filter<A>(fn: ((a: A) => boolean), events: Events<A>): Events<A> {
+  return events.filter(fn);
 }
 
 export function isEvents(obj: any): boolean {

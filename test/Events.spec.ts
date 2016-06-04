@@ -118,26 +118,26 @@ describe("Events API:", function(): void {
     });
   });
 
-  // describe.skip("filter", function(): void {
+  describe("filter", function(): void {
 
-  //   it("should be a function", function(): void {
-  //     assert.isFunction($.filter);
-  //   });
+    it("should be a function", function(): void {
+      assert.isFunction($.filter);
+    });
 
-  //   it("should filter the unwanted publishions", function(): void {
-  //     const obs = new $.Events();
-  //     const callback = spy();
+    it("should filter the unwanted publishions", function(): void {
+      const obs = new $.Events();
+      const callback = spy();
 
-  //     const isEven = (v: number): boolean => !(v % 2);
+      const isEven = (v: number): boolean => !(v % 2);
 
-  //     const filteredObs = $.filter(isEven, obs);
+      const filteredObs = $.filter(isEven, obs);
 
-  //     $.subscribe(callback, filteredObs);
+      $.subscribe(callback, filteredObs);
 
-  //     for (let i = 0; i < 10; i++) {
-  //       $.publish(i, obs);
-  //     }
-  //     assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]], "Wrong or no value was recieved");
-  //   });
-  // });
+      for (let i = 0; i < 10; i++) {
+        $.publish(i, obs);
+      }
+      assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]], "Wrong or no value was recieved");
+    });
+  });
 });
