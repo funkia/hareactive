@@ -1,13 +1,13 @@
-import {Observable} from "./Observable";
+import {Events} from "./Events";
 
 type HasElement = {elm: HTMLElement}
-type RenderFn = (...obs: Observable<any>[]) => HasElement
+type RenderFn = (...obs: Events<any>[]) => HasElement
 
 export default function(sel: string, render: RenderFn): void {
-  let initialObservables: Observable<any>[] = [];
+  let initialEvents: Events<any>[] = [];
   for (let i = 0; i < render.length; ++i) {
-    initialObservables.push(Observable());
+    initialEvents.push(new Events());
   }
-  const {elm} = render(...initialObservables);
+  const {elm} = render(...initialEvents);
   document.querySelector(sel).appendChild(elm);
 };

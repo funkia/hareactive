@@ -1,14 +1,14 @@
-import {Observable, publish, subscribe, isObservable} from "./Observable";
+import {Events, publish, subscribe, isEvents} from "./Events";
 
-type Children = Observable<string>[] | string[]
+type Children = (Events<string> | Events<Component> | string | Component)[]
 
 type Component = {
   elm: HTMLElement,
-  on: (event: string) => Observable<any>
-}
+  on: (event: string) => Events<any>
+};
 
-interface EventsTable {
-  [index: string]: Observable<any>;
+interface EventTable {
+  [index: string]: Events<any>;
 }
 
 export const h = (tag: string, children: Children = []): Component => {
@@ -16,7 +16,7 @@ export const h = (tag: string, children: Children = []): Component => {
 
   [].concat(children).forEach((ch) => {
 
-    if (isObservable(ch)) {
+    if (isEvents(ch)) {
       const text = document.createElement("span");
       subscribe((t: string) => text.innerText = t, ch);
       elm.appendChild(text);
@@ -25,16 +25,16 @@ export const h = (tag: string, children: Children = []): Component => {
     }
   });
 
-  let events: EventsTable = {};
+  let event: EventTable = {};
 
   const on = (eventname: string) => {
-    if (events[eventname]) {
-      return events[eventname];
+    if (event[eventname]) {
+      return event[eventname];
     }
 
-    const event$ = Observable();
+    const event$ = new Events();
     elm.addEventListener(eventname, (ev) => publish(ev, event$));
-    events[eventname] = event$;
+    event[eventname] = event$;
     return event$;
   };
 
