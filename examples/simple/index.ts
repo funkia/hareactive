@@ -6,13 +6,10 @@ const app = (input$: Events<string>) => {
   let inputOn: ((eventName: string) => Events<any>);
 
   const DOM = h("div", [
-    h("label", ["Name: "]),
+    h("span", ["Hello "]), h("span", [input$]),
     h("br"),
-    h("span", ["Hello ", input$]),
-    h("h1", [
-      {on: inputOn} = h("input"),
-      input$
-    ])
+    h("label", ["Name: "]),
+    {on: inputOn} = h("input")
   ]);
 
   const inputEvent$ = inputOn("input");
