@@ -23,8 +23,18 @@ export class Events<A> {
 
   public publish(a: A): void {
     this.last = a;
-    this.cbListeners.forEach((cb) => cb(a));
-    this.eventListeners.forEach(({body: {run}}) => run(a));
+
+    let i = 0;
+    let l = this.cbListeners.length;
+    for (; i < l; i++) {
+      this.cbListeners[i](a);
+    }
+
+    i = 0;
+    l = this.eventListeners.length;
+    for (; i < l; i++) {
+      this.eventListeners[i].body.run(a);
+    }
   };
 
   public subscribe(fn: SubscribeFunction<A>): void {
@@ -121,7 +131,6 @@ class FilterBody<A> implements Body {
   }
 }
 
-
 class ScanBody<A, B> implements Body {
   private fn: ScanFunction<A, B>;
   private source: Events<A>;  // srcE
@@ -160,10 +169,6 @@ class ScanBody<A, B> implements Body {
 // Event.prototype.empty = function() {
 //   return new Event();
 // };
-
-
-
-
 
 // Event.prototype.ap = function(valE) {
 //   var newE = new Event();
@@ -351,6 +356,10 @@ class ScanBody<A, B> implements Body {
 //     on: on,
 //   },
 // };
+
+export function empty(): Events<any> {
+  return new Events();
+}
 
 export function subscribe<A>(fn: SubscribeFunction<A>, events: Events<A>): void {
   events.subscribe(fn);
