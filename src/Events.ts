@@ -1,13 +1,13 @@
-interface Body<A, B> {
-  run: (a: A) => void;
-  pull: () => B;
+interface Body {
+  run: (a: any) => void;
+  pull: () => any;
 }
 
 export class Events<A> {
   private cbListeners: ((a: A) => void)[] = [];
-  private eventListeners: Events<any>[] = [];
+  public eventListeners: Events<any>[] = [];
   public last: A;
-  public body: Body<any, A>;
+  public body: Body;
 
   set def(events: Events<any>){
     events.cbListeners.push(...this.cbListeners);
@@ -17,12 +17,21 @@ export class Events<A> {
   }
 
   public publish(a: A): void {
+    this.last = a;
     this.cbListeners.forEach((cb) => cb(a));
     this.eventListeners.forEach(({body: {run}}) => run(a));
   };
 
   public subscribe(fn: ((a: A) => void)): void {
     this.cbListeners.push(fn);
+  }
+
+  public merge<B>(otherEvents: Events<B>): Events<(A|B)> {
+    const e = new Events<(A|B)>();
+    e.body = new NoopBody(e);
+    this.eventListeners.push(e);
+    otherEvents.eventListeners.push(e);
+    return e;
   }
 
   public map<B>(fn: ((a: A) => B)): Events<B> {
@@ -33,7 +42,7 @@ export class Events<A> {
   }
 }
 
-class MapBody<A, B> implements Body<A, B> {
+class MapBody<A, B> implements Body {
   private fn: ((a: A) => B);
   private source: Events<A>;  // srcE
   private target: Events<B>;   // ev
@@ -46,32 +55,28 @@ class MapBody<A, B> implements Body<A, B> {
 
   public run: ((a: A) => void) = a => {
     this.target.publish(this.fn(a));
-  };
+  }
 
   public pull: (() => B) = () => {
     return this.fn(((this.source.last !== undefined) ? this.source.last : this.source.body.pull()));
   }
 }
 
-// Event.prototype.concat = function(otherE) {
-//   var newE = new Event();
-//   newE.body = new NoopBody(newE);
-//   this.eventListeners.push(newE);
-//   otherE.eventListeners.push(newE);
-//   return newE;
-// };
+class NoopBody<A> implements Body {
+  private source: Events<A>;
 
-// class NoopBody<A, A> implements Body<A, B> {
-//   public source: Events<A>;
+  constructor(source: Events<A>) {
+    this.source = source;
+  }
 
-//   constructor(source: Events<A>) {
-//     this.source = source;
-//   }
+  public run: ((a: A) => void) = a => {
+    this.source.publish(a);
+  }
 
-//   public run: ((a: A) => void) = (b)=> {
-//     this.source.publish(a);
-//   }
-// }
+  public pull: (() => A) = () => {
+    return (this.source.last !== undefined) ? this.source.last : this.source.body.pull();
+  }
+}
 
 // function NoopBody(srcEv) {
 //   this.ev = srcEv;
@@ -280,13 +285,16 @@ class MapBody<A, B> implements Body<A, B> {
 //   },
 // };
 
-
 export function subscribe<A>(fn: ((a: A) => void), events: Events<A>): void {
   events.subscribe(fn);
 }
 
 export function publish<A>(a: A, events: Events<A>): void {
   events.publish(a);
+}
+
+export function merge<A, B>(a: Events<A>, b: Events<B>): Events<(A|B)> {
+  return a.merge(b);
 }
 
 export function map<A, B>(fn: ((a: A) => B), events: Events<A>): Events<B> {

@@ -75,6 +75,26 @@ describe("Events API:", function(): void {
 
   });
 
+  describe("merge", function(): void {
+    it("should be a function", function(): void {
+      assert.isFunction($.merge);
+    });
+
+    it("should merge two Events", function(): void {
+      const event$1 = new $.Events();
+      const event$2 = new $.Events();
+      const callback = spy();
+
+      const mergedEvent$ = $.merge(event$1, event$2);
+      $.subscribe(callback, mergedEvent$);
+      $.publish(1, event$1);
+      $.publish("2", event$2);
+
+      assert.deepEqual(callback.args, [[1], ["2"]]);
+
+    });
+  });
+
   describe("map", function(): void {
     it("should be a function", function(): void {
       assert.isFunction($.map);
