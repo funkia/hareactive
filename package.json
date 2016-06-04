@@ -28,8 +28,10 @@
   "dependencies": {},
   "devDependencies": {
     "awesome-typescript-loader": "^0.17.0",
+    "benchmark": "^2.1.0",
     "chai": "^3.5.0",
     "mocha": "^2.5.3",
+    "most": "^0.19.7",
     "sinon": "^1.17.4",
     "typescript": "^1.8.10",
     "typings": "^1.0.4",
