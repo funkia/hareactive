@@ -7,13 +7,10 @@ const app = (input$: Observable<string>) => {
   let inputOn;
 
   const DOM = h('div', [
-    h('label', ['Name: ']),
-    h('br'),
     h('span', ['Hello ']), h('span', [input$]),
-    h('h1', [
-      {on: inputOn} = h('input'),
-      input$
-    ])
+    h('br'),
+    h('label', ['Name: ']),
+    {on: inputOn} = h('input')
   ]);
 
   const inputEvent$ = inputOn('input');
