@@ -3,6 +3,11 @@ interface Body {
   pull: () => any;
 }
 
+type SubscribeFunction<A> = ((a: A) => void);
+type ScanFunction<A, B> = ((b: B, a: A) => B);
+type MapFunction<A, B> = ((a: A) => B);
+type FilterFunction<A> = ((a: A) => boolean);
+
 export class Events<A> {
   private cbListeners: ((a: A) => void)[] = [];
   public eventListeners: Events<any>[] = [];
@@ -22,7 +27,7 @@ export class Events<A> {
     this.eventListeners.forEach(({body: {run}}) => run(a));
   };
 
-  public subscribe(fn: ((a: A) => void)): void {
+  public subscribe(fn: SubscribeFunction<A>): void {
     this.cbListeners.push(fn);
   }
 
@@ -34,27 +39,35 @@ export class Events<A> {
     return e;
   }
 
-  public map<B>(fn: ((a: A) => B)): Events<B> {
+  public map<B>(fn: MapFunction<A, B>): Events<B> {
     const e = new Events<B>();
     e.body = new MapBody<A, B>(fn, e, this);
     this.eventListeners.push(e);
     return e;
   }
 
-  public filter(fn: ((a: A) => boolean)): Events<A> {
+  public filter(fn: FilterFunction<A>): Events<A> {
     const e = new Events<A>();
     e.body = new FilterBody(fn, e, this);
+    this.eventListeners.push(e);
+    return e;
+  }
+
+  public scan<B>(fn: ScanFunction<A, B>, startingValue: B): Events<B> {
+    const e = new Events<B>();
+    e.last = startingValue;
+    e.body = new ScanBody(fn, e, this);
     this.eventListeners.push(e);
     return e;
   }
 }
 
 class MapBody<A, B> implements Body {
-  private fn: ((a: A) => B);
+  private fn: MapFunction<A, B>;
   private source: Events<A>;  // srcE
   private target: Events<B>;   // ev
 
-  constructor(fn: ((a: A) => B), target: Events<B>, source: Events<A>) {
+  constructor(fn: MapFunction<A, B>, target: Events<B>, source: Events<A>) {
     this.fn = fn;
     this.target = target;
     this.source = source;
@@ -86,11 +99,11 @@ class NoopBody<A> implements Body {
 }
 
 class FilterBody<A> implements Body {
-  private fn: ((a: A) => boolean);
+  private fn: FilterFunction<A>;
   private source: Events<A>;  // srcE
   private target: Events<A>;   // ev
 
-  constructor(fn: ((a: A) => boolean), target: Events<A>, source: Events<A>) {
+  constructor(fn: FilterFunction<A>, target: Events<A>, source: Events<A>) {
     this.fn = fn;
     this.target = target;
     this.source = source;
@@ -105,6 +118,27 @@ class FilterBody<A> implements Body {
   public pull: (() => A) = () => {
     let a = (this.source.last !== undefined) ? this.source.last : this.source.body.pull();
     return this.fn(a) ? a : undefined;
+  }
+}
+
+
+class ScanBody<A, B> implements Body {
+  private fn: ScanFunction<A, B>;
+  private source: Events<A>;  // srcE
+  private target: Events<B>;   // ev
+
+  constructor(fn: ScanFunction<A, B>, target: Events<B>, source: Events<A>) {
+    this.fn = fn;
+    this.target = target;
+    this.source = source;
+  }
+
+  public run: ((a: A) => void) = a => {
+    this.target.publish(this.fn(this.target.last, a));
+  }
+
+  public pull: (() => A) = () => {
+    return (this.source.last !== undefined) ? this.source.last : this.source.body.pull();
   }
 }
 
@@ -318,7 +352,7 @@ class FilterBody<A> implements Body {
 //   },
 // };
 
-export function subscribe<A>(fn: ((a: A) => void), events: Events<A>): void {
+export function subscribe<A>(fn: SubscribeFunction<A>, events: Events<A>): void {
   events.subscribe(fn);
 }
 
@@ -330,12 +364,16 @@ export function merge<A, B>(a: Events<A>, b: Events<B>): Events<(A|B)> {
   return a.merge(b);
 }
 
-export function map<A, B>(fn: ((a: A) => B), events: Events<A>): Events<B> {
+export function map<A, B>(fn: MapFunction<A, B> , events: Events<A>): Events<B> {
   return events.map(fn);
 }
 
-export function filter<A>(fn: ((a: A) => boolean), events: Events<A>): Events<A> {
+export function filter<A>(fn: FilterFunction<A>, events: Events<A>): Events<A> {
   return events.filter(fn);
+}
+
+export function scan<A, B>(fn: ScanFunction<A, B>, startingValue: B, events: Events<A>): Events<B> {
+  return events.scan(fn, startingValue);
 }
 
 export function isEvents(obj: any): boolean {

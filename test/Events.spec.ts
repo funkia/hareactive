@@ -140,4 +140,26 @@ describe("Events API:", function(): void {
       assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]], "Wrong or no value was recieved");
     });
   });
+
+  describe("scan", function(): void {
+    it("should be a function", function(): void {
+      assert.isFunction($.scan);
+    });
+
+    it("should scan the values", function(): void {
+      const event$ = new $.Events();
+      const callback = spy();
+      const sum = (currSum: number, val: number) => currSum + val;
+
+      const currentSum$ = $.scan(sum, 0, event$);
+      $.subscribe(callback, currentSum$);
+
+      for (let i = 0; i < 10; i++) {
+        $.publish(i, event$);
+      }
+
+      assert.deepEqual(callback.args, [[0], [1], [3], [6], [10], [15], [21], [28], [36], [45]]);
+
+    });
+  });
 });
