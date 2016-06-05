@@ -3,6 +3,8 @@ import * as $ from "../src/Events";
 import {assert} from "chai";
 import {spy} from "sinon";
 
+const addTwo = (v: number): number => v + 2;
+
 describe("Events", () => {
   describe("isEvents", () => {
     it("should be a function", () => {
@@ -96,8 +98,6 @@ describe("Events", () => {
       const obs = new $.Events();
       const callback = spy();
 
-      const addTwo = (v: number): number => v + 2;
-
       const mappedObs = $.map(addTwo, obs);
 
       $.subscribe(callback, mappedObs);
@@ -151,7 +151,22 @@ describe("Events", () => {
 
       assert.deepEqual(callback.args, [[0], [1], [3], [6], [10], [15], [21], [28], [36], [45]]);
     });
-
   });
 
+  describe("def", () => {
+    it("should merge two events", () => {
+      const callback1 = spy();
+      const callback2 = spy();
+      const e1 = new $.Events();
+      const e1Mapped = $.map(addTwo, e1);
+      $.subscribe(callback1, e1);
+      $.subscribe(callback2, e1Mapped);
+      const e2 = new $.Events();
+      e1.def = e2;
+      $.publish(1, e2);
+      $.publish(2, e2);
+      assert.deepEqual(callback1.args, [[1], [2]]);
+      assert.deepEqual(callback2.args, [[3], [4]]);
+    });
+  });
 });

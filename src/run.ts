@@ -1,13 +1,14 @@
 import {Events} from "./Events";
+import {Behavior, sink} from "./Behaviour";
 
 type HasElement = {elm: HTMLElement}
-type RenderFn = (...obs: Events<any>[]) => HasElement
+type RenderFn = (...obs: Behavior<any>[]) => HasElement
 
 export default function(sel: string, render: RenderFn): void {
-  let initialEvents: Events<any>[] = [];
+  let initialBehaviors: Behavior<any>[] = [];
   for (let i = 0; i < render.length; ++i) {
-    initialEvents.push(new Events());
+    initialBehaviors.push(sink(undefined));
   }
-  const {elm} = render(...initialEvents);
+  const {elm} = render(...initialBehaviors);
   document.querySelector(sel).appendChild(elm);
 };

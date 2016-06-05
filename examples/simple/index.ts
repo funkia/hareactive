@@ -1,21 +1,15 @@
-import {Events, map} from "../../src/Events";
-import {h} from "../../src/DOMBuilder";
+import {Events} from "../../src/Events";
+import {Behavior} from "../../src/Behaviour";
+import {h, input, br} from "../../src/DOMBuilder";
 import run from "../../src/run";
 
-const app = (input$: Events<string>) => {
-  let inputOn: ((eventName: string) => Events<any>);
-
-  const DOM = h("div", [
+function app(input$: Behavior<string>) {
+  return h("div", [
     h("span", ["Hello "]), h("span", [input$]),
-    h("br"),
+    br(),
     h("label", ["Name: "]),
-    {on: inputOn} = h("input")
+    {inputValue: input$.def} = input()
   ]);
-
-  const inputEvent$ = inputOn("input");
-  input$.def = map((ev) => ev.target.value, inputEvent$);
-
-  return DOM;
-};
+}
 
 run("body", app);

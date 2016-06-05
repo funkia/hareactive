@@ -1,42 +1,69 @@
 import {Events, publish, subscribe, isEvents} from "./Events";
+import * as B from './Behaviour';
+import {Behavior} from './Behaviour';
 
-type Children = (Events<string> | Events<Component> | string | Component)[]
+type Children = (Behavior<string> | string | Component)[]
 
-type Component = {
-  elm: HTMLElement,
-  on: (event: string) => Events<any>
+export interface Component {
+  elm: HTMLElement;
+  event: EventTable;
 };
 
 interface EventTable {
   [index: string]: Events<any>;
 }
 
-export const h = (tag: string, children: Children = []): Component => {
+export function h(tag: string, children: Children = []): Component {
   const elm = document.createElement(tag);
+  const event: EventTable = {};
 
-  [].concat(children).forEach((ch) => {
-
-    if (isEvents(ch)) {
+  children.forEach((ch) => {
+    if (B.isBehavior(ch)) {
       const text = document.createElement("span");
-      subscribe((t: string) => text.innerText = t, ch);
+      B.subscribe((t: string) => text.innerText = t, ch);
       elm.appendChild(text);
+    } else if (typeof ch === "string") {
+      elm.appendChild(document.createTextNode(ch));
     } else {
-      elm.appendChild((typeof ch === "string") ? document.createTextNode(ch) : ch.elm);
+      elm.appendChild(ch.elm);
     }
   });
+  return {elm, event};
+}
 
-  let event: EventTable = {};
+export function on(eventName: string, comp: Component): Events<any> {
+  let {elm, event} = comp;
 
-  const on = (eventname: string) => {
-    if (event[eventname]) {
-      return event[eventname];
-    }
-
+  if (event[eventName]) {
+    return event[eventName];
+  } else {
     const event$ = new Events();
-    elm.addEventListener(eventname, (ev) => publish(ev, event$));
-    event[eventname] = event$;
+    elm.addEventListener(eventName, (ev) => publish(ev, event$));
+    event[eventName] = event$;
     return event$;
-  };
+  }
+}
 
-  return {elm, on};
-};
+export interface InputComponent extends Component {
+  inputValue: Behavior<string>;
+}
+
+export function input(): InputComponent {
+  const elm = document.createElement('input');
+  return {
+    elm,
+    event: {},
+    get inputValue() {
+      const newB = B.sink("");
+      elm.addEventListener(
+        "input",
+        (ev) => B.publish(ev.target.value, newB)
+      );
+      return newB;
+    }
+  }
+}
+
+export function br() {
+  return h("br");
+}
