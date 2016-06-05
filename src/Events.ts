@@ -1,14 +1,15 @@
-interface Body {
-  run: (a: any) => void;
-  pull: () => any;
-}
+import {
+  Reactive,
+  Body,
+  MapBody,
+  MapFunction,
+  SubscribeFunction
+} from "./frp-common";
 
-type SubscribeFunction<A> = ((a: A) => void);
 type ScanFunction<A, B> = ((b: B, a: A) => B);
-type MapFunction<A, B> = ((a: A) => B);
 type FilterFunction<A> = ((a: A) => boolean);
 
-export class Events<A> {
+export class Events<A> implements Reactive<A> {
   private cbListeners: ((a: A) => void)[] = [];
   public eventListeners: Events<any>[] = [];
   public last: A;
@@ -69,26 +70,6 @@ export class Events<A> {
     e.body = new ScanBody(fn, e, this);
     this.eventListeners.push(e);
     return e;
-  }
-}
-
-class MapBody<A, B> implements Body {
-  private fn: MapFunction<A, B>;
-  private source: Events<A>;  // srcE
-  private target: Events<B>;   // ev
-
-  constructor(fn: MapFunction<A, B>, target: Events<B>, source: Events<A>) {
-    this.fn = fn;
-    this.target = target;
-    this.source = source;
-  }
-
-  public run: ((a: A) => void) = a => {
-    this.target.publish(this.fn(a));
-  }
-
-  public pull: (() => B) = () => {
-    return this.fn(((this.source.last !== undefined) ? this.source.last : this.source.body.pull()));
   }
 }
 
@@ -244,58 +225,6 @@ class ScanBody<A, B> implements Body {
 
 // ConcatBody.prototype.pull = function() {
 //   return at(this.fstB).concat(at(this.sndB));
-// };
-
-// function Behavior(fn, k) {
-//   this.cbListeners = [];
-//   this.eventListeners = [];
-//   this.last = k;
-//   this.body = new PullBody(this, fn);
-// }
-
-// function at(b) {
-//   return b.last !== undefined ? b.last : b.body.pull();
-// }
-
-// Behavior.prototype.push = Event.prototype.push;
-
-// Behavior.prototype.clear = function() {
-//   if (this.last !== undefined) {
-//     var i; this.last = undefined;
-//     for (i = 0; i < this.eventListeners.length; ++i) {
-//       this.eventListeners[i].clear();
-//     }
-//   }
-// };
-
-// Behavior.prototype.map = function(fn) {
-//   var newB = new Behavior(this.last !== undefined ? fn(this.last) : undefined);
-//   newB.body = new MapBody(fn, newB, this);
-//   this.eventListeners.push(newB);
-//   return newB;
-// };
-
-// Behavior.prototype.ap = function(valB) {
-//   if (!(valB instanceof Behavior)) valB = new Behavior(undefined, valB);
-//   var fn = this.last, val = valB.last;
-//   var newB = new Behavior(undefined, fn !== undefined && val !== undefined ? fn(val) : undefined);
-//   newB.body = new ApBody(this, valB, newB);
-//   this.eventListeners.push(newB);
-//   valB.eventListeners.push(newB);
-//   return newB;
-// };
-
-// Behavior.prototype.of = function(val) {
-//   return new Behavior(undefined, val);
-// };
-
-// Behavior.prototype.concat = function(b) {
-//   var fst = this.last, snd = b.last;
-//   var newB = new Behavior(undefined, fst !== undefined && snd !== undefined ? fst.concat(snd) : undefined);
-//   newB.body = new ConcatBody(this, b, newB);
-//   this.eventListeners.push(newB);
-//   b.eventListeners.push(newB);
-//   return newB;
 // };
 
 // // Pull body
