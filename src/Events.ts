@@ -26,6 +26,13 @@ abstract class AbstractEvents<A> {
     }
   };
 
+  set def(events: AbstractEvents<any>) {
+    events.cbListeners.push(...this.cbListeners);
+    events.eventListeners.push(...this.eventListeners);
+    this.cbListeners = events.cbListeners;
+    this.eventListeners = events.eventListeners;
+  }
+
   public subscribe(fn: SubscribeFunction<A>): void {
     this.cbListeners.push(fn);
   }
