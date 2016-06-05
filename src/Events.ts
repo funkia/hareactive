@@ -65,11 +65,8 @@ export class Events<A> extends AbstractEvents<A> {
 }
 
 class MapEvents<A, B> extends AbstractEvents<B> {
-  private fn: MapFunction<A, B>;
-
-  constructor(fn: MapFunction<A, B>) {
+  constructor(private fn: MapFunction<A, B>) {
     super();
-    this.fn = fn;
   }
 
   public push(a: A): void {
@@ -78,11 +75,8 @@ class MapEvents<A, B> extends AbstractEvents<B> {
 }
 
 class FilterEvents<A> extends AbstractEvents<A> {
-  private fn: FilterFunction<A>;
-
-  constructor(fn: FilterFunction<A>) {
+  constructor(private fn: FilterFunction<A>) {
     super();
-    this.fn = fn;
   }
 
   public push(a: A): void {
@@ -93,12 +87,8 @@ class FilterEvents<A> extends AbstractEvents<A> {
 }
 
 class ScanEvents<A, B> extends AbstractEvents<B> {
-  private fn: ScanFunction<A, B>;
-
-  constructor(fn: ScanFunction<A, B>, startingValue: B) {
+  constructor(private fn: ScanFunction<A, B>, public last: B) {
     super();
-    this.fn = fn;
-    this.last = startingValue;
   }
 
   public push(a: A): void {
