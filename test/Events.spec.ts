@@ -3,18 +3,17 @@ import * as $ from "../src/Events";
 import {assert} from "chai";
 import {spy} from "sinon";
 
-describe("Events API:", function(): void {
-
-  describe("isEvents", function(): void {
-    it("should be a function", function(): void {
+describe("Events", () => {
+  describe("isEvents", () => {
+    it("should be a function", () => {
       assert.isFunction($.isEvents);
     });
 
-    it("should be true when Events object", function (): void {
+    it("should be true when Events object", () => {
       assert.isTrue($.isEvents(new $.Events()));
     });
 
-    it("should be false when not Events object", function (): void {
+    it("should be false when not Events object", () => {
       assert.isFalse($.isEvents([]));
       assert.isFalse($.isEvents({}));
       assert.isFalse($.isEvents("test"));
@@ -22,24 +21,20 @@ describe("Events API:", function(): void {
       assert.isFalse($.isEvents(1234));
       assert.isFalse($.isEvents($.isEvents));
     });
-
   });
 
-  describe("subscribe", function(): void {
-
-    it("should be a function", function(): void {
+  describe("subscribe", () => {
+    it("should be a function", () => {
       assert.isFunction($.subscribe);
     });
-
   });
 
-  describe("publish", function(): void {
-
-    it("should be a function", function(): void {
+  describe("publish", () => {
+    it("should be a function", () => {
       assert.isFunction($.publish);
     });
 
-    it("should call the subscribers", function(): void {
+    it("should call the subscribers", () => {
       const obs = new $.Events();
       const callback = spy();
       $.subscribe(callback, obs);
@@ -53,7 +48,7 @@ describe("Events API:", function(): void {
       assert.equal(callback.callCount, 2);
     });
 
-    it("should pass the published value to subscribers", function(): void {
+    it("should pass the published value to subscribers", () => {
       const obs = new $.Events();
       const callback1 = spy();
       const callback2 = spy();
@@ -70,17 +65,15 @@ describe("Events API:", function(): void {
       $.publish("another random value", obs);
       assert(callback1.calledWith("another random value"), err2);
       assert(callback2.calledWith("another random value"), err2);
-
     });
-
   });
 
-  describe("merge", function(): void {
-    it("should be a function", function(): void {
+  describe("merge", () => {
+    it("should be a function", () => {
       assert.isFunction($.merge);
     });
 
-    it("should merge two Events", function(): void {
+    it("should merge two Events", () => {
       const event$1 = new $.Events();
       const event$2 = new $.Events();
       const callback = spy();
@@ -91,16 +84,15 @@ describe("Events API:", function(): void {
       $.publish("2", event$2);
 
       assert.deepEqual(callback.args, [[1], ["2"]]);
-
     });
   });
 
-  describe("map", function(): void {
-    it("should be a function", function(): void {
+  describe("map", () => {
+    it("should be a function", () => {
       assert.isFunction($.map);
     });
 
-    it("should map the published values", function(): void {
+    it("should map the published values", () => {
       const obs = new $.Events();
       const callback = spy();
 
@@ -118,13 +110,12 @@ describe("Events API:", function(): void {
     });
   });
 
-  describe("filter", function(): void {
-
-    it("should be a function", function(): void {
+  describe("filter", () => {
+    it("should be a function", () => {
       assert.isFunction($.filter);
     });
 
-    it("should filter the unwanted publishions", function(): void {
+    it("should filter the unwanted publishions", () => {
       const obs = new $.Events();
       const callback = spy();
 
@@ -141,12 +132,12 @@ describe("Events API:", function(): void {
     });
   });
 
-  describe("scan", function(): void {
-    it("should be a function", function(): void {
+  describe("scan", () => {
+    it("should be a function", () => {
       assert.isFunction($.scan);
     });
 
-    it("should scan the values", function(): void {
+    it("should scan the values", () => {
       const event$ = new $.Events();
       const callback = spy();
       const sum = (currSum: number, val: number) => currSum + val;
@@ -159,7 +150,6 @@ describe("Events API:", function(): void {
       }
 
       assert.deepEqual(callback.args, [[0], [1], [3], [6], [10], [15], [21], [28], [36], [45]]);
-
     });
   });
 });
