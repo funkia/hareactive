@@ -1,15 +1,13 @@
-type PushFunction<A> = ((a: A) => any);
-type SubscribeFunction<A> = ((a: A) => void);
-type ScanFunction<A, B> = ((b: B, a: A) => B);
-type MapFunction<A, B> = ((a: A) => B);
-type FilterFunction<A> = ((a: A) => boolean);
+import {
+  Reactive,
+  Body,
+  MapFunction,
+  SubscribeFunction,
+  ScanFunction,
+  FilterFunction
+} from "./frp-common";
 
-interface Body {
-  run: (a: any) => void;
-  pull: () => any;
-}
-
-export class Events<A> {
+export class Events<A> implements Reactive<A> {
   private cbListeners: ((a: A) => void)[] = [];
   public eventListeners: Events<any>[] = [];
   public last: A;

@@ -1,8 +1,9 @@
-type PushFunction<A> = ((a: A) => any);
-type SubscribeFunction<A> = ((a: A) => void);
-type ScanFunction<A, B> = ((b: B, a: A) => B);
-type MapFunction<A, B> = ((a: A) => B);
-type FilterFunction<A> = ((a: A) => boolean);
+import {
+  MapFunction,
+  SubscribeFunction,
+  ScanFunction,
+  FilterFunction
+} from "./frp-common";
 
 abstract class AbstractEvents<A> {
   public last: A;
