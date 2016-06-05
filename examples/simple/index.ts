@@ -1,18 +1,18 @@
 import {Events, map} from "../../src/Events";
-import {h} from "../../src/DOMBuilder";
+import {Component, h, on} from "../../src/DOMBuilder";
 import run from "../../src/run";
 
 const app = (input$: Events<string>) => {
-  let inputOn: ((eventName: string) => Events<any>);
+  let nameInput: Component;
 
   const DOM = h("div", [
     h("span", ["Hello "]), h("span", [input$]),
     h("br"),
     h("label", ["Name: "]),
-    {on: inputOn} = h("input")
+    nameInput = h("input")
   ]);
 
-  const inputEvent$ = inputOn("input");
+  const inputEvent$ = on("input", nameInput);
   input$.def = map((ev) => ev.target.value, inputEvent$);
 
   return DOM;

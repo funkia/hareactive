@@ -2,20 +2,20 @@ import {Events, publish, subscribe, isEvents} from "./Events";
 
 type Children = (Events<string> | Events<Component> | string | Component)[]
 
-type Component = {
+export type Component = {
   elm: HTMLElement,
-  on: (event: string) => Events<any>
+  event: EventTable
 };
 
 interface EventTable {
   [index: string]: Events<any>;
 }
 
-export const h = (tag: string, children: Children = []): Component => {
+export function h(tag: string, children: Children = []): Component {
   const elm = document.createElement(tag);
+  const event: EventTable = {};
 
   [].concat(children).forEach((ch) => {
-
     if (isEvents(ch)) {
       const text = document.createElement("span");
       subscribe((t: string) => text.innerText = t, ch);
@@ -25,18 +25,18 @@ export const h = (tag: string, children: Children = []): Component => {
     }
   });
 
-  let event: EventTable = {};
+  return {elm, event};
+}
 
-  const on = (eventname: string) => {
-    if (event[eventname]) {
-      return event[eventname];
-    }
+export function on(eventName: string, comp: Component): Events<any> {
+  let {elm, event} = comp;
 
+  if (event[eventName]) {
+    return event[eventName];
+  } else {
     const event$ = new Events();
-    elm.addEventListener(eventname, (ev) => publish(ev, event$));
-    event[eventname] = event$;
+    elm.addEventListener(eventName, (ev) => publish(ev, event$));
+    event[eventName] = event$;
     return event$;
-  };
-
-  return {elm, on};
-};
+  }
+}
