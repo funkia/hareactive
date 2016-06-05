@@ -28,6 +28,13 @@ export class Behavior<A> implements Reactive<A> {
     }
   };
 
+  set def(b: Behavior<any>) {
+    b.cbListeners.push(...this.cbListeners);
+    b.eventListeners.push(...this.eventListeners);
+    this.cbListeners = b.cbListeners;
+    this.eventListeners = b.eventListeners;
+  }
+
   public clear(): void {
     if (this.last !== undefined) {
       this.last = undefined;
@@ -118,4 +125,8 @@ export function publish<A>(a: A, b: Behavior<A>): void {
 
 export function map<A, B>(fn: MapFunction<A, B> , b: Behavior<A>): Behavior<B> {
   return b.map(fn);
+}
+
+export function isBehavior(b: any): b is Behavior<any> {
+  return b instanceof Behavior;
 }
