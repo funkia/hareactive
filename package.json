@@ -11,8 +11,8 @@
     "postinstall": "./node_modules/.bin/typings install",
     "pretest": "./node_modules/.bin/tsc test/*.spec.ts --module commonjs --target ES5",
     "test": "./node_modules/.bin/mocha test/**/*.spec.js",
-    "prebench": "./node_modules/.bin/tsc test/*.spec.ts --module commonjs --target ES5",
-    "bench": "node benchmark"
+    "prebench": "./node_modules/.bin/tsc benchmark/*.ts --module commonjs --target ES5",
+      "bench": "node benchmark"
   },
   "repository": {
     "type": "git",
