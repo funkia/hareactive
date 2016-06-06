@@ -15,7 +15,7 @@ function double(n: number): number {
   return n * 2;
 }
 
-const add = (a) => (b) => a + b;
+const add = (a: number) => (b: number) => a + b;
 
 describe("Behavior", () => {
   it("pulls constant function", () => {
@@ -43,7 +43,7 @@ describe("Behavior", () => {
   });
   it("allows listening on discrete changes", () => {
     const b = B.sink(0);
-    const result = [];
+    const result: number[] = [];
     B.subscribe((v) => { result.push(v); }, b);
     b.publish(1);
     b.publish(2);
@@ -125,48 +125,54 @@ describe("Behavior", () => {
       assert.equal(B.at(mapped), 6);
     });
   });
-  // describe("ap", () => {
-  // it("applies event of functions to event of numbers with publish", () => {
-    //   const result = [];
-    //   const fnB = B.BehaviorK(add(1));
-    //   const numE = B.BehaviorK(3);
+  describe("ap", () => {
+    it("applies event of functions to event of numbers with publish", () => {
+      const fnB = B.sink(add(1));
+      const numE = B.sink(3);
+      const applied = B.ap(fnB, numE);
+      assert.equal(B.at(applied), 4);
+      fnB.publish(add(2));
+      assert.equal(B.at(applied), 5);
+      numE.publish(4);
+      assert.equal(B.at(applied), 6);
+      fnB.publish(double);
+      assert.equal(B.at(applied), 8);
+    });
+    it("applies event of functions to event of numbers with pull", () => {
+      let number = 1;
+      let fn = add(5);
+      const fnB = B.fromFunction(() => fn);
+      const numB = B.fromFunction(() => number);
+      const applied = B.ap(fnB, numB);
+
+      assert.equal(B.at(applied), 6);
+      fn = add(2);
+      assert.equal(B.at(applied), 3);
+      number = 4;
+      assert.equal(B.at(applied), 6);
+      fn = double;
+      assert.equal(B.at(applied), 8);
+      number = 8;
+      assert.equal(B.at(applied), 16);
+    });
+    // it("applies pushed event of functions to pulled event of numbers", () => {
+    //   let number = 1;
+    //   const fnB = B.of(add(5));
+    //   const numE = B.fromFunction(() => {
+    //     return number;
+    //   });
     //   const applied = B.ap(fnB, numE);
-    //   assert.equal(B.at(applied), 4);
-    //   fnB.publish(add(2));
-    //   assert.equal(B.at(applied), 5);
-    //   fnB.publish(double);
     //   assert.equal(B.at(applied), 6);
-    //   fnB.publish(isEven);
-    //   assert.equal(B.at(applied), false);
-    //   numE.publish(8);
-    //   assert.equal(B.at(applied), true);
+    //   fnB.publish(add(2));
+    //   assert.equal(B.at(applied), 3);
+    //   number = 4;
+    //   assert.equal(B.at(applied), 6);
     //   fnB.publish(double);
+    //   assert.equal(B.at(applied), 8);
+    //   number = 8;
     //   assert.equal(B.at(applied), 16);
     // });
-  //   it("applies event of functions to event of numbers with pull", () => {
-  //     const number = 1;
-  //     const fnB = B.of(add(5));
-  //     const numE = B.fromFunction(() => {
-  //       return number;
-  //     });
-  //     const applied = E.ap(fnB, numE);
-  //     assert.equal(B.at(applied), 6);
-  //     fnB.publish(add(2));
-  //     assert.equal(B.at(applied), 3);
-  //     number = 4;
-  //     assert.equal(B.at(applied), 6);
-  //     fnB.publish(double);
-  //     assert.equal(B.at(applied), 8);
-  //     number = 8;
-  //     assert.equal(B.at(applied), 16);
-  //   });
-  //   it("automatically lift constants", () => {
-  //     const result = [];
-  //     const fnB = B.of(add(1));
-  //     const applied = B.ap(fnB, 3);
-  //     assert.equal(B.at(applied), 4);
-  //   });
-  // });
+  });
   // describe("of", () => {
   //   it("identity", () => {
   //     const result1 = [];
