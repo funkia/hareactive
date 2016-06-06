@@ -1,34 +1,34 @@
 import {
-  Reactive,
-  Body,
-  MapBody,
   MapFunction,
   SubscribeFunction
 } from "./frp-common";
 
-export class Behavior<A> implements Reactive<A> {
-  public cbListeners: ((a: A) => void)[] = [];
+export abstract class Behavior<A> {
+  public cbListeners: ((b: A) => void)[] = [];
   public eventListeners: Behavior<any>[] = [];
   public last: A;
-  public body: Body;
 
-  public publish(a: A): void {
-    this.last = a;
+  public publish(b: A): void {
+    this.last = b;
 
     let i = 0;
     let l = this.cbListeners.length;
     for (; i < l; i++) {
-      this.cbListeners[i](a);
+      this.cbListeners[i](b);
     }
 
     i = 0;
     l = this.eventListeners.length;
     for (; i < l; i++) {
-      this.eventListeners[i].body.run(a);
+      this.eventListeners[i].push(b);
     }
   };
 
-  set def(b: Behavior<any>) {
+  public abstract push(a: any): void;
+
+  public abstract pull(): A;
+
+  set def(b: Behavior<A>) {
     b.cbListeners.push(...this.cbListeners);
     b.eventListeners.push(...this.eventListeners);
     this.cbListeners = b.cbListeners;
@@ -45,37 +45,61 @@ export class Behavior<A> implements Reactive<A> {
   };
 
   public map<B>(fn: MapFunction<A, B>): Behavior<B> {
-    const newB = new Behavior<B>();
-    if (this.last !== undefined) {
-      newB.last = fn(this.last);
-    }
-    newB.body = new MapBody(fn, newB, this);
+    const newB = new MapBehavior<A, B>(this, fn);
     this.eventListeners.push(newB);
     return newB;
   };
 
-  public of: <B>(v: B) => Behavior<B> = of;
+  public of: <A>(v: A) => Behavior<A> = of;
 }
 
 export function of<B>(val: B): Behavior<B> {
-  const newB = new Behavior<B>();
-  newB.last = val;
-  newB.body = new PullBody(
-    newB,
-    () => val // FIXME: create specific constant body
-  );
-  return newB;
+  return new ConstantBehavior(val);
 }
 
-export function at<A>(b: Behavior<A>): A {
-  return b.last !== undefined ? b.last : b.body.pull();
+export function at<B>(b: Behavior<B>): B {
+  return b.last !== undefined ? b.last : b.pull();
 }
 
-class PullBody<A> implements Body {
-  constructor(private b: Behavior<A>, private fn: () => A) { }
+class ConstantBehavior<A> extends Behavior<A> {
+  constructor(public last: A) {
+    super();
+  }
 
-  public run(v: A): void {
-    this.b.publish(v);
+  public push(): void {
+    throw new Error("Cannot push a value to a constant behavior");
+  }
+
+  public pull(): A {
+    return this.last;
+  }
+}
+
+class MapBehavior<A, B> extends Behavior<B> {
+  constructor(
+    private parent: Behavior<any>,
+    private fn: MapFunction<A, B>
+  ) {
+    super();
+  }
+
+  public push(a: any): void {
+    this.last = this.fn(a);
+    this.publish(this.last);
+  }
+
+  public pull(): B {
+    return this.fn(at(this.parent));
+  }
+}
+
+class FunctionBehavior<A> extends Behavior<A> {
+  constructor(private fn: () => A) {
+    super();
+  }
+
+  public push(v: A): void {
+    throw new Error("Cannot push to a FunctionBehavior");
   }
 
   public pull(): A {
@@ -83,17 +107,22 @@ class PullBody<A> implements Body {
   }
 }
 
-class ApBody<A, B> {
+class ApBehavior<A, B> extends Behavior<B> {
+  public last: B;
+
   constructor(
     private fn: Behavior<(a: A) => B>,
-    private val: Behavior<A>,
-    private self: Behavior<B>
-  ) { }
+    private val: Behavior<A>
+  ) {
+    super();
+    this.last = at(fn)(at(val));
+  }
 
-  public run(): void {
+  public push(): void {
     const fn = at(this.fn);
     const val = at(this.val);
-    this.self.publish(fn(val));
+    this.last = fn(val);
+    this.publish(this.last);
   }
 
   public pull(): B {
@@ -101,17 +130,28 @@ class ApBody<A, B> {
   }
 }
 
+class SinkBehavior<B> extends Behavior<B> {
+  constructor(public last: B) {
+    super();
+  }
+
+  public push(v: B): void {
+    this.last = v;
+    this.publish(v);
+  }
+
+  public pull(): B {
+    return this.last;
+  }
+}
+
 // Creates a pull Behavior from a continous function
-export function fromFunction<A>(fn: () => A): Behavior<A> {
-  const newB = new Behavior<A>();
-  newB.body = new PullBody(newB, fn);
-  return newB;
+export function fromFunction<A, B>(fn: () => B): Behavior<B> {
+  return new FunctionBehavior(fn);
 }
 
 export function sink<A>(initialValue: A): Behavior<A> {
-  const newB = new Behavior<A>();
-  newB.last = initialValue;
-  return newB;
+  return new SinkBehavior<A>(initialValue);
 }
 
 export function subscribe<A>(fn: SubscribeFunction<A>, b: Behavior<A>): void {
@@ -127,8 +167,7 @@ export function map<A, B>(fn: MapFunction<A, B> , b: Behavior<A>): Behavior<B> {
 }
 
 export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
-  const newB = new Behavior<B>();
-  newB.body = new ApBody(fnB, valB, newB);
+  const newB = new ApBehavior<A, B>(fnB, valB);
   fnB.eventListeners.push(newB);
   valB.eventListeners.push(newB);
   return newB;
