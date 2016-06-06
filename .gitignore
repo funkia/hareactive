@@ -1,6 +1,6 @@
 *.log
 bundle.js
-bundle.js.map
+*.map
 node_modules/
 *~
 typings

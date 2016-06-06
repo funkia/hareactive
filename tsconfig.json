@@ -3,12 +3,15 @@
     "target": "es5",
     "module": "commonjs",
     "outDir": "dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "noImplicitAny": true,
     "sourceMap": true
   },
-  "filesGlob": [
-    "src/**/*.ts"
+  "files":[
+    "src/Events.ts",
+    "src/Behaviour.ts",
+    "src/DOMBuilder.ts",
+    "src/run.ts"
   ],
   "exclude": [
     "node_modules"

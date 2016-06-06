@@ -10,8 +10,8 @@
   "scripts": {
     "postinstall": "./node_modules/.bin/typings install",
     "test": "./node_modules/.bin/mocha --require ts-node/register test/**/*.spec.ts",
-    "prebench": "./node_modules/.bin/tsc benchmark/*.ts --module commonjs --target ES5",
-    "bench": "node benchmark"
+    "prebench": "./node_modules/.bin/tsc",
+    "bench": "node benchmark/scan"
   },
   "repository": {
     "type": "git",
