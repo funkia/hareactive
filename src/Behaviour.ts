@@ -71,25 +71,6 @@ export function at<A>(b: Behavior<A>): A {
   return b.last !== undefined ? b.last : b.body.pull();
 }
 
-// Behavior.prototype.ap = function(valB) {
-//   if (!(valB instanceof Behavior)) valB = new Behavior(undefined, valB);
-//   var fn = this.last, val = valB.last;
-//   var newB = new Behavior(undefined, fn !== undefined && val !== undefined ? fn(val) : undefined);
-//   newB.body = new ApBody(this, valB, newB);
-//   this.eventListeners.push(newB);
-//   valB.eventListeners.push(newB);
-//   return newB;
-// };
-
-// Behavior.prototype.concat = function(b) {
-//   var fst = this.last, snd = b.last;
-//   var newB = new Behavior(undefined, fst !== undefined && snd !== undefined ? fst.concat(snd) : undefined);
-//   newB.body = new ConcatBody(this, b, newB);
-//   this.eventListeners.push(newB);
-//   b.eventListeners.push(newB);
-//   return newB;
-// };
-
 class PullBody<A> implements Body {
   constructor(private b: Behavior<A>, private fn: () => A) { }
 
@@ -99,6 +80,24 @@ class PullBody<A> implements Body {
 
   public pull(): A {
     return this.fn();
+  }
+}
+
+class ApBody<A, B> {
+  constructor(
+    private fn: Behavior<(a: A) => B>,
+    private val: Behavior<A>,
+    private self: Behavior<B>
+  ) { }
+
+  public run(): void {
+    const fn = at(this.fn);
+    const val = at(this.val);
+    this.self.publish(fn(val));
+  }
+
+  public pull(): B {
+    return at(this.fn)(at(this.val));
   }
 }
 
@@ -125,6 +124,14 @@ export function publish<A>(a: A, b: Behavior<A>): void {
 
 export function map<A, B>(fn: MapFunction<A, B> , b: Behavior<A>): Behavior<B> {
   return b.map(fn);
+}
+
+export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
+  const newB = new Behavior<B>();
+  newB.body = new ApBody(fnB, valB, newB);
+  fnB.eventListeners.push(newB);
+  valB.eventListeners.push(newB);
+  return newB;
 }
 
 export function isBehavior(b: any): b is Behavior<any> {

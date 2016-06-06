@@ -1,7 +1,6 @@
 import {suite} from "./default-suite";
 import * as most from "most";
 import * as $ from "../src/Events";
-import * as $_old from "../src/Events_old";
 
 const n = 100000;
 
@@ -30,21 +29,6 @@ export default suite("Scan")
     const l = testData.length;
     for (; i < l; i++) {
       $.publish(testData[i], j);
-    }
-  }, {defer: true})
-
-  .add("Events_old", function(defered: any): void {
-    let j = new $_old.Events();
-    let s = $_old.scan(sum, 0, j);
-    $_old.subscribe(function(e: number): void {
-      if (e === result) {
-        defered.resolve();
-      }
-    }, s);
-    let i = 0;
-    const l = testData.length;
-    for (; i < l; i++) {
-      $_old.publish(testData[i], j);
     }
   }, {defer: true})
 
