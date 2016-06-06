@@ -9,10 +9,9 @@
   },
   "scripts": {
     "postinstall": "./node_modules/.bin/typings install",
-    "pretest": "./node_modules/.bin/tsc test/*.spec.ts --module commonjs --target ES5",
-    "test": "./node_modules/.bin/mocha test/**/*.spec.js",
+    "test": "./node_modules/.bin/mocha --require ts-node/register test/**/*.spec.ts",
     "prebench": "./node_modules/.bin/tsc benchmark/*.ts --module commonjs --target ES5",
-      "bench": "node benchmark"
+    "bench": "node benchmark"
   },
   "repository": {
     "type": "git",
@@ -35,6 +34,7 @@
     "mocha": "^2.5.3",
     "most": "^0.19.7",
     "sinon": "^1.17.4",
+    "ts-node": "^0.8.0",
     "typescript": "^1.8.10",
     "typings": "^1.0.4",
     "webpack": "^1.13.1"

@@ -1,6 +1,6 @@
 import {Events, publish, subscribe, isEvents} from "./Events";
-import * as B from './Behaviour';
-import {Behavior} from './Behaviour';
+import * as B from "./Behaviour";
+import {Behavior} from "./Behaviour";
 
 type Children = (Behavior<string> | string | Component)[]
 
@@ -49,21 +49,21 @@ export interface InputComponent extends Component {
 }
 
 export function input(): InputComponent {
-  const elm = document.createElement('input');
+  const elm = document.createElement("input");
   return {
     elm,
     event: {},
-    get inputValue() {
+    get inputValue(): Behavior<string> {
       const newB = B.sink("");
       elm.addEventListener(
         "input",
-        (ev) => B.publish(ev.target.value, newB)
+        (ev: any) => B.publish(ev.target.value, newB)
       );
       return newB;
     }
-  }
+  };
 }
 
-export function br() {
+export function br(): Component {
   return h("br");
 }

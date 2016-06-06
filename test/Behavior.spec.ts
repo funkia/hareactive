@@ -1,4 +1,4 @@
-import "./../typings/index.d.ts";
+// import "./../typings/index.d.ts";
 import * as B from "../src/Behaviour";
 import {assert} from "chai";
 // import {spy} from "sinon";
@@ -15,7 +15,7 @@ function double(n: number): number {
   return n * 2;
 }
 
-const add = (a) => (b) => a + b;
+const add = (a: number) => (b: number) => a + b;
 
 describe("Behavior", () => {
   it("pulls constant function", () => {
@@ -28,6 +28,7 @@ describe("Behavior", () => {
     b.publish(3);
     assert.equal(B.at(b), 3);
   });
+
   it("publishes from time varying functions", () => {
     let time = 0;
     const b = B.fromFunction(() => {
@@ -41,23 +42,25 @@ describe("Behavior", () => {
     time = 3;
     assert.equal(B.at(b), 3);
   });
+
   it("allows listening on discrete changes", () => {
     const b = B.sink(0);
-    const result = [];
+    const result: number[] = [];
     B.subscribe((v) => { result.push(v); }, b);
     b.publish(1);
     b.publish(2);
     b.publish(3);
     assert.deepEqual(result, [1, 2, 3]);
   });
+
   describe("concat", () => {
-    let mNumber;
-    const mAdd = (m) => {
-      return mNumber(this.n + m.n);
-    };
-    mNumber = (n) => {
-      return {n: n, concat: mAdd};
-    };
+    // let mNumber: (a: number);
+    // const mAdd = (m) => {
+    //   return mNumber(this.n + m.n);
+    // };
+    // mNumber = (n) => {
+    //   return {n: n, concat: mAdd};
+    // };
     // it("appends values from behaviors with publish", () => {
     //   const nB = B.BehaviorK(mNumber(1));
     //   const mB = B.BehaviorK(mNumber(2));
