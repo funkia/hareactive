@@ -1,4 +1,4 @@
-// import "./../typings/index.d.ts";
+///<reference path="./../typings/index.d.ts" />
 import * as $ from "../src/Events";
 import {assert} from "chai";
 import {spy} from "sinon";
