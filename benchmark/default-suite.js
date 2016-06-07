@@ -16,24 +16,32 @@ function Suite(name) {
       }
     })
     .on("start", function () {
-      console.log("\n--------------------- " + this.name + " ---------------------");
+      console.log("\n\n" + banner(67, this.name));
     })
     .on("complete", function () {
-      console.log("------------------ Winner: " + this.filter("fastest").map("name") + " ------------------");
+      console.log(banner(67, "Best: " + this.filter("fastest").map("name")));
     });
 }
 exports.Suite = Suite;
 
 function padl(n, s) {
-    while (s.length < n) {
-        s += " ";
-    }
-    return s;
+  while (s.length < n) {
+    s += " ";
+  }
+  return s;
 }
 
 function padr(n, s) {
-    while (s.length < n) {
-        s = " " + s;
-    }
-    return s;
+  while (s.length < n) {
+    s = " " + s;
+  }
+  return s;
+}
+
+function banner(n, s) {
+  s = " " + s + " ";
+  while (s.length < n) {
+    s = "-" + s + "-";
+  }
+  return s;
 }

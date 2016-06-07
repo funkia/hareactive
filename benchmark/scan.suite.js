@@ -15,7 +15,7 @@ function sum(curr, val) {
     return curr + val;
 }
 
-Suite("Scan")
+module.exports = Suite("Scan")
 
   .add("Events", function (defered) {
     var j = new $.Events();

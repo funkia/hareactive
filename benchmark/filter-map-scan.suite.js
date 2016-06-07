@@ -24,7 +24,7 @@ function even(x) {
     return x % 2 === 0;
 }
 
-Suite("filter-map-reduce")
+module.exports = Suite("filter-map-reduce")
 
   .add("Events", function (defered) {
     var ev = new $.Events();

@@ -15,7 +15,7 @@ npm test
 ```
 
 ## Benchmark
-To run a single benchmark: (You will have to compile some of the files first)
+To run a single benchmark: (You will have to compile first `npm run build`)
 ```
 node benchmark/<name-of-benchmark>
 ```
@@ -23,11 +23,11 @@ node benchmark/<name-of-benchmark>
 
 example:
 ```
-node benchmark/scan
+node benchmark/scan.suite
 ```
 
 
-To run all benchmarks
+To compile and run all benchmarks
 ```
 npm run bench
 ```
