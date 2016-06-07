@@ -121,6 +121,29 @@ export function snapshot<A, B>(behavior: Behavior<B>, events: AbstractEvents<A>)
   return new SnapshotEvents(behavior, events);
 }
 
+class SnapshotWithEvents<A, B, C> extends AbstractEvents<C> {
+  constructor(
+    private fn: (a: A, b: B) => C,
+    private behavior: Behavior<B>,
+    events: AbstractEvents<A>
+  ) {
+    super();
+    events.eventListeners.push(this);
+  }
+
+  public push(a: A): void {
+    this.publish(this.fn(a, at(this.behavior)));
+  }
+}
+
+export function snapshotWith<A, B, C>(
+  fn: (a: A, b: B) => C,
+  behavior: Behavior<B>,
+  events: AbstractEvents<A>
+): AbstractEvents<C> {
+  return new SnapshotWithEvents(fn, behavior, events);
+}
+
 export function empty<A>(): Events<A> {
   return new Events<A>();
 }

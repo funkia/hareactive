@@ -7,6 +7,7 @@ import {assert} from "chai";
 import {spy} from "sinon";
 
 const addTwo = (v: number): number => v + 2;
+const sum = (a: number, b: number): number => a + b;
 
 describe("Events", () => {
   describe("isEvents", () => {
@@ -190,6 +191,24 @@ describe("Events", () => {
       $.publish(4, e);
       assert.deepEqual(callback.args, [
         [[0, 0]], [[1, 0]], [[2, 1]], [[3, 2]], [[4, 2]]
+      ]);
+    });
+    it("it applies function in snapshotWith to pull based Behavior", () => {
+      let n = 0;
+      const b: Behavior<number> = B.fromFunction(() => n);
+      const e: AbstractEvents<number> = new $.Events<number>();
+      const shot = $.snapshotWith<number, number, number>(sum, b, e);
+      const callback = spy();
+      $.subscribe(callback, shot);
+      $.publish(0, e);
+      $.publish(1, e);
+      n = 1;
+      $.publish(2, e);
+      n = 2;
+      $.publish(3, e);
+      $.publish(4, e);
+      assert.deepEqual(callback.args, [
+        [0], [1], [3], [5], [6]
       ]);
     });
   });
