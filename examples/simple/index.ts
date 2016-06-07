@@ -6,7 +6,7 @@ function app(): Component {
   const input$ = sink<string>("");
 
   return h("div", [
-    h("span", ["Hello "]), h("span", [input$]),
+    h("span.classname#myid", ["Hello ", input$]),
     br(),
     h("label", ["Name: "]),
     {inputValue: input$.def} = input()

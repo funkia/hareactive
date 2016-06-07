@@ -1,5 +1,5 @@
 import {
-  AbstractEvents, Events, publish, subscribe, isEvents
+  AbstractEvents, Events, publish
 } from "./Events";
 import * as B from "./Behavior";
 import {Behavior, at} from "./Behavior";
@@ -15,8 +15,24 @@ interface EventTable {
   [index: string]: Events<any>;
 }
 
+function createElement(tag: string): HTMLElement {
+  const parsedTag = tag.match(/[.#]?\w+/g);
+  const elm = document.createElement(parsedTag[0]);
+
+  for (let i = 1; i < parsedTag.length; i++) {
+    let classOrId = parsedTag[i];
+    let name = classOrId.substring(1, classOrId.length);
+    if (classOrId[0] === "#") {
+      elm.setAttribute("id", name);
+    } else if (classOrId[0] === ".") {
+      elm.classList.add(name);
+    }
+  }
+  return elm;
+}
+
 export function h(tag: string, children: Children = []): Component {
-  const elm = document.createElement(tag);
+  const elm = createElement(tag);
   const event: EventTable = {};
 
   const childrenLength = children.length;
@@ -65,7 +81,6 @@ export function on(eventName: string, comp: Component): Events<any> {
     return event$;
   }
 }
-
 
 // Beware: ugly component implementations below
 
