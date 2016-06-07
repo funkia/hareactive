@@ -19,29 +19,37 @@ export function h(tag: string, children: Children = []): Component {
   const elm = document.createElement(tag);
   const event: EventTable = {};
 
-  children.forEach((ch) => {
+  const childrenLength = children.length;
+  for (let i = 0; i < childrenLength; i++) {
+    let ch = children[i];
+
     if (B.isBehavior(ch)) {
-      const text = document.createElement("span");
+      const text = document.createTextNode("");
       const initial = at(ch);
-      text.innerText = typeof initial === "string" ? initial : initial.toString();
+      text.nodeValue = typeof initial === "string" ? initial : initial.toString();
       elm.appendChild(text);
+
       if (ch.pushing === true) {
-        B.subscribe((t: string) => text.innerText = t, ch);
+        B.subscribe((t: string) => text.nodeValue = t, ch);
+
       } else {
         // quick hack below
         const sampleFn = () => {
           const newVal = at(ch);
-          text.innerText = typeof newVal === "string" ? newVal : newVal.toString();
+          text.nodeValue = typeof newVal === "string" ? newVal : newVal.toString();
           window.requestAnimationFrame(sampleFn);
         };
         window.requestAnimationFrame(sampleFn);
       }
+
     } else if (typeof ch === "string") {
       elm.appendChild(document.createTextNode(ch));
+
     } else {
       elm.appendChild(ch.elm);
     }
-  });
+  }
+
   return {elm, event};
 }
 
@@ -57,6 +65,7 @@ export function on(eventName: string, comp: Component): Events<any> {
     return event$;
   }
 }
+
 
 // Beware: ugly component implementations below
 
