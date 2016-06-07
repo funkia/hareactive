@@ -3,16 +3,10 @@
     "target": "es5",
     "module": "commonjs",
     "outDir": "dist",
-    "rootDir": "./src",
+    "rootDir": "./../",
     "noImplicitAny": true,
     "sourceMap": true
   },
-  "files":[
-    "src/Events.ts",
-    "src/Behavior.ts",
-    "src/DOMBuilder.ts",
-    "src/run.ts"
-  ],
   "exclude": [
     "node_modules"
   ]
