@@ -3,6 +3,10 @@ export interface Body {
   pull: () => any;
 }
 
+export interface Pushable<A> {
+  push: (a: A) => void;
+};
+
 export interface Reactive<A> {
   publish: (a: A) => void;
   last: A;

@@ -2,12 +2,13 @@ import {
   MapFunction,
   SubscribeFunction,
   ScanFunction,
-  FilterFunction
+  FilterFunction,
+  Pushable
 } from "./frp-common";
 
 abstract class AbstractEvents<A> {
   public last: A;
-  public eventListeners: AbstractEvents<any>[] = [];
+  public eventListeners: Pushable<A>[] = [];
   private cbListeners: ((a: A) => void)[] = [];
 
   public publish(a: A): void {

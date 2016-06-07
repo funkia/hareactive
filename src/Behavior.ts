@@ -3,6 +3,8 @@ import {
   SubscribeFunction
 } from "./frp-common";
 
+import {Events} from "./Events";
+
 export abstract class Behavior<A> {
   public cbListeners: ((b: A) => void)[] = [];
   public eventListeners: Behavior<any>[] = [];
@@ -149,6 +151,28 @@ class SinkBehavior<B> extends Behavior<B> {
   public pull(): B {
     return this.last;
   }
+}
+
+class StepperBehavior<B> extends Behavior<B> {
+  constructor(initial: B, private steps: Events<B>) {
+    super();
+    this.pushing = true;
+    this.last = initial;
+    steps.eventListeners.push(this);
+  }
+
+  public push(val: B): void {
+    this.last = val;
+    this.publish(val);
+  }
+
+  public pull(): B {
+    throw new Error("Cannot pull from StepperBehavior");
+  }
+}
+
+export function stepper<B>(initial: B, steps: Events<B>): Behavior<B> {
+  return new StepperBehavior(initial, steps);
 }
 
 // Creates a pull Behavior from a continous function

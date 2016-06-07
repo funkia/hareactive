@@ -1,5 +1,6 @@
 ///<reference path="./../typings/index.d.ts" />
 import * as B from "../src/Behavior";
+import * as E from "../src/Events";
 import {assert} from "chai";
 // import {spy} from "sinon";
 
@@ -207,15 +208,20 @@ describe("Behavior", () => {
   //   B.publish(b, 4);
   //   assert.equal(B.at(mapped), 8);
   // });
-  // describe("stepper", () => {
-  //   it("steps to the last event value", () => {
-  //     const e = new E.Event();
-  //     const b = new B.stepper(0, e);
-  //     assert.equal(B.at(b), 0);
-  //     e.publish(1);
-  //     assert.equal(B.at(b), 1);
-  //     e.publish(2);
-  //     assert.equal(B.at(b), 2);
+});
+
+describe("Behavior and Events", () => {
+  describe("stepper", () => {
+    it("steps to the last event value", () => {
+      const e = new E.Events();
+      const b = B.stepper(0, e);
+      assert.equal(B.at(b), 0);
+      e.publish(1);
+      assert.equal(B.at(b), 1);
+      e.publish(2);
+      assert.equal(B.at(b), 2);
+    });
+  });
   //   });
   // });
 });
