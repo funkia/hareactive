@@ -1,5 +1,5 @@
 import {Events} from "./Events";
-import {Behavior, sink} from "./Behaviour";
+import {Behavior, sink} from "./Behavior";
 
 type HasElement = {elm: HTMLElement}
 type RenderFn = (...obs: Behavior<any>[]) => HasElement

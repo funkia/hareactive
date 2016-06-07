@@ -1,6 +1,6 @@
 import {Events, publish, subscribe, isEvents} from "./Events";
-import * as B from "./Behaviour";
-import {Behavior} from "./Behaviour";
+import * as B from "./Behavior";
+import {Behavior} from "./Behavior";
 
 type Children = (Behavior<string> | string | Component)[]
 
