@@ -1,5 +1,8 @@
 ///<reference path="./../typings/index.d.ts" />
 import * as $ from "../src/Events";
+import {AbstractEvents} from "../src/Events";
+import * as B from "../src/Behavior";
+import {Behavior} from "../src/Behavior";
 import {assert} from "chai";
 import {spy} from "sinon";
 
@@ -167,6 +170,27 @@ describe("Events", () => {
       $.publish(2, e2);
       assert.deepEqual(callback1.args, [[1], [2]]);
       assert.deepEqual(callback2.args, [[3], [4]]);
+    });
+  });
+
+  describe("snapshot", () => {
+    it("it snapshots pull based Behavior", () => {
+      let n = 0;
+      const b: Behavior<number> = B.fromFunction(() => n);
+      const e: AbstractEvents<number> = new $.Events<number>();
+      const shot = $.snapshot<number, number>(b, e);
+      const callback = spy();
+      $.subscribe(callback, shot);
+      $.publish(0, e);
+      $.publish(1, e);
+      n = 1;
+      $.publish(2, e);
+      n = 2;
+      $.publish(3, e);
+      $.publish(4, e);
+      assert.deepEqual(callback.args, [
+        [[0, 0]], [[1, 0]], [[2, 1]], [[3, 2]], [[4, 2]]
+      ]);
     });
   });
 });

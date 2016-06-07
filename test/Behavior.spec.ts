@@ -222,6 +222,4 @@ describe("Behavior and Events", () => {
       assert.equal(B.at(b), 2);
     });
   });
-  //   });
-  // });
 });

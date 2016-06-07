@@ -6,7 +6,9 @@ import {
   Pushable
 } from "./frp-common";
 
-abstract class AbstractEvents<A> {
+import {Behavior, at} from "./Behavior";
+
+export abstract class AbstractEvents<A> {
   public last: A;
   public eventListeners: Pushable<A>[] = [];
   private cbListeners: ((a: A) => void)[] = [];
@@ -102,6 +104,21 @@ class ScanEvents<A, B> extends AbstractEvents<B> {
   public push(a: A): void {
     this.publish(this.fn(this.last, a));
   }
+}
+
+class SnapshotEvents<A, B> extends AbstractEvents<[A, B]> {
+  constructor(private behavior: Behavior<B>, events: AbstractEvents<A>) {
+    super();
+    events.eventListeners.push(this);
+  }
+
+  public push(a: A): void {
+    this.publish([a, at(this.behavior)]);
+  }
+}
+
+export function snapshot<A, B>(behavior: Behavior<B>, events: AbstractEvents<A>): AbstractEvents<[A, B]> {
+  return new SnapshotEvents(behavior, events);
 }
 
 export function empty<A>(): Events<A> {
