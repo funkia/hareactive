@@ -1,4 +1,6 @@
-import {Events, publish, subscribe, isEvents} from "./Events";
+import {
+  AbstractEvents, Events, publish, subscribe, isEvents
+} from "./Events";
 import * as B from "./Behavior";
 import {Behavior, at} from "./Behavior";
 
@@ -21,13 +23,11 @@ export function h(tag: string, children: Children = []): Component {
     if (B.isBehavior(ch)) {
       const text = document.createElement("span");
       const initial = at(ch);
-      console.log("initial", initial);
       text.innerText = typeof initial === "string" ? initial : initial.toString();
       elm.appendChild(text);
       if (ch.pushing === true) {
         B.subscribe((t: string) => text.innerText = t, ch);
       } else {
-        console.log("pulling");
         // quick hack below
         const sampleFn = () => {
           const newVal = at(ch);
@@ -58,6 +58,8 @@ export function on(eventName: string, comp: Component): Events<any> {
   }
 }
 
+// Beware: ugly component implementations below
+
 export interface InputComponent extends Component {
   inputValue: Behavior<string>;
 }
@@ -74,6 +76,27 @@ export function input(): InputComponent {
         (ev: any) => B.publish(ev.target.value, newB)
       );
       return newB;
+    }
+  };
+}
+
+export interface ButtonComponent extends Component {
+  click: AbstractEvents<number>;
+}
+
+export function button(text: string): ButtonComponent {
+  const elm = document.createElement("button");
+  elm.textContent = text;
+  return {
+    elm,
+    event: {},
+    get click(): AbstractEvents<number> {
+      const ev = new Events<number>();
+      elm.addEventListener(
+        "click",
+        () => publish(0, ev)
+      );
+      return ev;
     }
   };
 }
