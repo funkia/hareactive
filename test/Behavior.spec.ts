@@ -54,6 +54,26 @@ describe("Behavior", () => {
     assert.deepEqual(result, [1, 2, 3]);
   });
 
+  describe("isBehavior", () => {
+    it("should be a function", () => {
+      assert.isFunction(B.isBehavior);
+    });
+
+    it("should be true when Behavior object", () => {
+      assert.isTrue(B.isBehavior(B.of(2)));
+    });
+
+    it("should be false when not Behavior object", () => {
+      assert.isFalse(B.isBehavior([]));
+      assert.isFalse(B.isBehavior({}));
+      assert.isFalse(B.isBehavior("test"));
+      assert.isFalse(B.isBehavior([B.of(42)]));
+      assert.isFalse(B.isBehavior(1234));
+      assert.isFalse(B.isBehavior(B.isBehavior));
+      assert.isFalse(B.isBehavior(new E.Events()));
+    });
+  });
+
   describe("concat", () => {
     // let mNumber: (a: number);
     // const mAdd = (m) => {
