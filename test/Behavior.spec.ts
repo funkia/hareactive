@@ -1,5 +1,5 @@
 ///<reference path="./../typings/index.d.ts" />
-import * as B from "../src/Behaviour";
+import * as B from "../src/Behavior";
 import {assert} from "chai";
 // import {spy} from "sinon";
 
@@ -142,39 +142,39 @@ describe("Behavior", () => {
       assert.equal(B.at(applied), 8);
     });
     it("applies event of functions to event of numbers with pull", () => {
-      let number = 1;
+      let n = 1;
       let fn = add(5);
       const fnB = B.fromFunction(() => fn);
-      const numB = B.fromFunction(() => number);
+      const numB = B.fromFunction(() => n);
       const applied = B.ap(fnB, numB);
 
       assert.equal(B.at(applied), 6);
       fn = add(2);
       assert.equal(B.at(applied), 3);
-      number = 4;
+      n = 4;
       assert.equal(B.at(applied), 6);
       fn = double;
       assert.equal(B.at(applied), 8);
-      number = 8;
+      n = 8;
       assert.equal(B.at(applied), 16);
     });
-    // it("applies pushed event of functions to pulled event of numbers", () => {
-    //   let number = 1;
-    //   const fnB = B.of(add(5));
-    //   const numE = B.fromFunction(() => {
-    //     return number;
-    //   });
-    //   const applied = B.ap(fnB, numE);
-    //   assert.equal(B.at(applied), 6);
-    //   fnB.publish(add(2));
-    //   assert.equal(B.at(applied), 3);
-    //   number = 4;
-    //   assert.equal(B.at(applied), 6);
-    //   fnB.publish(double);
-    //   assert.equal(B.at(applied), 8);
-    //   number = 8;
-    //   assert.equal(B.at(applied), 16);
-    // });
+    it("applies pushed event of functions to pulled event of numbers", () => {
+      let n = 1;
+      const fnB = B.of(add(5));
+      const numE = B.fromFunction(() => {
+        return n;
+      });
+      const applied = B.ap(fnB, numE);
+      assert.equal(B.at(applied), 6);
+      fnB.publish(add(2));
+      assert.equal(B.at(applied), 3);
+      n = 4;
+      assert.equal(B.at(applied), 6);
+      fnB.publish(double);
+      assert.equal(B.at(applied), 8);
+      n = 8;
+      assert.equal(B.at(applied), 16);
+    });
   });
   // describe("of", () => {
   //   it("identity", () => {

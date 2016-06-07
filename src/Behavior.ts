@@ -7,6 +7,7 @@ export abstract class Behavior<A> {
   public cbListeners: ((b: A) => void)[] = [];
   public eventListeners: Behavior<any>[] = [];
   public last: A;
+  public pushing: boolean;
 
   public publish(b: A): void {
     this.last = b;
@@ -58,12 +59,13 @@ export function of<B>(val: B): Behavior<B> {
 }
 
 export function at<B>(b: Behavior<B>): B {
-  return b.last !== undefined ? b.last : b.pull();
+  return b.pushing === true ? b.last : b.pull();
 }
 
 class ConstantBehavior<A> extends Behavior<A> {
   constructor(public last: A) {
     super();
+    this.pushing = false;
   }
 
   public push(): void {
@@ -81,6 +83,7 @@ class MapBehavior<A, B> extends Behavior<B> {
     private fn: MapFunction<A, B>
   ) {
     super();
+    this.pushing = parent.pushing;
   }
 
   public push(a: any): void {
@@ -96,6 +99,7 @@ class MapBehavior<A, B> extends Behavior<B> {
 class FunctionBehavior<A> extends Behavior<A> {
   constructor(private fn: () => A) {
     super();
+    this.pushing = false;
   }
 
   public push(v: A): void {
@@ -115,6 +119,7 @@ class ApBehavior<A, B> extends Behavior<B> {
     private val: Behavior<A>
   ) {
     super();
+    this.pushing = fn.pushing && val.pushing;
     this.last = at(fn)(at(val));
   }
 
@@ -133,6 +138,7 @@ class ApBehavior<A, B> extends Behavior<B> {
 class SinkBehavior<B> extends Behavior<B> {
   constructor(public last: B) {
     super();
+    this.pushing = true;
   }
 
   public push(v: B): void {

@@ -1,5 +1,4 @@
-import {Events} from "../../src/Events";
-import {Behavior} from "../../src/Behaviour";
+import {Behavior} from "../../src/Behavior";
 import {h, input, br} from "../../src/DOMBuilder";
 import run from "../../src/run";
 
