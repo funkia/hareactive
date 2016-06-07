@@ -1,8 +1,8 @@
 import {Events, publish, subscribe, isEvents} from "./Events";
 import * as B from "./Behavior";
-import {Behavior} from "./Behavior";
+import {Behavior, at} from "./Behavior";
 
-type Children = (Behavior<string> | string | Component)[]
+type Children = (Behavior<string|number> | string | Component)[]
 
 export interface Component {
   elm: HTMLElement;
@@ -20,8 +20,22 @@ export function h(tag: string, children: Children = []): Component {
   children.forEach((ch) => {
     if (B.isBehavior(ch)) {
       const text = document.createElement("span");
-      B.subscribe((t: string) => text.innerText = t, ch);
+      const initial = at(ch);
+      console.log("initial", initial);
+      text.innerText = typeof initial === "string" ? initial : initial.toString();
       elm.appendChild(text);
+      if (ch.pushing === true) {
+        B.subscribe((t: string) => text.innerText = t, ch);
+      } else {
+        console.log("pulling");
+        // quick hack below
+        const sampleFn = () => {
+          const newVal = at(ch);
+          text.innerText = typeof newVal === "string" ? newVal : newVal.toString();
+          window.requestAnimationFrame(sampleFn);
+        };
+        window.requestAnimationFrame(sampleFn);
+      }
     } else if (typeof ch === "string") {
       elm.appendChild(document.createTextNode(ch));
     } else {
