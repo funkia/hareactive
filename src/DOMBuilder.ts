@@ -4,12 +4,16 @@ import {
 import * as B from "./Behavior";
 import {Behavior, at} from "./Behavior";
 
-type Children = (Behavior<string|number> | string | Component)[]
+type Children = (Behavior<string|number|Component> | string | Component)[]
 
 export interface Component {
   elm: HTMLElement;
   event: EventTable;
 };
+
+function isComponent(obj: any): boolean {
+  return obj instanceof Object && obj.hasOwnProperty("elm");
+}
 
 interface EventTable {
   [index: string]: Events<any>;
@@ -40,19 +44,35 @@ export function h(tag: string, children: Children = []): Component {
     let ch = children[i];
 
     if (B.isBehavior(ch)) {
-      const text = document.createTextNode("");
+      let node: Node;
       const initial = at(ch);
-      text.nodeValue = typeof initial === "string" ? initial : initial.toString();
-      elm.appendChild(text);
+
+      if (isComponent(initial)) {
+        node = (<Component>initial).elm;
+      } else {
+        node = document.createTextNode("");
+        node.nodeValue = initial.toString();
+      }
+      elm.appendChild(node);
 
       if (ch.pushing === true) {
-        B.subscribe((t: string) => text.nodeValue = t, ch);
+        B.subscribe((t: any) => {
+          if (isComponent(t)) {
+            const currentChild = elm.childNodes[i];
+            if (currentChild !== undefined) {
+              elm.replaceChild(t.elm, currentChild);
+            }
+          } else {
+            node.nodeValue = t.toString();
+          }
+
+        }, ch);
 
       } else {
         // quick hack below
         const sampleFn = () => {
           const newVal = at(ch);
-          text.nodeValue = typeof newVal === "string" ? newVal : newVal.toString();
+          node.nodeValue = newVal.toString();
           window.requestAnimationFrame(sampleFn);
         };
         window.requestAnimationFrame(sampleFn);
