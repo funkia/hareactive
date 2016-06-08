@@ -171,6 +171,11 @@ class StepperBehavior<B> extends Behavior<B> {
   }
 }
 
+/**
+ * Creates a Behavior whose value is the last event from the events
+ * @param initial the initial value that the behavior has
+ * @param steps the events that will change the value of the behavior
+ */
 export function stepper<B>(initial: B, steps: Events<B>): Behavior<B> {
   return new StepperBehavior(initial, steps);
 }

@@ -1,16 +1,14 @@
-import {sink} from "../../src/Behavior";
-import {h, input, br, Component} from "../../src/DOMBuilder";
-import run from "../../src/run";
+import {Component, h, input, br} from "../../src/DOMBuilder";
+import {mount, declareBehaviors} from "../../src/bootstrap";
 
 function app(): Component {
-  const input$ = sink<string>("");
-
+  const [name] = declareBehaviors("");
   return h("div", [
-    h("span.classname#myid", ["Hello ", input$]),
+    h("span.classname#myid", ["Hello "]), h("span", [name]),
     br(),
     h("label", ["Name: "]),
-    {inputValue: input$.def} = input()
+    {inputValue: name.def} = input()
   ]);
 }
 
-run("body", app);
+mount("body", app);

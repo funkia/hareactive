@@ -1,11 +1,10 @@
 import {stepper} from "../../src/Behavior";
-import {AbstractEvents, Events, snapshotWith, map} from "../../src/Events";
+import {Events, snapshotWith} from "../../src/Events";
 import {Component, h, button, br} from "../../src/DOMBuilder";
-import run from "../../src/run";
+import {mount} from "../../src/bootstrap";
 import timeB from "../../src/timeB";
 
 function app(): Component {
-
   const btnClick = new Events();
 
   const messageFromClick =
@@ -24,4 +23,4 @@ function app(): Component {
 
 }
 
-run("#mount", app);
+mount("body", app);
