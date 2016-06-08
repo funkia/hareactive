@@ -11,7 +11,7 @@
     "src/Events.ts",
     "src/Behavior.ts",
     "src/DOMBuilder.ts",
-    "src/run.ts"
+    "src/bootstrap.ts"
   ],
   "exclude": [
     "node_modules"

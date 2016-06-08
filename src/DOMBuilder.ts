@@ -63,8 +63,6 @@ export function h(tag: string, children: Children = []): Component {
         elm.appendChild(node);
       }
 
-
-
       if (ch.pushing === true) {
         B.subscribe((t: any) => {
           if (isComponent(t)) {

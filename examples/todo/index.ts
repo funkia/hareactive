@@ -8,9 +8,7 @@ function app(): Component {
   const inputComponent = input();
 
   const todoItems: Events<any> = snapshot(inputComponent.inputValue, addClick$)
-    .scan((todo, todoArr) => {
-      return [...todoArr, todo[1]];
-    }, [])
+    .scan((todo, todoArr) => [...todoArr, todo[1]], [])
     .map((todoArr) => h("ul", todoArr.map((item) => h("li", [item]))));
   const todos = stepper(h("span"), todoItems);
 
@@ -18,6 +16,8 @@ function app(): Component {
     h("h1", ["Todo list:"]),
     inputComponent,
     {click: addClick$.def} = button("add"),
+    h("br"),
+    inputComponent.inputValue,
     h("br"),
     todos
   ]);
