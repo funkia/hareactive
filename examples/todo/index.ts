@@ -1,21 +1,24 @@
 import {stepper} from "../../src/Behavior";
 import {h, button, Component, input} from "../../src/DOMBuilder";
-import {Events, AbstractEvents, snapshotWith} from "../../src/Events";
-import {mount, declareBehaviors} from "../../src/bootstrap";
+import {Events, empty, snapshot} from "../../src/Events";
+import {mount} from "../../src/bootstrap";
 
 function app(): Component {
-  const addClick$ = new Events();
-  const [nameInput] = declareBehaviors("");
+  const addClick$ = empty();
+  const inputComponent = input();
 
-  const todoItems: AbstractEvents<Component>  = snapshotWith((_, todoName) => todoName, nameInput, addClick$)
-    .scan((todoArr, todo) => [...todoArr, todo], [])
+  const todoItems: Events<any> = snapshot(inputComponent.inputValue, addClick$)
+    .scan((todo, todoArr) => {
+      return [...todoArr, todo[1]];
+    }, [])
     .map((todoArr) => h("ul", todoArr.map((item) => h("li", [item]))));
-  const todos = stepper(h("ul", [h("li", ["test1"])]), todoItems);
+  const todos = stepper(h("span"), todoItems);
 
   return h("div", [
     h("h1", ["Todo list:"]),
-    {inputValue: nameInput.def} = input(),
+    inputComponent,
     {click: addClick$.def} = button("add"),
+    h("br"),
     todos
   ]);
 }

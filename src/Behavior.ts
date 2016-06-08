@@ -190,7 +190,7 @@ export function sink<A>(initialValue: A): Behavior<A> {
 }
 
 export function subscribe<A>(fn: SubscribeFunction<A>, b: Behavior<A>): void {
-    b.cbListeners.push(fn);
+  b.cbListeners.push(fn);
 }
 
 export function publish<A>(a: A, b: Behavior<A>): void {

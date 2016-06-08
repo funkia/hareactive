@@ -102,7 +102,7 @@ class ScanEvents<A, B> extends AbstractEvents<B> {
   }
 
   public push(a: A): void {
-    this.publish(this.fn(this.last, a));
+    this.publish(this.fn(a, this.last));
   }
 }
 

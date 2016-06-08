@@ -58,14 +58,11 @@ export function h(tag: string, children: Children = []): Component {
       if (ch.pushing === true) {
         B.subscribe((t: any) => {
           if (isComponent(t)) {
-            const currentChild = elm.childNodes[i];
-            if (currentChild !== undefined) {
-              elm.replaceChild(t.elm, currentChild);
-            }
+            elm.replaceChild(t.elm, node);
+            node = t.elm;
           } else {
             node.nodeValue = t.toString();
           }
-
         }, ch);
 
       } else {
@@ -78,11 +75,12 @@ export function h(tag: string, children: Children = []): Component {
         window.requestAnimationFrame(sampleFn);
       }
 
-    } else if (typeof ch === "string") {
-      elm.appendChild(document.createTextNode(ch));
+    } else if (isComponent(ch)) {
+      elm.appendChild((<Component>ch).elm);
 
     } else {
-      elm.appendChild(ch.elm);
+      elm.appendChild(document.createTextNode(ch.toString()));
+
     }
   }
 
