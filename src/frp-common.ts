@@ -16,5 +16,5 @@ export interface Reactive<A> {
 export type MapFunction<A, B> = ((a: A) => B);
 export type SubscribeFunction<A> = ((a: A) => void);
 export type PushFunction<A> = ((a: A) => any);
-export type ScanFunction<A, B> = ((b: B, a: A) => B);
+export type ScanFunction<A, B> = ((a: A, b: B) => B);
 export type FilterFunction<A> = ((a: A) => boolean);
