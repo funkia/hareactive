@@ -1,5 +1,5 @@
 import {
-  AbstractEvents, Events, publish
+  Events, publish, empty
 } from "./Events";
 import * as B from "./Behavior";
 import {Behavior, at} from "./Behavior";
@@ -8,7 +8,6 @@ type Children = (Behavior<string|number|Component|Component[]> | string | Compon
 
 export interface Component {
   elm: HTMLElement;
-  event: EventTable;
 };
 
 function isComponent(obj: any): boolean {
@@ -35,10 +34,47 @@ function createElement(tag: string): HTMLElement {
   return elm;
 }
 
-export function h(tag: string, children: Children = []): Component {
-  const elm = createElement(tag);
-  const event: EventTable = {};
+interface Properties {
+  on?: EventTable;
+}
 
+export function h(
+  tag: string,
+  props?: Properties|Children,
+  children?: Children
+): Component {
+
+  switch (arguments.length) {
+
+  case 1:
+    return createComponent(tag, {}, []);
+
+  case 2:
+    if (Array.isArray(props)) {
+      return createComponent(tag, {}, (<Children>props));
+    } else if (props instanceof Object) {
+      return createComponent(tag, (<Properties>props), []);
+    }
+  default:
+    return createComponent(tag, props, children);
+  }
+};
+
+export function createComponent(
+  tag: string,
+  props: Properties,
+  children: Children
+): Component {
+
+  // Create Element with id and classes
+  const elm = createElement(tag);
+
+  // Events
+  for (const eventName in props.on) {
+    elm.addEventListener(eventName, (ev) => props.on[eventName].publish(ev));
+  }
+
+  // Initialize children
   const childrenLength = children.length;
   for (let i = 0; i < childrenLength; i++) {
     let ch = children[i];
@@ -102,21 +138,21 @@ export function h(tag: string, children: Children = []): Component {
     }
   }
 
-  return {elm, event};
+  return {elm};
 }
 
-export function on(eventName: string, comp: Component): Events<any> {
-  let {elm, event} = comp;
+// export function on(eventName: string, comp: Component): Events<any> {
+//   let {elm, event} = comp;
 
-  if (event[eventName]) {
-    return event[eventName];
-  } else {
-    const event$ = new Events();
-    elm.addEventListener(eventName, (ev) => publish(ev, event$));
-    event[eventName] = event$;
-    return event$;
-  }
-}
+//   if (event[eventName]) {
+//     return event[eventName];
+//   } else {
+//     const event$ = new Events();
+//     elm.addEventListener(eventName, (ev) => publish(ev, event$));
+//     event[eventName] = event$;
+//     return event$;
+//   }
+// }
 
 // Beware: ugly component implementations below
 
@@ -128,7 +164,6 @@ export function input(): InputComponent {
   const elm = document.createElement("input");
   return {
     elm,
-    event: {},
     get inputValue(): Behavior<string> {
       const newB = B.sink("");
       elm.addEventListener(
@@ -141,7 +176,7 @@ export function input(): InputComponent {
 }
 
 export interface ButtonComponent extends Component {
-  click: AbstractEvents<number>;
+  click: Events<number>;
 }
 
 export function button(text: string): ButtonComponent {
@@ -149,9 +184,8 @@ export function button(text: string): ButtonComponent {
   elm.textContent = text;
   return {
     elm,
-    event: {},
-    get click(): AbstractEvents<number> {
-      const ev = new Events<number>();
+    get click(): Events<number> {
+      const ev = empty<number>();
       elm.addEventListener(
         "click",
         () => publish(0, ev)
@@ -162,5 +196,7 @@ export function button(text: string): ButtonComponent {
 }
 
 export function br(): Component {
-  return h("br");
+  return {
+    elm: document.createElement("br")
+  };
 }
