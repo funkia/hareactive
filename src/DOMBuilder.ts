@@ -4,7 +4,7 @@ import {
 import * as B from "./Behavior";
 import {Behavior, at} from "./Behavior";
 
-type Children = (Behavior<string|number|Component> | string | Component)[]
+type Children = (Behavior<string|number|Component|Component[]> | string | Component)[]
 
 export interface Component {
   elm: HTMLElement;
@@ -45,21 +45,41 @@ export function h(tag: string, children: Children = []): Component {
 
     if (B.isBehavior(ch)) {
       let node: Node;
+      let nodes: Node[] = [];
       const initial = at(ch);
 
-      if (isComponent(initial)) {
-        node = (<Component>initial).elm;
+      if (Array.isArray(initial)) {
+        for (const {elm: n} of initial) {
+          nodes.push(n);
+          elm.appendChild(n);
+        }
       } else {
-        node = document.createTextNode("");
-        node.nodeValue = initial.toString();
+        if (isComponent(initial)) {
+          node = (<Component>initial).elm;
+        } else {
+          node = document.createTextNode("");
+          node.nodeValue = initial.toString();
+        }
+        elm.appendChild(node);
       }
-      elm.appendChild(node);
+
+
 
       if (ch.pushing === true) {
         B.subscribe((t: any) => {
           if (isComponent(t)) {
             elm.replaceChild(t.elm, node);
             node = t.elm;
+          } else if (Array.isArray(t)) {
+            // huge hack, slow, buggy
+            for (const n of nodes) {
+              elm.removeChild(n);
+            }
+            nodes = [];
+            for (const {elm: n} of t) {
+              nodes.push(n);
+              elm.appendChild(n);
+            }
           } else {
             node.nodeValue = t.toString();
           }
