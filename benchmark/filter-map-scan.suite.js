@@ -27,7 +27,7 @@ function even(x) {
 module.exports = Suite("filter-map-reduce")
 
   .add("Events", function (defered) {
-    var ev = new $.Events();
+    var ev = $.empty();
     $.scan(sum, 0, $.map(add1, $.filter(even, ev)));
     pushArray(a, ev);
     defered.resolve();

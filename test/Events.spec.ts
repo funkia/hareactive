@@ -1,6 +1,6 @@
 ///<reference path="./../typings/index.d.ts" />
-import * as $ from "../src/Events";
-import {AbstractEvents} from "../src/Events";
+import * as E from "../src/Events";
+import {Events} from "../src/Events";
 import * as B from "../src/Behavior";
 import {Behavior} from "../src/Behavior";
 import {assert} from "chai";
@@ -12,63 +12,63 @@ const sum = (a: number, b: number): number => a + b;
 describe("Events", () => {
   describe("isEvents", () => {
     it("should be a function", () => {
-      assert.isFunction($.isEvents);
+      assert.isFunction(E.isEvents);
     });
 
     it("should be true when Events object", () => {
-      assert.isTrue($.isEvents(new $.Events()));
+      assert.isTrue(E.isEvents(E.empty()));
     });
 
     it("should be false when not Events object", () => {
-      assert.isFalse($.isEvents([]));
-      assert.isFalse($.isEvents({}));
-      assert.isFalse($.isEvents("test"));
-      assert.isFalse($.isEvents([new $.Events()]));
-      assert.isFalse($.isEvents(1234));
-      assert.isFalse($.isEvents($.isEvents));
+      assert.isFalse(E.isEvents([]));
+      assert.isFalse(E.isEvents({}));
+      assert.isFalse(E.isEvents("test"));
+      assert.isFalse(E.isEvents([E.empty()]));
+      assert.isFalse(E.isEvents(1234));
+      assert.isFalse(E.isEvents(E.isEvents));
     });
   });
 
   describe("subscribe", () => {
     it("should be a function", () => {
-      assert.isFunction($.subscribe);
+      assert.isFunction(E.subscribe);
     });
   });
 
   describe("publish", () => {
     it("should be a function", () => {
-      assert.isFunction($.publish);
+      assert.isFunction(E.publish);
     });
 
     it("should call the subscribers", () => {
-      const obs = new $.Events();
+      const obs = E.empty();
       const callback = spy();
-      $.subscribe(callback, obs);
+      E.subscribe(callback, obs);
 
       assert.equal(callback.callCount, 0);
 
-      $.publish("value", obs);
+      E.publish("value", obs);
       assert.equal(callback.callCount, 1);
 
-      $.publish("value", obs);
+      E.publish("value", obs);
       assert.equal(callback.callCount, 2);
     });
 
     it("should pass the published value to subscribers", () => {
-      const obs = new $.Events();
+      const obs = E.empty();
       const callback1 = spy();
       const callback2 = spy();
 
-      $.subscribe(callback1, obs);
-      $.subscribe(callback2, obs);
+      E.subscribe(callback1, obs);
+      E.subscribe(callback2, obs);
 
       const err1 = "Wrong or no value was recieved after publish.";
-      $.publish("random value", obs);
+      E.publish("random value", obs);
       assert(callback1.calledWith("random value"), err1);
       assert(callback2.calledWith("random value"), err1);
 
       const err2 = "Wrong or no value was recieved after a second publish.";
-      $.publish("another random value", obs);
+      E.publish("another random value", obs);
       assert(callback1.calledWith("another random value"), err2);
       assert(callback2.calledWith("another random value"), err2);
     });
@@ -76,18 +76,18 @@ describe("Events", () => {
 
   describe("merge", () => {
     it("should be a function", () => {
-      assert.isFunction($.merge);
+      assert.isFunction(E.merge);
     });
 
     it("should merge two Events", () => {
-      const event$1 = new $.Events();
-      const event$2 = new $.Events();
+      const eventE1 = E.empty();
+      const eventE2 = E.empty();
       const callback = spy();
 
-      const mergedEvent$ = $.merge(event$1, event$2);
-      $.subscribe(callback, mergedEvent$);
-      $.publish(1, event$1);
-      $.publish("2", event$2);
+      const mergedEventE = E.merge(eventE1, eventE2);
+      E.subscribe(callback, mergedEventE);
+      E.publish(1, eventE1);
+      E.publish("2", eventE2);
 
       assert.deepEqual(callback.args, [[1], ["2"]]);
     });
@@ -95,19 +95,19 @@ describe("Events", () => {
 
   describe("map", () => {
     it("should be a function", () => {
-      assert.isFunction($.map);
+      assert.isFunction(E.map);
     });
 
     it("should map the published values", () => {
-      const obs = new $.Events();
+      const obs = E.empty();
       const callback = spy();
 
-      const mappedObs = $.map(addTwo, obs);
+      const mappedObs = E.map(addTwo, obs);
 
-      $.subscribe(callback, mappedObs);
+      E.subscribe(callback, mappedObs);
 
       for (let i = 0; i < 5; i++) {
-        $.publish(i, obs);
+        E.publish(i, obs);
       }
 
       assert.deepEqual(callback.args, [[2], [3], [4], [5], [6]], "Wrong or no value was recieved");
@@ -116,21 +116,21 @@ describe("Events", () => {
 
   describe("filter", () => {
     it("should be a function", () => {
-      assert.isFunction($.filter);
+      assert.isFunction(E.filter);
     });
 
     it("should filter the unwanted publishions", () => {
-      const obs = new $.Events();
+      const obs = E.empty();
       const callback = spy();
 
       const isEven = (v: number): boolean => !(v % 2);
 
-      const filteredObs = $.filter(isEven, obs);
+      const filteredObs = E.filter(isEven, obs);
 
-      $.subscribe(callback, filteredObs);
+      E.subscribe(callback, filteredObs);
 
       for (let i = 0; i < 10; i++) {
-        $.publish(i, obs);
+        E.publish(i, obs);
       }
       assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]], "Wrong or no value was recieved");
     });
@@ -138,19 +138,19 @@ describe("Events", () => {
 
   describe("scan", () => {
     it("should be a function", () => {
-      assert.isFunction($.scan);
+      assert.isFunction(E.scan);
     });
 
     it("should scan the values", () => {
-      const event$ = new $.Events();
+      const eventE = E.empty();
       const callback = spy();
-      const sum = (currSum: number, val: number) => currSum + val;
+      const sumF = (currSum: number, val: number) => currSum + val;
 
-      const currentSum$ = $.scan(sum, 0, event$);
-      $.subscribe(callback, currentSum$);
+      const currentSumE = E.scan(sumF, 0, eventE);
+      E.subscribe(callback, currentSumE);
 
       for (let i = 0; i < 10; i++) {
-        $.publish(i, event$);
+        E.publish(i, eventE);
       }
 
       assert.deepEqual(callback.args, [[0], [1], [3], [6], [10], [15], [21], [28], [36], [45]]);
@@ -161,14 +161,14 @@ describe("Events", () => {
     it("should merge two events", () => {
       const callback1 = spy();
       const callback2 = spy();
-      const e1 = new $.Events();
-      const e1Mapped = $.map(addTwo, e1);
-      $.subscribe(callback1, e1);
-      $.subscribe(callback2, e1Mapped);
-      const e2 = new $.Events();
+      const e1 = E.empty();
+      const e1Mapped = E.map(addTwo, e1);
+      E.subscribe(callback1, e1);
+      E.subscribe(callback2, e1Mapped);
+      const e2 = E.empty();
       e1.def = e2;
-      $.publish(1, e2);
-      $.publish(2, e2);
+      E.publish(1, e2);
+      E.publish(2, e2);
       assert.deepEqual(callback1.args, [[1], [2]]);
       assert.deepEqual(callback2.args, [[3], [4]]);
     });
@@ -178,17 +178,17 @@ describe("Events", () => {
     it("it snapshots pull based Behavior", () => {
       let n = 0;
       const b: Behavior<number> = B.fromFunction(() => n);
-      const e: AbstractEvents<number> = new $.Events<number>();
-      const shot = $.snapshot<number, number>(b, e);
+      const e: Events<number> = E.empty<number>();
+      const shot = E.snapshot<number, number>(b, e);
       const callback = spy();
-      $.subscribe(callback, shot);
-      $.publish(0, e);
-      $.publish(1, e);
+      E.subscribe(callback, shot);
+      E.publish(0, e);
+      E.publish(1, e);
       n = 1;
-      $.publish(2, e);
+      E.publish(2, e);
       n = 2;
-      $.publish(3, e);
-      $.publish(4, e);
+      E.publish(3, e);
+      E.publish(4, e);
       assert.deepEqual(callback.args, [
         [[0, 0]], [[1, 0]], [[2, 1]], [[3, 2]], [[4, 2]]
       ]);
@@ -196,17 +196,17 @@ describe("Events", () => {
     it("it applies function in snapshotWith to pull based Behavior", () => {
       let n = 0;
       const b: Behavior<number> = B.fromFunction(() => n);
-      const e: AbstractEvents<number> = new $.Events<number>();
-      const shot = $.snapshotWith<number, number, number>(sum, b, e);
+      const e: Events<number> = E.empty<number>();
+      const shot = E.snapshotWith<number, number, number>(sum, b, e);
       const callback = spy();
-      $.subscribe(callback, shot);
-      $.publish(0, e);
-      $.publish(1, e);
+      E.subscribe(callback, shot);
+      E.publish(0, e);
+      E.publish(1, e);
       n = 1;
-      $.publish(2, e);
+      E.publish(2, e);
       n = 2;
-      $.publish(3, e);
-      $.publish(4, e);
+      E.publish(3, e);
+      E.publish(4, e);
       assert.deepEqual(callback.args, [
         [0], [1], [3], [5], [6]
       ]);

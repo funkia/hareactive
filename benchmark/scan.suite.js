@@ -18,7 +18,7 @@ function sum(curr, val) {
 module.exports = Suite("Scan")
 
   .add("Events", function (defered) {
-    var j = new $.Events();
+    var j = $.empty();
     var s = $.scan(sum, 0, j);
     $.subscribe(function (e) {
       if (e === result) {

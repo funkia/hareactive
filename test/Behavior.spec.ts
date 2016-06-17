@@ -70,7 +70,7 @@ describe("Behavior", () => {
       assert.isFalse(B.isBehavior([B.of(42)]));
       assert.isFalse(B.isBehavior(1234));
       assert.isFalse(B.isBehavior(B.isBehavior));
-      assert.isFalse(B.isBehavior(new E.Events()));
+      assert.isFalse(B.isBehavior(E.empty()));
     });
   });
 
@@ -233,7 +233,7 @@ describe("Behavior", () => {
 describe("Behavior and Events", () => {
   describe("stepper", () => {
     it("steps to the last event value", () => {
-      const e = new E.Events();
+      const e = E.empty();
       const b = B.stepper(0, e);
       assert.equal(B.at(b), 0);
       e.publish(1);
