@@ -1,5 +1,5 @@
 import {Component, h, input, br, button} from "../../src/DOMBuilder";
-import {AbstractEvents, Events, scan, map} from "../../src/Events";
+import {Events, empty, scan, map} from "../../src/Events";
 import {Behavior, stepper} from "../../src/Behavior";
 import {mount, declareBehaviors} from "../../src/bootstrap";
 
@@ -8,7 +8,7 @@ const cons = <A>(a: A, as: A[]): A[] => [a].concat(as);
 const createLi = (): Component => h("li", ["List element"]);
 
 function app(): Component {
-  const addElement = new Events();
+  const addElement = empty();
   const elementsE = scan<Component, Component[]>(
     cons,
     [],

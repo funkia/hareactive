@@ -8,7 +8,7 @@ import {
 
 import {Behavior, at} from "./Behavior";
 
-export abstract class AbstractEvents<A> {
+export abstract class Events<A> {
   public last: A;
   public eventListeners: Pushable<A>[] = [];
   private cbListeners: ((a: A) => void)[] = [];
@@ -29,7 +29,7 @@ export abstract class AbstractEvents<A> {
     }
   };
 
-  set def(events: AbstractEvents<any>) {
+  set def(events: Events<any>) {
     events.cbListeners.push(...this.cbListeners);
     events.eventListeners.push(...this.eventListeners);
     this.cbListeners = events.cbListeners;
@@ -48,8 +48,8 @@ export abstract class AbstractEvents<A> {
     return e;
   }
 
-  public merge<B>(otherEvents: AbstractEvents<B>): AbstractEvents<(A|B)> {
-    const e = new Events<(A|B)>();
+  public merge<B>(otherEvents: Events<B>): Events<(A|B)> {
+    const e = new SinkEvents<(A|B)>();
     this.eventListeners.push(e);
     otherEvents.eventListeners.push(e);
     return e;
@@ -68,13 +68,13 @@ export abstract class AbstractEvents<A> {
   }
 }
 
-export class Events<A> extends AbstractEvents<A> {
+export class SinkEvents<A> extends Events<A> {
   public push(a: A): void {
     this.publish(a);
   }
 }
 
-class MapEvents<A, B> extends AbstractEvents<B> {
+class MapEvents<A, B> extends Events<B> {
   constructor(private fn: MapFunction<A, B>) {
     super();
   }
@@ -84,7 +84,7 @@ class MapEvents<A, B> extends AbstractEvents<B> {
   }
 }
 
-class FilterEvents<A> extends AbstractEvents<A> {
+class FilterEvents<A> extends Events<A> {
   constructor(private fn: FilterFunction<A>) {
     super();
   }
@@ -96,7 +96,7 @@ class FilterEvents<A> extends AbstractEvents<A> {
   }
 }
 
-class ScanEvents<A, B> extends AbstractEvents<B> {
+class ScanEvents<A, B> extends Events<B> {
   constructor(private fn: ScanFunction<A, B>, public last: B) {
     super();
   }
@@ -106,8 +106,8 @@ class ScanEvents<A, B> extends AbstractEvents<B> {
   }
 }
 
-class SnapshotEvents<A, B> extends AbstractEvents<[A, B]> {
-  constructor(private behavior: Behavior<B>, events: AbstractEvents<A>) {
+class SnapshotEvents<A, B> extends Events<[A, B]> {
+  constructor(private behavior: Behavior<B>, events: Events<A>) {
     super();
     events.eventListeners.push(this);
   }
@@ -117,15 +117,15 @@ class SnapshotEvents<A, B> extends AbstractEvents<[A, B]> {
   }
 }
 
-export function snapshot<A, B>(behavior: Behavior<B>, events: AbstractEvents<A>): AbstractEvents<[A, B]> {
+export function snapshot<A, B>(behavior: Behavior<B>, events: Events<A>): Events<[A, B]> {
   return new SnapshotEvents(behavior, events);
 }
 
-class SnapshotWithEvents<A, B, C> extends AbstractEvents<C> {
+class SnapshotWithEvents<A, B, C> extends Events<C> {
   constructor(
     private fn: (a: A, b: B) => C,
     private behavior: Behavior<B>,
-    events: AbstractEvents<A>
+    events: Events<A>
   ) {
     super();
     events.eventListeners.push(this);
@@ -139,39 +139,39 @@ class SnapshotWithEvents<A, B, C> extends AbstractEvents<C> {
 export function snapshotWith<A, B, C>(
   fn: (a: A, b: B) => C,
   behavior: Behavior<B>,
-  events: AbstractEvents<A>
-): AbstractEvents<C> {
+  events: Events<A>
+): Events<C> {
   return new SnapshotWithEvents(fn, behavior, events);
 }
 
 export function empty<A>(): Events<A> {
-  return new Events<A>();
+  return new SinkEvents<A>();
 }
 
-export function subscribe<A>(fn: SubscribeFunction<A>, events: AbstractEvents<A>): void {
+export function subscribe<A>(fn: SubscribeFunction<A>, events: Events<A>): void {
   events.subscribe(fn);
 }
 
-export function publish<A>(a: A, events: AbstractEvents<A>): void {
+export function publish<A>(a: A, events: Events<A>): void {
   events.publish(a);
 }
 
-export function merge<A, B>(a: Events<A>, b: AbstractEvents<B>): Events<(A|B)> {
+export function merge<A, B>(a: Events<A>, b: Events<B>): Events<(A|B)> {
   return a.merge(b);
 }
 
-export function map<A, B>(fn: MapFunction<A, B> , events: AbstractEvents<A>): MapEvents<A, B> {
+export function map<A, B>(fn: MapFunction<A, B> , events: Events<A>): MapEvents<A, B> {
   return events.map(fn);
 }
 
-export function filter<A>(fn: FilterFunction<A>, events: AbstractEvents<A>): FilterEvents<A> {
+export function filter<A>(fn: FilterFunction<A>, events: Events<A>): FilterEvents<A> {
   return events.filter(fn);
 }
 
-export function scan<A, B>(fn: ScanFunction<A, B>, startingValue: B, events: AbstractEvents<A>): ScanEvents<A, B> {
+export function scan<A, B>(fn: ScanFunction<A, B>, startingValue: B, events: Events<A>): ScanEvents<A, B> {
   return events.scan(fn, startingValue);
 }
 
 export function isEvents(obj: any): boolean {
-  return (obj instanceof AbstractEvents);
+  return (obj instanceof Events);
 }
