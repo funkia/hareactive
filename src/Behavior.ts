@@ -38,15 +38,6 @@ export abstract class Behavior<A> {
     this.eventListeners = b.eventListeners;
   }
 
-  public clear(): void {
-    if (this.last !== undefined) {
-      this.last = undefined;
-      for (let i = 0; i < this.eventListeners.length; ++i) {
-        this.eventListeners[i].clear();
-      }
-    }
-  };
-
   public map<B>(fn: MapFunction<A, B>): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
     this.eventListeners.push(newB);
