@@ -1,6 +1,6 @@
 ///<reference path="./../typings/index.d.ts" />
 import * as B from "../src/Behavior";
-import * as E from "../src/Events";
+import * as S from "../src/Stream";
 import {assert} from "chai";
 // import {spy} from "sinon";
 
@@ -70,7 +70,7 @@ describe("Behavior", () => {
       assert.isFalse(B.isBehavior([B.of(42)]));
       assert.isFalse(B.isBehavior(1234));
       assert.isFalse(B.isBehavior(B.isBehavior));
-      assert.isFalse(B.isBehavior(E.empty()));
+      assert.isFalse(B.isBehavior(S.empty()));
     });
   });
 
@@ -233,7 +233,7 @@ describe("Behavior", () => {
 describe("Behavior and Events", () => {
   describe("stepper", () => {
     it("steps to the last event value", () => {
-      const e = E.empty();
+      const e = S.empty();
       const b = B.stepper(0, e);
       assert.equal(B.at(b), 0);
       e.publish(1);

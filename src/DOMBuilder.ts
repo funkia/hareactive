@@ -1,6 +1,6 @@
 import {
-  Events, publish, empty
-} from "./Events";
+  Stream, publish, empty
+} from "./Stream";
 import * as B from "./Behavior";
 import {Behavior, at} from "./Behavior";
 
@@ -15,7 +15,7 @@ function isComponent(obj: any): boolean {
 }
 
 interface EventTable {
-  [index: string]: Events<any>;
+  [index: string]: Stream<any>;
 }
 
 function createElement(tag: string): HTMLElement {
@@ -176,7 +176,7 @@ export function input(): InputComponent {
 }
 
 export interface ButtonComponent extends Component {
-  click: Events<number>;
+  click: Stream<number>;
 }
 
 export function button(text: string): ButtonComponent {
@@ -184,7 +184,7 @@ export function button(text: string): ButtonComponent {
   elm.textContent = text;
   return {
     elm,
-    get click(): Events<number> {
+    get click(): Stream<number> {
       const ev = empty<number>();
       elm.addEventListener(
         "click",

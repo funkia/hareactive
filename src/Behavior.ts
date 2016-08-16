@@ -3,7 +3,7 @@ import {
   SubscribeFunction
 } from "./frp-common";
 
-import {Events} from "./Events";
+import {Stream} from "./Stream";
 
 export abstract class Behavior<A> {
   public cbListeners: ((b: A) => void)[] = [];
@@ -154,7 +154,7 @@ class SinkBehavior<B> extends Behavior<B> {
 }
 
 class StepperBehavior<B> extends Behavior<B> {
-  constructor(initial: B, private steps: Events<B>) {
+  constructor(initial: B, private steps: Stream<B>) {
     super();
     this.pushing = true;
     this.last = initial;
@@ -172,11 +172,11 @@ class StepperBehavior<B> extends Behavior<B> {
 }
 
 /**
- * Creates a Behavior whose value is the last event from the events
+ * Creates a Behavior whose value is the last occurrence in the stream.
  * @param initial the initial value that the behavior has
- * @param steps the events that will change the value of the behavior
+ * @param steps the stream that will change the value of the behavior
  */
-export function stepper<B>(initial: B, steps: Events<B>): Behavior<B> {
+export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
   return new StepperBehavior(initial, steps);
 }
 

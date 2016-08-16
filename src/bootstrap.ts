@@ -1,4 +1,3 @@
-import {Events} from "./Events";
 import {Behavior, sink} from "./Behavior";
 import {Component} from "./DOMBuilder";
 
