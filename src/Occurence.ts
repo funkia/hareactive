@@ -8,6 +8,8 @@ interface Consumer<A> {
 }
 
 abstract class Producer<A> {
+  // The consumers that depends on this producer. These should be
+  // notified when the producer has a value.
   protected listeners: Consumer<A>[];
   constructor() {
     this.listeners = [];
@@ -25,32 +27,13 @@ export abstract class Occurence<A> extends Producer<A> implements Consumer<any> 
   // is't result through the mapping function
   // public map(f: (a: A) => B): Occurence<B> {}
 
-  // The Occurences that depends on this occurence. These should be
-  // notified when this occurence is resolved.
-  protected listeners: Consumer<A>[];
   // `push` is called by the parent of an occurence once it resolves
   // with a value.
   public abstract push(val: any): void;
-  public listen(o: Consumer<A>): void {
-    this.listeners.push(o);
-  }
-  public subscribe(f: (a: A) => void): Subscribtion<A> {
-    return new Subscribtion(f, this);
-  }
 }
 
-// I SinkOccurence is an occurence that one can imperatively resolve.
+// I Sink is a producer that one can imperatively resolve.
 class Sink<A> extends Producer<A> {
-  protected listeners: Consumer<A>[];
-  public push(val: A): void {
-    throw new Error("Cannot push to a SinkOccurence");
-  }
-  public listen(o: Consumer<A>): void {
-    this.listeners.push(o);
-  }
-  public subscribe(f: (a: A) => void): Subscribtion<A> {
-    return new Subscribtion(f, this);
-  }
   public resolve(val: A): void {
     // Imperatively resolve the sink with a value
     const listeners = this.listeners;
