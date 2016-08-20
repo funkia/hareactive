@@ -114,6 +114,11 @@ describe("Behavior", () => {
     // });
   });
   describe("map", () => {
+    it("maps over initial value from parent", () => {
+      const b = B.of(3);
+      const mapped = B.map(double, b);
+      assert.strictEqual(at(mapped), 6);
+    });
     it("maps constant function", () => {
       const b = B.of(0);
       const mapped = B.map(double, b);

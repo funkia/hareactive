@@ -86,7 +86,7 @@ export function at<B>(b: Behavior<B>): B {
 class ConstantBehavior<A> extends Behavior<A> {
   constructor(public last: A) {
     super();
-    this.pushing = false;
+    this.pushing = true;
   }
 
   public push(): void {
@@ -105,6 +105,9 @@ class MapBehavior<A, B> extends Behavior<B> {
   ) {
     super();
     this.pushing = parent.pushing;
+    if (parent.pushing) {
+      this.last = fn(at(parent));
+    }
   }
 
   public push(a: any): void {
