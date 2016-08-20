@@ -43,6 +43,9 @@ export abstract class Occurence<A> implements Consumer<any> {
   public map<B>(f: (a: A) => B): Occurence<B> {
     return new MapOccurence(f, this);
   }
+  public mapTo<B>(b: B): Occurence<B> {
+    return new MapToOccurence<B>(b, this);
+  }
 }
 
 class MapOccurence<A, B> extends Occurence<B> {
@@ -52,6 +55,16 @@ class MapOccurence<A, B> extends Occurence<B> {
   }
   public push(val: any): void {
     this.resolve(this.f(val));
+  }
+}
+
+class MapToOccurence<A> extends Occurence<A> {
+  constructor(protected value: A, private parent: Occurence<any>) {
+    super();
+    parent.listen(this);
+  }
+  public push(_: any): void {
+    this.resolve(this.value);
   }
 }
 

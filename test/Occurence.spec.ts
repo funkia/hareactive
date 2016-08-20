@@ -29,5 +29,16 @@ describe("Occurence", () => {
       s.resolve(4);
       assert.strictEqual(result, 16);
     });
+    it("maps to constant", () => {
+      let result: string;
+      const s = sink<number>();
+      const mapped = s.mapTo("horse");
+      mapped.subscribe((x: string) => {
+        result = x;
+      });
+      assert.strictEqual(result, undefined);
+      s.resolve(4);
+      assert.strictEqual(result, "horse");
+    });
   });
 });
