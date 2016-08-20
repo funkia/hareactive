@@ -1,16 +1,16 @@
-// An occurence is a thing that occurs at some point in time with a
-// value. It can be understood as a pair consisting of the time the
-// occurence occurs and its associated value. In a sense it is quite
-// like a JavaScript promise
+// A future is a thing that occurs at some point in time with a value.
+// It can be understood as a pair consisting of the time the future
+// occurs and its associated value. It is quite like a JavaScript
+// promise.
 
 interface Consumer<A> {
   push(a: A): void;
 }
 
-export abstract class Occurence<A> implements Consumer<any> {
-  // Flag indicating wether or not this occurence has occured.
+export abstract class Future<A> implements Consumer<any> {
+  // Flag indicating wether or not this future has occured.
   protected occured: boolean;
-  // The value of the occurence. `undefined` until occurence.
+  // The value of the future. Often `undefined` until occurence.
   protected value: A;
   // The consumers that depends on this producer. These should be
   // notified when the producer has a value.
@@ -28,8 +28,8 @@ export abstract class Occurence<A> implements Consumer<any> {
   public subscribe(f: (a: A) => void): Subscribtion<A> {
     return new Subscribtion(f, this);
   }
-  // `push` is called by the parent of an occurence once it resolves
-  // with a value.
+  // `push` is called by the parent of a future once it resolves with
+  // a value.
   public abstract push(val: any): void;
   public resolve(val: A): void {
     this.occured = true;
@@ -38,26 +38,26 @@ export abstract class Occurence<A> implements Consumer<any> {
       listeners[i].push(val);
     }
   }
-  // An occurence is a functor, when the occurence occurs we can feed
-  // is't result through the mapping function
-  public map<B>(f: (a: A) => B): Occurence<B> {
-    return new MapOccurence(f, this);
+  // A future is a functor, when the future occurs we can feed is't
+  // result through the mapping function
+  public map<B>(f: (a: A) => B): Future<B> {
+    return new MapFuture(f, this);
   }
-  public mapTo<B>(b: B): Occurence<B> {
-    return new MapToOccurence<B>(b, this);
+  public mapTo<B>(b: B): Future<B> {
+    return new MapToFuture<B>(b, this);
   }
-  // An occurence is an applicative. `of` gives an occurence that has
-  // always occured at all points in time.
-  public static of<B>(b: B): Occurence<B> {
-    return new PureOccurence(b);
+  // A future is an applicative. `of` gives a future that has always
+  // occured at all points in time.
+  public static of<B>(b: B): Future<B> {
+    return new PureFuture(b);
   }
-  public of<B>(b: B): Occurence<B> {
-    return new PureOccurence(b);
+  public of<B>(b: B): Future<B> {
+    return new PureFuture(b);
   }
 }
 
-class MapOccurence<A, B> extends Occurence<B> {
-  constructor(private f: (a: A) => B, private parent: Occurence<A>) {
+class MapFuture<A, B> extends Future<B> {
+  constructor(private f: (a: A) => B, private parent: Future<A>) {
     super();
     parent.listen(this);
   }
@@ -66,8 +66,8 @@ class MapOccurence<A, B> extends Occurence<B> {
   }
 }
 
-class MapToOccurence<A> extends Occurence<A> {
-  constructor(protected value: A, private parent: Occurence<any>) {
+class MapToFuture<A> extends Future<A> {
+  constructor(protected value: A, private parent: Future<any>) {
     super();
     parent.listen(this);
   }
@@ -76,18 +76,18 @@ class MapToOccurence<A> extends Occurence<A> {
   }
 }
 
-class PureOccurence<A> extends Occurence<A> {
+class PureFuture<A> extends Future<A> {
   constructor(protected value: A) {
     super();
     this.occured = true;
   }
   public push(_: any): void {
-    throw new Error("A PureOccurence should never be pushed to.");
+    throw new Error("A PureFuture should never be pushed to.");
   }
 }
 
 // I Sink is a producer that one can imperatively resolve.
-class Sink<A> extends Occurence<A> {
+class Sink<A> extends Future<A> {
   public push(val: any): void {
     throw new Error("A sink should never be pushed to.");
   }
@@ -95,7 +95,7 @@ class Sink<A> extends Occurence<A> {
 
 // A subscribtion is a consumer that performs a side
 class Subscribtion<A> implements Consumer<A> {
-  constructor(private f: (a: A) => void, private parent: Occurence<A>) {
+  constructor(private f: (a: A) => void, private parent: Future<A>) {
     parent.listen(this);
   }
   public push(a: A): void {
@@ -107,4 +107,4 @@ export function sink<A>(): Sink<A> {
   return new Sink<A>();
 }
 
-export const of = Occurence.of;
+export const of = Future.of;

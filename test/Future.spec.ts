@@ -2,10 +2,10 @@
 
 import {assert} from "chai";
 
-import * as Occ from "../src/Occurence";
-import {sink} from "../src/Occurence";
+import * as Future from "../src/Future";
+import {sink} from "../src/Future";
 
-describe("Occurence", () => {
+describe("Future", () => {
   describe("sink", () => {
     it("notifies subscriber", () => {
       let result: number;
@@ -43,9 +43,9 @@ describe("Occurence", () => {
     });
   });
   describe("Applicative", () => {
-    it("of gives occurence that has occured", () => {
+    it("of gives future that has occured", () => {
       let result: number;
-      const o = Occ.of(12);
+      const o = Future.of(12);
       o.subscribe((x: number) => {
         result = x;
       });
