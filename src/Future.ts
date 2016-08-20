@@ -54,6 +54,12 @@ export abstract class Future<A> implements Consumer<any> {
   public of<B>(b: B): Future<B> {
     return new PureFuture(b);
   }
+  // A future is a monad. Once the first future occurs `chain` passes
+  // its value through the chain function and the future it returns is
+  // the one returned by `chain`.
+  public chain<B>(f: (a: A) => Future<B>): Future<B> {
+    return new ChainFuture(f, this);
+  }
 }
 
 class MapFuture<A, B> extends Future<B> {
@@ -83,6 +89,25 @@ class PureFuture<A> extends Future<A> {
   }
   public push(_: any): void {
     throw new Error("A PureFuture should never be pushed to.");
+  }
+}
+
+class ChainFuture<A, B> extends Future<B> {
+  private parentOccurred: boolean = false;
+  constructor(private f: (a: A) => Future<B>, private parent: Future<A>) {
+    super();
+    parent.listen(this);
+  }
+  public push(val: any): void {
+    if (this.parentOccurred === false) {
+      // The first future occured. We can now call `f` with it's value
+      // and listen to the future it returns.
+      this.parentOccurred = true;
+      const newFuture = this.f(val);
+      newFuture.listen(this);
+    } else {
+      this.resolve(val);
+    }
   }
 }
 

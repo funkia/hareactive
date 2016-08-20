@@ -52,4 +52,22 @@ describe("Future", () => {
       assert.strictEqual(result, 12);
     });
   });
+  describe("Monad", () => {
+    it("chains value", () => {
+      let result: number[] = [];
+      const fut1 = sink<number>();
+      const fut2 = sink<number>();
+      const chained = fut1.chain((n: number) => {
+        result.push(n);
+        return fut2;
+      });
+      chained.subscribe((n: number) => {
+        result.push(n);
+      });
+      fut1.resolve(1);
+      assert.deepEqual(result, [1]);
+      fut2.resolve(2);
+      assert.deepEqual(result, [1, 2]);
+    });
+  });
 });
