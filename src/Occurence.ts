@@ -46,6 +46,14 @@ export abstract class Occurence<A> implements Consumer<any> {
   public mapTo<B>(b: B): Occurence<B> {
     return new MapToOccurence<B>(b, this);
   }
+  // An occurence is an applicative. `of` gives an occurence that has
+  // always occured at all points in time.
+  public static of<B>(b: B): Occurence<B> {
+    return new PureOccurence(b);
+  }
+  public of<B>(b: B): Occurence<B> {
+    return new PureOccurence(b);
+  }
 }
 
 class MapOccurence<A, B> extends Occurence<B> {
@@ -68,10 +76,20 @@ class MapToOccurence<A> extends Occurence<A> {
   }
 }
 
+class PureOccurence<A> extends Occurence<A> {
+  constructor(protected value: A) {
+    super();
+    this.occured = true;
+  }
+  public push(_: any): void {
+    throw new Error("A PureOccurence should never be pushed to.");
+  }
+}
+
 // I Sink is a producer that one can imperatively resolve.
 class Sink<A> extends Occurence<A> {
   public push(val: any): void {
-    throw new Error("A sink should never be pushed");
+    throw new Error("A sink should never be pushed to.");
   }
 }
 
@@ -88,3 +106,5 @@ class Subscribtion<A> implements Consumer<A> {
 export function sink<A>(): Sink<A> {
   return new Sink<A>();
 }
+
+export const of = Occurence.of;

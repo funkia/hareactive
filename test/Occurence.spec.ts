@@ -2,6 +2,7 @@
 
 import {assert} from "chai";
 
+import * as Occ from "../src/Occurence";
 import {sink} from "../src/Occurence";
 
 describe("Occurence", () => {
@@ -39,6 +40,16 @@ describe("Occurence", () => {
       assert.strictEqual(result, undefined);
       s.resolve(4);
       assert.strictEqual(result, "horse");
+    });
+  });
+  describe("Applicative", () => {
+    it("of gives occurence that has occured", () => {
+      let result: number;
+      const o = Occ.of(12);
+      o.subscribe((x: number) => {
+        result = x;
+      });
+      assert.strictEqual(result, 12);
     });
   });
 });
