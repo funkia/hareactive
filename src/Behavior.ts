@@ -7,7 +7,8 @@ import {Stream} from "./Stream";
 
 export abstract class Behavior<A> {
   public cbListeners: ((b: A) => void)[] = [];
-  public eventListeners: Behavior<any>[] = [];
+  // The behaviors that depends on this one
+  public listeners: Behavior<any>[] = [];
   public last: A;
   public pushing: boolean;
 
@@ -21,36 +22,63 @@ export abstract class Behavior<A> {
     }
 
     i = 0;
-    l = this.eventListeners.length;
+    l = this.listeners.length;
     for (; i < l; i++) {
-      this.eventListeners[i].push(b);
+      this.listeners[i].push(b, this);
     }
   };
 
-  public abstract push(a: any): void;
+  public abstract push(a: any, changed: Behavior<any>): void;
 
   public abstract pull(): A;
 
   set def(b: Behavior<A>) {
     b.cbListeners.push(...this.cbListeners);
-    b.eventListeners.push(...this.eventListeners);
+    b.listeners.push(...this.listeners);
     this.cbListeners = b.cbListeners;
-    this.eventListeners = b.eventListeners;
+    this.listeners = b.listeners;
   }
 
   public map<B>(fn: MapFunction<A, B>): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
-    this.eventListeners.push(newB);
+    this.listeners.push(newB);
     return newB;
   };
 
   public of: <A>(v: A) => Behavior<A> = of;
+
+  public chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
+    const newB = new ChainBehavior<A, B>(this, fn);
+    this.listeners.push(newB);
+    return newB;
+  }
+
+  public subscribe(listener: Behavior<any>): void {
+    this.listeners.push(listener);
+  }
+
+  public unsubscribe(listener: Behavior<any>): void {
+    // The indexOf here is O(n), where n is the number of listeners,
+    // if using a linked list it should be possible to do the
+    // unsubscribe operation in constant time
+    const l = this.listeners;
+    const idx = l.indexOf(listener);
+    if (idx !== -1) {
+      // if the subscriber is not at the end of the list we overwrite
+      // it with the element at the end of the list
+      if (idx !== l.length - 1) {
+        l[idx] = l[l.length - 1];
+      }
+      l.length--; // remove the last element of the list
+    }
+  }
 }
 
 export function of<B>(val: B): Behavior<B> {
   return new ConstantBehavior(val);
 }
 
+// Impure function that gets the current value of a behavior.
 export function at<B>(b: Behavior<B>): B {
   return b.pushing === true ? b.last : b.pull();
 }
@@ -86,6 +114,36 @@ class MapBehavior<A, B> extends Behavior<B> {
 
   public pull(): B {
     return this.fn(at(this.parent));
+  }
+}
+
+class ChainBehavior<A, B> extends Behavior<B> {
+  // The last behavior returned by the chain function
+  private innerB: Behavior<B>;
+  constructor(
+    private outer: Behavior<any>,
+    private fn: (a: A) => Behavior<B>
+  ) {
+    super();
+    this.innerB = this.fn(at(this.outer));
+    this.pushing = outer.pushing && this.innerB.pushing;
+    this.innerB.listeners.push(this);
+    this.last = at(this.innerB);
+  }
+
+  public push(a: any, changed: Behavior<any>): void {
+    if (changed === this.outer) {
+      this.innerB.unsubscribe(this);
+      const newInner = this.fn(at(this.outer));
+      newInner.subscribe(this);
+      this.innerB = newInner;
+    }
+    this.last = at(this.innerB);
+    this.publish(this.last);
+  }
+
+  public pull(): B {
+    return at(this.fn(at(this.outer)));
   }
 }
 
@@ -194,8 +252,8 @@ export function map<A, B>(fn: MapFunction<A, B> , b: Behavior<A>): Behavior<B> {
 
 export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
   const newB = new ApBehavior<A, B>(fnB, valB);
-  fnB.eventListeners.push(newB);
-  valB.eventListeners.push(newB);
+  fnB.listeners.push(newB);
+  valB.listeners.push(newB);
   return newB;
 }
 

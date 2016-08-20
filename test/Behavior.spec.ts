@@ -1,8 +1,9 @@
 ///<reference path="./../typings/index.d.ts" />
 import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
+import {at} from "../src/Behavior";
+
 import {assert} from "chai";
-// import {spy} from "sinon";
 
 function id<A>(v: A): A {
   return v;
@@ -197,37 +198,68 @@ describe("Behavior", () => {
       assert.equal(B.at(applied), 16);
     });
   });
-  // describe("of", () => {
-  //   it("identity", () => {
-  //     const result1 = [];
-  //     const result2 = [];
-  //     const numB = B.of(0);
-  //     const num2B = B.of(id).ap(numB);
-  //     numB.publish(1);
-  //     assert.equal(B.at(numB), 1);
-  //     assert.equal(B.at(num2B), 1);
-  //     numB.publish(2);
-  //     assert.equal(B.at(numB), 2);
-  //     assert.equal(B.at(num2B), 2);
-  //     numB.publish(3);
-  //     assert.equal(B.at(numB), 3);
-  //     assert.equal(B.at(num2B), 3);
-  //   });
-  // });
-  // it("can switch from constant to constying and back", () => {
-  //   const time = 0;
-  //   const b = B.of(0);
-  //   const mapped = B.map(double, b);
-  //   assert.equal(B.at(mapped), 0);
-  //   B.set(b, () => {
-  //     return time;
-  //   });
-  //   assert.equal(B.at(mapped), 0);
-  //   time = 2;
-  //   assert.equal(B.at(mapped), 4);
-  //   B.publish(b, 4);
-  //   assert.equal(B.at(mapped), 8);
-  // });
+  describe("chain", () => {
+    it("handles a constant behavior", () => {
+      const b1 = B.of(12);
+      const b2 = b1.chain(x => B.of(x * x));
+      assert.strictEqual(at(b2), 144);
+    });
+    it("handles changing outer behavior", () => {
+      const b1 = B.sink(0);
+      const b2 = b1.chain(x => B.of(x * x));
+      assert.strictEqual(at(b2), 0);
+      b1.publish(2);
+      assert.strictEqual(at(b2), 4);
+      b1.publish(3);
+      assert.strictEqual(at(b2), 9);
+    });
+    it("handles changing inner behavior", () => {
+      const inner = B.sink(0);
+      const b = B.of(1).chain(_ => inner);
+      assert.strictEqual(at(b), 0);
+      inner.publish(2);
+      assert.strictEqual(at(b), 2);
+      inner.publish(3);
+      assert.strictEqual(at(b), 3);
+    });
+    it("stops subscribing to past inner behavior", () => {
+      const inner = B.sink(0);
+      const outer = B.sink(1);
+      const b = outer.chain(n => n === 1 ? inner : B.of(6));
+      assert.strictEqual(at(b), 0);
+      inner.publish(2);
+      assert.strictEqual(at(b), 2);
+      outer.publish(2);
+      assert.strictEqual(at(b), 6);
+      inner.publish(3);
+      assert.strictEqual(at(b), 6);
+    });
+    it("handles changes from both inner and outer", () => {
+      const outer = B.sink(0);
+      const inner1 = B.sink(1);
+      const inner2 = B.sink(3);
+      const b = outer.chain(n => {
+        if (n === 0) {
+          return B.of(0);
+        } else if (n === 1) {
+          return inner1;
+        } else if (n === 2) {
+          return inner2;
+        }
+      });
+      assert.strictEqual(at(b), 0);
+      outer.publish(1);
+      assert.strictEqual(at(b), 1);
+      inner1.publish(2);
+      assert.strictEqual(at(b), 2);
+      outer.publish(2);
+      assert.strictEqual(at(b), 3);
+      inner1.publish(7); // Pushing to previous inner should have no effect
+      assert.strictEqual(at(b), 3);
+      inner2.publish(4);
+      assert.strictEqual(at(b), 4);
+    });
+  });
 });
 
 describe("Behavior and Events", () => {
