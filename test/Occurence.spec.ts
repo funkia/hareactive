@@ -17,4 +17,17 @@ describe("Occurence", () => {
       assert.strictEqual(result, 2);
     });
   });
+  describe("Functor", () => {
+    it("maps over value", () => {
+      let result: number;
+      const s = sink<number>();
+      const mapped = s.map(x => x * x);
+      mapped.subscribe((x: number) => {
+        result = x;
+      });
+      assert.strictEqual(result, undefined);
+      s.resolve(4);
+      assert.strictEqual(result, 16);
+    });
+  });
 });
