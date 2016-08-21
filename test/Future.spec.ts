@@ -3,7 +3,7 @@
 import {assert} from "chai";
 
 import * as Future from "../src/Future";
-import {sink} from "../src/Future";
+import {sink, lift} from "../src/Future";
 
 describe("Future", () => {
   describe("sink", () => {
@@ -50,6 +50,32 @@ describe("Future", () => {
         result = x;
       });
       assert.strictEqual(result, 12);
+    });
+    it("lifts a function of one argument", () => {
+      let result: string;
+      const fut = sink<string>();
+      const lifted = lift((s: string) => s + "!", fut);
+      lifted.subscribe((s: string) => result = s);
+      assert.strictEqual(result, undefined);
+      fut.resolve("Hello");
+      assert.strictEqual(result, "Hello!");
+    });
+    it("lifts a function of three arguments", () => {
+      let result: string;
+      const fut1 = sink<string>();
+      const fut2 = sink<string>();
+      const fut3 = sink<string>();
+      const lifted = lift((s1: string, s2: string, s3: string) => {
+        return s1 + "-" + s2 + "+" + s3;
+      }, fut1, fut2, fut3);
+      lifted.subscribe((s: string) => result = s);
+      assert.strictEqual(result, undefined);
+      fut1.resolve("Hello");
+      assert.strictEqual(result, undefined);
+      fut2.resolve("over");
+      assert.strictEqual(result, undefined);
+      fut3.resolve("there");
+      assert.strictEqual(result, "Hello-over+there");
     });
   });
   describe("Monad", () => {
