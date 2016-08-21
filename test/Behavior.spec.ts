@@ -1,9 +1,10 @@
 ///<reference path="./../typings/index.d.ts" />
+import {assert} from "chai";
+
 import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
+import * as F from "../src/Future";
 import {at} from "../src/Behavior";
-
-import {assert} from "chai";
 
 function id<A>(v: A): A {
   return v;
@@ -277,20 +278,44 @@ describe("Behavior and Future", () => {
       fut.subscribe((_) => occurred = true);
       assert.strictEqual(occurred, true);
     });
+    it("future occurs when behavior turns true", () => {
+      let occurred = false;
+      const b = B.sink(false);
+      const w = B.when(b);
+      const fut = at(w);
+      fut.subscribe((_) => occurred = true);
+      assert.strictEqual(occurred, false);
+      b.publish(true);
+      assert.strictEqual(occurred, true);
+    });
   });
-  it("future occurs when behavior turns true", () => {
-    let occurred = false;
-    const b = B.sink(false);
-    const w = B.when(b);
-    const fut = at(w);
-    fut.subscribe((_) => occurred = true);
-    assert.strictEqual(occurred, false);
-    b.publish(true);
-    assert.strictEqual(occurred, true);
+  describe("snapshot", () => {
+    it("snapshots behavior at future occuring in future", () => {
+      let result: number;
+      const bSink = B.sink(1);
+      const futureSink = F.sink();
+      const mySnapshot = at(B.snapshot(bSink, futureSink));
+      mySnapshot.subscribe(res => result = res);
+      bSink.publish(2);
+      bSink.publish(3);
+      futureSink.resolve({});
+      bSink.publish(4);
+      assert.strictEqual(result, 3);
+    });
+    it("uses current value when future occured in the past", () => {
+      let result: number;
+      const bSink = B.sink(1);
+      const occurredFuture = F.of({});
+      bSink.publish(2);
+      const mySnapshot = at(B.snapshot(bSink, occurredFuture));
+      mySnapshot.subscribe(res => result = res);
+      bSink.publish(3);
+      assert.strictEqual(result, 2);
+    });
   });
 });
 
-describe("Behavior and Events", () => {
+describe("Behavior and Stream", () => {
   describe("stepper", () => {
     it("steps to the last event value", () => {
       const e = S.empty();

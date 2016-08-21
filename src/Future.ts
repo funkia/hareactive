@@ -9,7 +9,7 @@ import {Behavior} from "./Behavior";
  */
 export abstract class Future<A> implements Consumer<any> {
   // Flag indicating wether or not this future has occured.
-  protected occured: boolean;
+  public occured: boolean;
   // The value of the future. Often `undefined` until occurence.
   public value: A;
   // The consumers that depends on this producer. These should be
@@ -169,7 +169,7 @@ export class BehaviorFuture<A> extends Future<A> {
     super();
     b.listen(this);
   }
-  public push(a: A) {
+  public push(a: A): void {
     this.b.unlisten(this);
     this.resolve(a);
   }

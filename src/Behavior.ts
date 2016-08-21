@@ -5,6 +5,7 @@ import {
 } from "./frp-common";
 
 import {Future, BehaviorFuture} from "./Future";
+import * as F from "./Future";
 import {Stream} from "./Stream";
 
 export abstract class Behavior<A> {
@@ -231,6 +232,48 @@ class WhenBehavior extends Behavior<Future<{}>> {
  */
 export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
+}
+
+// FIXME: This can probably be made less ugly.
+class SnapshotBehavior<A> extends Behavior<Future<A>> {
+  private afterFuture: boolean;
+  constructor(private parent: Behavior<A>, future: Future<any>) {
+    super();
+    if (future.occured === true) {
+      // Future has occurred at some point in the past
+      this.afterFuture = true;
+      this.pushing = parent.pushing;
+      parent.listen(this);
+      this.last = Future.of(at(parent));
+    } else {
+      this.afterFuture = false;
+      this.pushing = true;
+      this.last = F.sink<A>();
+      future.listen(this);
+    }
+  }
+  public push(val: any): void {
+    if (this.afterFuture === false) {
+      // The push is coming from the Future, it has just occurred.
+      this.afterFuture = true;
+      this.last.resolve(at(this.parent));
+      this.parent.listen(this);
+    } else {
+      // We are recieving an update from `parent` after `future` has
+      // occurred.
+      this.last = Future.of(val);
+    }
+  }
+  public pull(): Future<A> {
+    return this.last;
+  }
+}
+
+export function snapshot<A>(
+  behavior: Behavior<A>,
+  future: Future<any>
+): Behavior<Future<A>> {
+  return new SnapshotBehavior(behavior, future);
 }
 
 class StepperBehavior<B> extends Behavior<B> {
