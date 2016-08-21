@@ -148,6 +148,10 @@ class Sink<A> extends Future<A> {
   }
 }
 
+export function sink<A>(): Future<A> {
+  return new Sink<A>();
+}
+
 // A subscribtion is a consumer that performs a side
 class Subscribtion<A> implements Consumer<A> {
   constructor(private f: (a: A) => void, private parent: Future<A>) {
@@ -173,10 +177,6 @@ export class BehaviorFuture<A> extends Future<A> {
     this.b.unlisten(this);
     this.resolve(a);
   }
-}
-
-export function sink<A>(): Sink<A> {
-  return new Sink<A>();
 }
 
 export const of = Future.of;

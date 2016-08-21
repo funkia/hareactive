@@ -4,7 +4,7 @@ import {assert} from "chai";
 import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
-import {at} from "../src/Behavior";
+import {Behavior, at, switcher} from "../src/Behavior";
 
 function id<A>(v: A): A {
   return v;
@@ -311,6 +311,25 @@ describe("Behavior and Future", () => {
       mySnapshot.subscribe(res => result = res);
       bSink.publish(3);
       assert.strictEqual(result, 2);
+    });
+  });
+  describe("switcher", () => {
+    it("switches between behavior", () => {
+      const b1 = B.sink(1);
+      const b2 = B.sink(8);
+      const futureSink = F.sink<Behavior<number>>();
+      const switching = switcher(b1, futureSink);
+      assert.strictEqual(at(switching), 1);
+      b2.publish(9);
+      assert.strictEqual(at(switching), 1);
+      b1.publish(2);
+      assert.strictEqual(at(switching), 2);
+      b1.publish(3);
+      assert.strictEqual(at(switching), 3);
+      futureSink.resolve(b2);
+      assert.strictEqual(at(switching), 9);
+      b2.publish(10);
+      assert.strictEqual(at(switching), 10);
     });
   });
 });

@@ -276,6 +276,40 @@ export function snapshot<A>(
   return new SnapshotBehavior(behavior, future);
 }
 
+class SwitcherBehavior<A> extends Behavior<A> {
+  constructor(private behavior: Behavior<A>, next: Future<Behavior<A>>) {
+    super();
+    this.last = at(behavior);
+    behavior.listen(this);
+    // FIXME: Using `bind` is hardly optimal for performance.
+    next.subscribe(this.doSwitch.bind(this));
+  }
+  public push(val: A): void {
+    this.last = val;
+    this.publish(val);
+  }
+  public pull(): A {
+    return this.last;
+  }
+  private doSwitch(newBehavior: Behavior<A>): void {
+    this.behavior.unlisten(this);
+    newBehavior.listen(this);
+    this.push(at(newBehavior));
+  }
+}
+
+/**
+ * From an initial behavior and a future of a behavior `switcher`
+ * creates a new behavior that acts exactly like `initial` until
+ * `next` occurs after which it acts like the behavior it contains.
+ */
+export function switcher<A>(
+  init: Behavior<A>,
+  next: Future<Behavior<A>>
+) {
+  return new SwitcherBehavior(init, next);
+}
+
 class StepperBehavior<B> extends Behavior<B> {
   constructor(initial: B, private steps: Stream<B>) {
     super();
