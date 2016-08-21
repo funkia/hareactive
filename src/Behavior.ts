@@ -1,29 +1,29 @@
 import {
   MapFunction,
-  SubscribeFunction
+  SubscribeFunction,
+  Consumer
 } from "./frp-common";
 
+import {Future, BehaviorFuture} from "./Future";
 import {Stream} from "./Stream";
 
 export abstract class Behavior<A> {
   public cbListeners: ((b: A) => void)[] = [];
-  // The behaviors that depends on this one
-  public listeners: Behavior<any>[] = [];
+  // The consumers that depends on this behavior
+  public listeners: Consumer<any>[] = [];
   public last: A;
   public pushing: boolean;
 
   public publish(b: A): void {
     this.last = b;
 
-    let i = 0;
     let l = this.cbListeners.length;
-    for (; i < l; i++) {
+    for (let i = 0; i < l; i++) {
       this.cbListeners[i](b);
     }
 
-    i = 0;
     l = this.listeners.length;
-    for (; i < l; i++) {
+    for (let i = 0; i < l; i++) {
       this.listeners[i].push(b, this);
     }
   };
@@ -53,14 +53,14 @@ export abstract class Behavior<A> {
     return newB;
   }
 
-  public subscribe(listener: Behavior<any>): void {
+  public listen(listener: Consumer<any>): void {
     this.listeners.push(listener);
   }
 
-  public unsubscribe(listener: Behavior<any>): void {
+  public unlisten(listener: Consumer<any>): void {
     // The indexOf here is O(n), where n is the number of listeners,
-    // if using a linked list it should be possible to do the
-    // unsubscribe operation in constant time
+    // if using a linked list it should be possible to perform the
+    // unsubscribe operation in constant time.
     const l = this.listeners;
     const idx = l.indexOf(listener);
     if (idx !== -1) {
@@ -136,9 +136,9 @@ class ChainBehavior<A, B> extends Behavior<B> {
 
   public push(a: any, changed: Behavior<any>): void {
     if (changed === this.outer) {
-      this.innerB.unsubscribe(this);
+      this.innerB.unlisten(this);
       const newInner = this.fn(at(this.outer));
-      newInner.subscribe(this);
+      newInner.listen(this);
       this.innerB = newInner;
     }
     this.last = at(this.innerB);
@@ -203,6 +203,34 @@ class SinkBehavior<B> extends Behavior<B> {
   public pull(): B {
     return this.last;
   }
+}
+
+class WhenBehavior extends Behavior<Future<{}>> {
+  constructor(private parent: Behavior<boolean>) {
+    super();
+    this.pushing = true;
+    parent.listen(this);
+    this.push(at(parent));
+  }
+  public push(val: boolean): void {
+    if (val === true) {
+      this.last = Future.of({});
+    } else {
+      this.last = new BehaviorFuture(this.parent);
+    }
+  }
+  public pull(): Future<{}> {
+    return this.last;
+  }
+}
+
+/**
+ * Take a behavior `b` of booleans and return a behavior that for time
+ * `t` contains a future that occurs when `b` is true after `t`.
+ * @param b - A boolean valued behavior.
+ */
+export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
+  return new WhenBehavior(b);
 }
 
 class StepperBehavior<B> extends Behavior<B> {

@@ -267,6 +267,29 @@ describe("Behavior", () => {
   });
 });
 
+describe("Behavior and Future", () => {
+  describe("when", () => {
+    it("gives occured future when behavior is true", () => {
+      let occurred = false;
+      const b = B.of(true);
+      const w = B.when(b);
+      const fut = at(w);
+      fut.subscribe((_) => occurred = true);
+      assert.strictEqual(occurred, true);
+    });
+  });
+  it("future occurs when behavior turns true", () => {
+    let occurred = false;
+    const b = B.sink(false);
+    const w = B.when(b);
+    const fut = at(w);
+    fut.subscribe((_) => occurred = true);
+    assert.strictEqual(occurred, false);
+    b.publish(true);
+    assert.strictEqual(occurred, true);
+  });
+});
+
 describe("Behavior and Events", () => {
   describe("stepper", () => {
     it("steps to the last event value", () => {

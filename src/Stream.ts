@@ -3,14 +3,14 @@ import {
   SubscribeFunction,
   ScanFunction,
   FilterFunction,
-  Pushable
+  Consumer
 } from "./frp-common";
 
 import {Behavior, at} from "./Behavior";
 
 export abstract class Stream<A> {
   public last: A;
-  public eventListeners: Pushable<A>[] = [];
+  public eventListeners: Consumer<A>[] = [];
   private cbListeners: ((a: A) => void)[] = [];
 
   public publish(a: A): void {

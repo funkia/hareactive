@@ -1,12 +1,12 @@
-// A future is a thing that occurs at some point in time with a value.
-// It can be understood as a pair consisting of the time the future
-// occurs and its associated value. It is quite like a JavaScript
-// promise.
+import {Consumer} from "./frp-common";
+import {Behavior} from "./Behavior";
 
-interface Consumer<A> {
-  push(a: A): void;
-}
-
+/**
+ * A future is a thing that occurs at some point in time with a value.
+ * It can be understood as a pair consisting of the time the future
+ * occurs and its associated value. It is quite like a JavaScript
+ * promise.
+ */
 export abstract class Future<A> implements Consumer<any> {
   // Flag indicating wether or not this future has occured.
   protected occured: boolean;
@@ -155,6 +155,23 @@ class Subscribtion<A> implements Consumer<A> {
   }
   public push(a: A): void {
     this.f(a); // let `f` perform its side-effect.
+  }
+}
+
+/**
+ * Create a future from a pushing behavior. The future occurs when the
+ * behavior pushes it's next value. Constructing a BehaviorFuture is
+ * impure and should not be done direcly.
+ * @private
+ */
+export class BehaviorFuture<A> extends Future<A> {
+  constructor(private b: Behavior<A>) {
+    super();
+    b.listen(this);
+  }
+  public push(a: A) {
+    this.b.unlisten(this);
+    this.resolve(a);
   }
 }
 
