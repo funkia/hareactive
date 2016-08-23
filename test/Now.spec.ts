@@ -5,8 +5,10 @@ import {Do, Monad} from "jabz/monad";
 
 
 import * as B from "../src/Behavior";
+import {Behavior, switcher, when} from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
+import {Future} from "../src/Future";
 import {Now, runNow, async, sample, plan} from "../src/Now";
 
 // A reference that can be mutated
@@ -81,5 +83,41 @@ describe("Now", () => {
         assert.strictEqual(ref2.ref, "World");
       });
     });
+  });
+  it("handles recursively defined behavior", () => {
+    let resolve: (n: number) => void;
+    function getNextNr(): IO<number> {
+      return withEffectsP(() => {
+        return new Promise((res) => {
+          resolve = res;
+        });
+      })();
+    }
+    function loop(n: number): Now<Behavior<number>> {
+      return Do(function*(): Iterator<Now<any>> {
+        const e = yield async(getNextNr());
+        const e1 = yield plan(e.map(loop));
+        return Now.of(switcher(Behavior.of(n), e1));
+      });
+    }
+    function main(): Now<Future<number>> {
+      return Do(function*(): Iterator<Now<any>> {
+        const b: Behavior<number> = yield loop(0);
+        const e = yield sample(when(b.map((n: number) => {
+          return n === 3;
+        })));
+        return Now.of(e);
+      });
+    }
+    setTimeout(() => {
+      resolve(1);
+      setTimeout(() => {
+        resolve(2);
+        setTimeout(() => {
+          resolve(3);
+        });
+      });
+    });
+    return runNow(main());
   });
 });

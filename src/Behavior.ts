@@ -47,6 +47,7 @@ export abstract class Behavior<A> {
   };
 
   public of: <A>(v: A) => Behavior<A> = of;
+  static of: <A>(v: A) => Behavior<A> = of;
 
   public chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     const newB = new ChainBehavior<A, B>(this, fn);
