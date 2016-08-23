@@ -96,4 +96,17 @@ describe("Future", () => {
       assert.deepEqual(result, [1, 2]);
     });
   });
+  it("can convert Promise to Future", () => {
+    let result: number;
+    let resolve: (n: number) => void;
+    const promise = new Promise((res) => resolve = res);
+    const future = Future.fromPromise(promise);
+    future.subscribe((res: number) => result = res);
+    assert.strictEqual(result, undefined);
+    promise.then(() => {
+      assert.strictEqual(result, 12);
+    });
+    resolve(12);
+    return promise;
+  });
 });

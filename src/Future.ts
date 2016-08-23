@@ -162,6 +162,12 @@ class Subscribtion<A> implements Consumer<A> {
   }
 }
 
+export function fromPromise<A>(p: Promise<A>): Future<A> {
+  const future = sink<A>();
+  p.then(future.push.bind(future));
+  return future;
+}
+
 /**
  * Create a future from a pushing behavior. The future occurs when the
  * behavior pushes it's next value. Constructing a BehaviorFuture is
