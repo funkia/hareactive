@@ -1,11 +1,13 @@
 ///<reference path="./../typings/index.d.ts" />
 import {assert} from "chai";
-import {IO, withEffects, fromPromise} from "jabz/io";
+import {IO, withEffects, withEffectsP, fromPromise} from "jabz/io";
+import {Do, Monad} from "jabz/monad";
+
 
 import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
-import {runNow, async, Now} from "../src/Now";
+import {Now, runNow, async, sample, plan} from "../src/Now";
 
 // A reference that can be mutated
 type Ref<A> = {ref: A};
@@ -27,6 +29,42 @@ describe("Now", () => {
       });
     });
   });
+  describe("sample", () => {
+    it("samples constant behavior", () => {
+      const b = B.of(6);
+      const comp = sample(b).chain((n) => Now.of(F.of(n)));
+      return runNow(comp).then((result: number) => {
+        assert.strictEqual(result, 6);
+      });
+    });
+  });
+  describe("plan", () => {
+    it("excutes plan asynchronously", () => {
+      let resolve: (n: number) => void;
+      let done = false;
+      const fn = withEffectsP(() => {
+        return new Promise((res) => {
+          resolve = res;
+        });
+      });
+      function comp(n: number): Now<number> {
+        return Now.of(n * 2);
+      }
+      const prog = Do(function*(): Iterator<Now<any>> {
+        const e = yield async(fn());
+        const e2 = yield plan(e.map(comp));
+        return Now.of(e2);
+      });
+      setTimeout(() => {
+        assert.strictEqual(done, false);
+        resolve(11);
+      });
+      return runNow(prog).then((res: number) => {
+        done = true;
+        assert.strictEqual(res, 22);
+      });
+    });
+  });
   describe("chain", () => {
     it("executes several `async`s in succession", () => {
       const ref1 = createRef(1);
@@ -34,7 +72,7 @@ describe("Now", () => {
       const comp =
         async(mutateRef(2, ref1)).chain(
           (_: any) => async(mutateRef("World", ref2)).chain(
-            (_: any) => Now.of(F.of(true))
+            (__: any) => Now.of(F.of(true))
           )
         );
       return runNow(comp).then((result: boolean) => {
