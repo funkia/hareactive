@@ -10,7 +10,7 @@
   "scripts": {
     "postinstall": "./node_modules/.bin/typings install",
     "build": "./node_modules/.bin/tsc",
-    "test": "./node_modules/.bin/ts-node --noProject node_modules/.bin/_mocha test/**/*.spec.ts",
+    "test": "./node_modules/.bin/ts-node -P ./test/tsconfig.json node_modules/.bin/_mocha test/**/*.spec.ts",
     "prebench": "./node_modules/.bin/tsc",
     "bench": "node benchmark"
   },
@@ -35,7 +35,7 @@
     "mocha": "^2.5.3",
     "most": "^0.19.7",
     "sinon": "^1.17.4",
-    "ts-node": "^0.8.0",
+    "ts-node": "^1.3.0",
     "typescript": "^1.8.10",
     "typings": "^1.0.4",
     "webpack": "^1.13.1"
