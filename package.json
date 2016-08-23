@@ -27,7 +27,9 @@
     "url": "https://github.com/paldepind/hareactive/issues"
   },
   "homepage": "https://github.com/paldepind/hareactive#readme",
-  "dependencies": {},
+  "dependencies": {
+    "jabz": "0.0.5"
+  },
   "devDependencies": {
     "awesome-typescript-loader": "^0.17.0",
     "benchmark": "^2.1.0",
