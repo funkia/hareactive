@@ -12,13 +12,39 @@ import {Behavior} from "./Behavior";
 //   constructor() {}
 // }
 
-interface Now<B> {
+export abstract class Now<A> {
   // Impurely run the now computation
-  run(): B;
+  abstract run(): A;
+  static of<B>(a: B): Now<B> {
+    return new OfOperation(a);
+  }
+  public chain<B>(f: (a: A) => Now<B>): Now<B> {
+    return new ChainOperation(this, f);
+  }
 }
 
-class AsyncOperation<A> implements Now<Future<A>> {
-  constructor(private comp: IO<A>) {}
+class OfOperation<A> extends Now<A> {
+  constructor(private value: A) {
+    super();
+  }
+  public run() {
+    return this.value;
+  }
+}
+
+class ChainOperation<B> extends Now<B> {
+  constructor(private first: Now<any>, private f: (a: any) => Now<B>) {
+    super();
+  }
+  public run() {
+    return this.f(this.first.run()).run();
+  }
+}
+
+class AsyncOperation<A> extends Now<Future<A>> {
+  constructor(private comp: IO<A>) {
+    super();
+  }
   public run() {
     return fromPromise<A>(runIO(this.comp));
   }
