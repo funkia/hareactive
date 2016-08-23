@@ -103,10 +103,9 @@ describe("Future", () => {
     const future = Future.fromPromise(promise);
     future.subscribe((res: number) => result = res);
     assert.strictEqual(result, undefined);
-    promise.then(() => {
+    resolve(12);
+    return promise.then(() => {
       assert.strictEqual(result, 12);
     });
-    resolve(12);
-    return promise;
   });
 });

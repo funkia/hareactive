@@ -164,7 +164,7 @@ class Subscribtion<A> implements Consumer<A> {
 
 export function fromPromise<A>(p: Promise<A>): Future<A> {
   const future = sink<A>();
-  p.then(future.push.bind(future));
+  p.then(future.resolve.bind(future));
   return future;
 }
 
