@@ -1,11 +1,11 @@
+export interface Consumer<A> {
+  push(a: A, changed?: any): void;
+}
+
 export interface Body {
   run: (a: any) => void;
   pull: () => any;
 }
-
-export interface Pushable<A> {
-  push: (a: A) => void;
-};
 
 export interface Reactive<A> {
   publish: (a: A) => void;
