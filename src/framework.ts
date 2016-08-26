@@ -67,7 +67,7 @@ export class Component<A> {
 type ViewBehaviors = Array<Behavior<any>>;
 type ViewStreams = Array<Stream<any>>;
 
-type ViewOut<VB, VS> = {behaviors: VB, streams: VS};
+export type ViewOut<VB, VS> = {behaviors: VB, streams: VS};
 
 export function viewOut<VB, VS>(behaviors: VB, streams: VS): Component<ViewOut<VB, VS>> {
   return Component.of({behaviors, streams});
@@ -84,10 +84,13 @@ export function mfixNow<VB extends ViewBehaviors, VS extends ViewStreams>(
   const fakeStreams: any = [empty(), empty(), empty(), empty()];
   return comp([{behaviors: bPlaceholders, streams: fakeStreams}, []])
     .map((arg) => {
-      const [{behaviors}, _] = arg;
+      const [{behaviors, streams}, _] = arg;
       // Tie the recursive knot
       for (let i = 0; i < behaviors.length; ++i) {
         bPlaceholders[i].replaceWith(behaviors[i]);
+      }
+      for (let i = 0; i < streams.length; ++i) {
+        fakeStreams[i].def = streams[i];
       }
       return arg;
   });
@@ -108,12 +111,10 @@ export function component<M, VB extends ViewBehaviors, VS extends ViewStreams>({
 
 export function runMain(selector: string, c: Component<any>): void {
   const element = document.querySelector(selector);
-  runNow(runComponent(c).map(([whut, nodes]) => {
+  runNow(runComponent(c).map(([_, nodes]) => {
     for (const node of nodes) {
       element.appendChild(node);
     }
-    console.log(whut);
-    console.log(nodes);
     return Future.of({});
   }));
 }
@@ -133,6 +134,18 @@ function behaviorFromEvent<A>(
     b.publish(extractor(ev));
   });
   return b;
+}
+
+function streamFromEvent<A>(
+  eventName: string,
+  extractor: (ev: Event) => A,
+  dom: Node
+): Stream<A> {
+  const s = empty<A>();
+  dom.addEventListener(eventName, (ev) => {
+    s.publish(extractor(ev));
+  });
+  return s;
 }
 
 export function input(): Component<{inputValue: Behavior<string>}> {
@@ -159,7 +172,19 @@ export function text(tOrB: string|Behavior<Showable>): Component<{}> {
   if (typeof tOrB === "string") {
     elm.nodeValue = tOrB;
   } else {
+    if (tOrB.pushing === true) {
+      elm.nodeValue = B.at(tOrB).toString();
+    }
     subscribe((t) => elm.nodeValue = t.toString(), tOrB);
   }
   return Component.fromPair({}, [elm]);
+}
+
+export function button(label: string): Component<{click: Stream<Event>}> {
+  const elm = document.createElement("button");
+  elm.textContent = label;
+  const click = streamFromEvent(
+    "click", (ev: any) => ev, elm
+  );
+  return Component.fromPair({click}, [elm]);
 }

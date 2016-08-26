@@ -8,6 +8,11 @@ import {Future, BehaviorFuture} from "./Future";
 import * as F from "./Future";
 import {Stream} from "./Stream";
 
+/**
+ * A behavior is a value that changes over time. Conceptually it can
+ * be though of as a function from time to a value. I.e. `type
+ * Behavior<A> = (t: Time) => A`.
+ */
 export abstract class Behavior<A> {
   public cbListeners: ((b: A) => void)[] = [];
   // The consumers that depends on this behavior
@@ -168,6 +173,7 @@ class FunctionBehavior<A> extends Behavior<A> {
   }
 }
 
+/** @private */
 class ApBehavior<A, B> extends Behavior<B> {
   public last: B;
 
@@ -211,6 +217,7 @@ class SinkBehavior<B> extends Behavior<B> {
 /**
  * A placeholder behavior is a behavior without any value. It is used
  * to do value recursion in `./framework.ts`.
+ * @private
  */
 export class PlaceholderBehavior<B> extends Behavior<B> {
   private source: Behavior<B>;
