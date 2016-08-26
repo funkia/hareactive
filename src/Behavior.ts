@@ -44,7 +44,7 @@ export abstract class Behavior<A> {
     const newB = new MapBehavior<A, B>(this, fn);
     this.listeners.push(newB);
     return newB;
-  };
+  }
 
   public of: <A>(v: A) => Behavior<A> = of;
   static of: <A>(v: A) => Behavior<A> = of;
