@@ -7,11 +7,8 @@
     "noImplicitAny": true,
     "sourceMap": true
   },
-  "files":[
-    "src/Events.ts",
-    "src/Behavior.ts",
-    "src/DOMBuilder.ts",
-    "src/bootstrap.ts"
+  "include": [
+    "src/**/*"
   ],
   "exclude": [
     "node_modules"
