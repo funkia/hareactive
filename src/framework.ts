@@ -10,10 +10,12 @@ import {Stream, empty} from "./Stream";
 // Quick n' dirty proof of concept implementation
 
 /**
- * A component is a now computation of a pair of a value and a view.
- * I.e. something like `type Component<A> = Now<[A, View[]]>`. We don't
- * define it as a type alias because we wan't to make it a monad in
- * different way than Now.
+ * A component is a now computation of a pair of a value and a list of
+ * DOM nodes. I.e. something like `type Component<A> = Now<[A,
+ * Node[]]>`. We don't define it as a type alias because we wan't to
+ * make it a monad in different way than Now. Component's `chain`
+ * concatenates the DOM nodes from the first and the returned
+ * Component. We use this to build up the view using do-notation.
  */
 
 type CompVal<A> = [A, Node[]];
