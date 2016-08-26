@@ -82,7 +82,7 @@ export function mfixNow<VB extends ViewBehaviors, VS extends ViewStreams>(
   return comp([{behaviors: fakeBehaviors, streams: fakeStreams}, []])
     .map((arg) => {
       const [{behaviors}, _] = arg;
-      // Let's tie the recursive knot
+      // Tie the recursive knot
       for (let i = 0; i < behaviors.length; ++i) {
         behaviors[i].listen(fakeBehaviors[i]);
       }
