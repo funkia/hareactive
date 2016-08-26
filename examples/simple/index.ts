@@ -5,7 +5,7 @@ import {Stream, snapshotWith} from "../../src/Stream";
 import {Now} from "../../src/Now";
 
 import {
-  Component, ViewOut, component, runMain, span, input, br, text, viewOut, button
+  Component, component, runMain, span, input, br, text, button
 } from "../../src/framework";
 
 const isValidEmail = (s: string) => s.match(/.+@.+\..+/i);
@@ -22,14 +22,16 @@ type Model = {
 
 // Types representing the behaviors and streams that the view create.
 // These are passed into the `model` function.
-type ViewBehaviors = [Behavior<string>];
-type ViewStreams = [Stream<Event>];
+type ViewOut = {
+  behaviors: [Behavior<string>],
+  streams: [Stream<Event>]
+};
 
 // The code below creates a `Component` from a `model` function and a
 // `view` function. `model` hooks these up in a feedback loop so that
 // `model` and `view` are circulair dependent.
-const main = component<Model, ViewBehaviors, ViewStreams>({
-  model({behaviors: [emailB], streams: [calcLength]}: ViewOut<ViewBehaviors, ViewStreams>) {
+const main = component<Model, ViewOut>({
+  model({behaviors: [emailB], streams: [calcLength]}) {
     return Do(function*(): Iterator<Now<any>> {
       const validB = emailB.map(isValidEmail);
       const lengthUpdate = snapshotWith(getLength, emailB, calcLength);

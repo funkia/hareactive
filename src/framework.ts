@@ -64,35 +64,31 @@ export class Component<A> {
   }
 }
 
-type ViewBehaviors = Array<Behavior<any>>;
-type ViewStreams = Array<Stream<any>>;
-
-export type ViewOut<VB, VS> = {behaviors: VB, streams: VS};
-
-export function viewOut<VB, VS>(behaviors: VB, streams: VS): Component<ViewOut<VB, VS>> {
-  return Component.of({behaviors, streams});
+interface ViewOutput {
+  behaviors: Array<Behavior<any>>;
+  streams: Array<Stream<any>>;
 }
 
 /**
  * Something resembling the monadic fixpoint combinatior for Now.
  */
-export function mfixNow<VB extends ViewBehaviors, VS extends ViewStreams>(
-  comp: (v: [ViewOut<VB, VS>, Node[]]) => Now<[ViewOut<VB, VS>, Node[]]>
-): Now<[ViewOut<VB, VS>, Node[]]> {
-  const bPlaceholders: any =
-    [placeholder(), placeholder(), placeholder(), placeholder()];
-  const fakeStreams: any = [empty(), empty(), empty(), empty()];
-  return comp([{behaviors: bPlaceholders, streams: fakeStreams}, []])
-    .map((arg) => {
-      const [{behaviors, streams}, _] = arg;
-      // Tie the recursive knot
-      for (let i = 0; i < behaviors.length; ++i) {
-        bPlaceholders[i].replaceWith(behaviors[i]);
-      }
-      for (let i = 0; i < streams.length; ++i) {
-        fakeStreams[i].def = streams[i];
-      }
-      return arg;
+export function mfixNow<V extends ViewOutput>(
+  comp: (v: [V, Node[]]) => Now<[V, Node[]]>
+): Now<[V, Node[]]> {
+  const placeholders: any = {
+    behaviors: [placeholder(), placeholder(), placeholder(), placeholder()],
+    streams: [empty(), empty(), empty(), empty()]
+  };
+  return comp([placeholders, []]).map((arg) => {
+    const [{behaviors, streams}, _] = arg;
+    // Tie the recursive knot
+    for (let i = 0; i < behaviors.length; ++i) {
+      placeholders.behaviors[i].replaceWith(behaviors[i]);
+    }
+    for (let i = 0; i < streams.length; ++i) {
+      placeholders.streams[i].def = streams[i];
+    }
+    return arg;
   });
 }
 
@@ -100,11 +96,11 @@ function runComponent<A>(c: Component<A>): Now<[A, Node[]]> {
   return c.content;
 }
 
-export function component<M, VB extends ViewBehaviors, VS extends ViewStreams>({model, view}: {
-  model: (v: ViewOut<VB, VS>) => Now<M>,
-  view: (m: M) => Component<ViewOut<VB, VS>>
-}): Component<ViewOut<VB, VS>> {
-  return new Component(mfixNow<VB, VS>(
+export function component<M, V extends ViewOutput>({model, view}: {
+  model: (v: V) => Now<M>,
+  view: (m: M) => Component<V>
+}): Component<V> {
+  return new Component(mfixNow<V>(
     ([v, _]) => model(v).chain((m: M) => runComponent(view(m)))
   ));
 }
