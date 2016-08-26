@@ -22,7 +22,7 @@ type ViewStreams = Stream<any>[];
 
 const main = component<Model, ViewBehaviors, ViewStreams>({
   model({behaviors: [emailB]}: {behaviors: Behavior<string>[]}) {
-    return Do(function*(): Iterable<Now<any>> {
+    return Do(function*(): Iterator<Now<any>> {
       return Now.of({
         validB: emailB.map(isValidEmail),
         lengthB: emailB.map(getLength)
@@ -30,7 +30,7 @@ const main = component<Model, ViewBehaviors, ViewStreams>({
     });
   },
   view({validB, lengthB}) {
-    return Do(function*(): Iterable<Component<any>> {
+    return Do(function*(): Iterator<Component<any>> {
       yield span("Please enter an email address:")
       const {inputValue: emailB} = yield input();
       yield br();

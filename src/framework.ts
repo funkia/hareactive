@@ -37,6 +37,29 @@ export class Component<A> {
       });
     }));
   }
+  public flatten<B>(now: Component<Component<A>>): Component<A> {
+    return now.chain((n: Component<A>) => n);
+  }
+  map<B>(f: (a: A) => B): Component<B> {
+    return this.chain((a: A) => this.of(f(a)));
+  }
+  mapTo<B>(b: B): Component<B> {
+    return this.chain((_) => this.of(b));
+  }
+  lift<T1, R>(f: (t: T1) => R, m: Component<T1>): Component<R>;
+  lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Component<T1>, m2: Component<T2>): Component<R>;
+  lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Component<T1>, m2: Component<T2>, m3: Component<T3>): Component<R>;
+  lift(f: Function, ...ms: any[]): Component<any> {
+    const {of} = ms[0];
+    switch (f.length) {
+    case 1:
+      return ms[0].map(f);
+    case 2:
+      return ms[0].chain((a: any) => ms[1].chain((b: any) => of(f(a, b))));
+    case 3:
+      return ms[0].chain((a: any) => ms[1].chain((b: any) => ms[2].chain((c: any) => of(f(a, b, c)))));
+    }
+  }
 }
 
 type ViewBehaviors = Array<Behavior<any>>;
