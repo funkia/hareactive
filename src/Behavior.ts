@@ -55,7 +55,7 @@ export abstract class Behavior<A> {
     return newB;
   }
 
-  public listen(listener: Consumer<any>): void {
+  public addListener(listener: Consumer<any>): void {
     this.listeners.push(listener);
   }
 
@@ -140,7 +140,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
     if (changed === this.outer) {
       this.innerB.unlisten(this);
       const newInner = this.fn(at(this.outer));
-      newInner.listen(this);
+      newInner.addListener(this);
       this.innerB = newInner;
     }
     this.last = at(this.innerB);
@@ -211,7 +211,7 @@ class WhenBehavior extends Behavior<Future<{}>> {
   constructor(private parent: Behavior<boolean>) {
     super();
     this.pushing = true;
-    parent.listen(this);
+    parent.addListener(this);
     this.push(at(parent));
   }
   public push(val: boolean): void {
@@ -244,7 +244,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
       // Future has occurred at some point in the past
       this.afterFuture = true;
       this.pushing = parent.pushing;
-      parent.listen(this);
+      parent.addListener(this);
       this.last = Future.of(at(parent));
     } else {
       this.afterFuture = false;
@@ -258,7 +258,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
       // The push is coming from the Future, it has just occurred.
       this.afterFuture = true;
       this.last.resolve(at(this.parent));
-      this.parent.listen(this);
+      this.parent.addListener(this);
     } else {
       // We are recieving an update from `parent` after `future` has
       // occurred.
@@ -281,7 +281,7 @@ class SwitcherBehavior<A> extends Behavior<A> {
   constructor(private behavior: Behavior<A>, next: Future<Behavior<A>>) {
     super();
     this.last = at(behavior);
-    behavior.listen(this);
+    behavior.addListener(this);
     // FIXME: Using `bind` is hardly optimal for performance.
     next.subscribe(this.doSwitch.bind(this));
   }
@@ -294,7 +294,7 @@ class SwitcherBehavior<A> extends Behavior<A> {
   }
   private doSwitch(newBehavior: Behavior<A>): void {
     this.behavior.unlisten(this);
-    newBehavior.listen(this);
+    newBehavior.addListener(this);
     this.push(at(newBehavior));
   }
 }

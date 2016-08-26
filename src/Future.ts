@@ -177,7 +177,7 @@ export function fromPromise<A>(p: Promise<A>): Future<A> {
 export class BehaviorFuture<A> extends Future<A> {
   constructor(private b: Behavior<A>) {
     super();
-    b.listen(this);
+    b.addListener(this);
   }
   public push(a: A): void {
     this.b.unlisten(this);
