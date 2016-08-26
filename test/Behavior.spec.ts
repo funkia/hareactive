@@ -266,6 +266,16 @@ describe("Behavior", () => {
       assert.strictEqual(at(b), 4);
     });
   });
+  describe("Placeholder behavior", () => {
+    it("subscribers are notified when placeholder is replaced", () => {
+      let result: number;
+      const p = B.placeholder();
+      const mapped = p.map((s: string) => s.length);
+      B.subscribe((n: number) => result = n, mapped);
+      p.replaceWith(B.sink("Hello"));
+      assert.strictEqual(result, 5);
+    });
+  });
 });
 
 describe("Behavior and Future", () => {

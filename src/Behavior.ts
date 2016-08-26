@@ -113,6 +113,7 @@ class MapBehavior<A, B> extends Behavior<B> {
   }
 
   public push(a: any): void {
+    this.pushing = true;
     this.last = this.fn(a);
     this.publish(this.last);
   }
@@ -205,6 +206,40 @@ class SinkBehavior<B> extends Behavior<B> {
   public pull(): B {
     return this.last;
   }
+}
+
+/**
+ * A placeholder behavior is a behavior without any value. It is used
+ * to do value recursion in `./framework.ts`.
+ */
+export class PlaceholderBehavior<B> extends Behavior<B> {
+  private source: Behavior<B>;
+  constructor() {
+    super();
+    this.pushing = false;
+  }
+
+  public push(v: B): void {
+    this.last = v;
+    this.publish(v);
+  }
+
+  public pull(): B {
+    return this.last;
+  }
+
+  public replaceWith(b: Behavior<B>): void {
+    this.source = b;
+    b.addListener(this);
+    this.pushing = b.pushing;
+    if (b.pushing === true) {
+      this.push(at(b));
+    }
+  }
+}
+
+export function placeholder(): PlaceholderBehavior<any> {
+  return new PlaceholderBehavior();
 }
 
 class WhenBehavior extends Behavior<Future<{}>> {

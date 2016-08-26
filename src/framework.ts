@@ -2,7 +2,7 @@ import {Now} from "./Now";
 import {Do} from "jabz/monad";
 
 import {runNow} from "./Now";
-import {Behavior, sink, subscribe} from "./Behavior";
+import {Behavior, placeholder, sink, subscribe} from "./Behavior";
 import * as B from "./Behavior";
 import {Future} from "./Future";
 import {Stream, empty} from "./Stream";
@@ -77,14 +77,15 @@ export function viewOut<VB, VS>(behaviors: VB, streams: VS): Component<ViewOut<V
 export function mfixNow<VB extends ViewBehaviors, VS extends ViewStreams>(
   comp: (v: [ViewOut<VB, VS>, Node[]]) => Now<[ViewOut<VB, VS>, Node[]]>
 ): Now<[ViewOut<VB, VS>, Node[]]> {
-  const fakeBehaviors: any = [sink(""), sink({}), sink({}), sink({})];
+  const bPlaceholders: any =
+    [placeholder(), placeholder(), placeholder(), placeholder()];
   const fakeStreams: any = [empty(), empty(), empty(), empty()];
-  return comp([{behaviors: fakeBehaviors, streams: fakeStreams}, []])
+  return comp([{behaviors: bPlaceholders, streams: fakeStreams}, []])
     .map((arg) => {
       const [{behaviors}, _] = arg;
       // Tie the recursive knot
       for (let i = 0; i < behaviors.length; ++i) {
-        behaviors[i].addListener(fakeBehaviors[i]);
+        bPlaceholders[i].replaceWith(behaviors[i]);
       }
       return arg;
   });
@@ -156,7 +157,6 @@ export function text(tOrB: string|Behavior<Showable>): Component<{}> {
   if (typeof tOrB === "string") {
     elm.nodeValue = tOrB;
   } else {
-    elm.nodeValue = B.at(tOrB).toString();
     subscribe((t) => elm.nodeValue = t.toString(), tOrB);
   }
   return Component.fromPair({}, [elm]);
