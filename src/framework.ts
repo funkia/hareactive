@@ -65,31 +65,42 @@ export class Component<A> {
 }
 
 interface ViewOutput {
-  behaviors: Array<Behavior<any>>;
-  streams: Array<Stream<any>>;
+  behaviors?: Array<Behavior<any>>;
+  streams?: Array<Stream<any>>;
 }
 
+class MfixNow<V extends ViewOutput> extends Now<[V, Node[]]> {
+  constructor(private fn: (v: [V, Node[]]) => Now<[V, Node[]]>) {
+    super();
+  };
+  public run(): [V, Node[]] {
+    const placeholders: any = {
+      behaviors: [placeholder(), placeholder(), placeholder(), placeholder()],
+      streams: [empty(), empty(), empty(), empty()]
+    };
+    const arg = this.fn([placeholders, []]).run();
+    const [{behaviors, streams}, _] = arg;
+    // Tie the recursive knot
+    if (behaviors !== undefined) {
+      for (let i = 0; i < behaviors.length; ++i) {
+        placeholders.behaviors[i].replaceWith(behaviors[i]);
+      }
+    }
+    if (streams !== undefined) {
+      for (let i = 0; i < streams.length; ++i) {
+        placeholders.streams[i].def = streams[i];
+      }
+    }
+    return arg;
+  };
+}
 /**
  * Something resembling the monadic fixpoint combinatior for Now.
  */
 export function mfixNow<V extends ViewOutput>(
   comp: (v: [V, Node[]]) => Now<[V, Node[]]>
 ): Now<[V, Node[]]> {
-  const placeholders: any = {
-    behaviors: [placeholder(), placeholder(), placeholder(), placeholder()],
-    streams: [empty(), empty(), empty(), empty()]
-  };
-  return comp([placeholders, []]).map((arg) => {
-    const [{behaviors, streams}, _] = arg;
-    // Tie the recursive knot
-    for (let i = 0; i < behaviors.length; ++i) {
-      placeholders.behaviors[i].replaceWith(behaviors[i]);
-    }
-    for (let i = 0; i < streams.length; ++i) {
-      placeholders.streams[i].def = streams[i];
-    }
-    return arg;
-  });
+  return new MfixNow(comp);
 }
 
 function runComponent<A>(c: Component<A>): Now<[A, Node[]]> {
