@@ -9,22 +9,14 @@ import {
 import {Behavior, at, scan} from "./Behavior";
 
 export abstract class Stream<A> {
-  public last: A;
   public eventListeners: Consumer<A>[] = [];
   private cbListeners: ((a: A) => void)[] = [];
 
   public publish(a: A): void {
-    this.last = a;
-
-    let i = 0;
-    let l = this.cbListeners.length;
-    for (; i < l; i++) {
+    for (let i = 0, l = this.cbListeners.length; i < l; i++) {
       this.cbListeners[i](a);
     }
-
-    i = 0;
-    l = this.eventListeners.length;
-    for (; i < l; i++) {
+    for (let i = 0, l = this.eventListeners.length; i < l; i++) {
       this.eventListeners[i].push(a);
     }
   };
