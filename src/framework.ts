@@ -9,6 +9,10 @@ import {Stream, empty} from "./Stream";
 
 // Quick n' dirty proof of concept implementation
 
+function id<A>(a: A): A { return a; };
+
+type CompVal<A> = [A, Node[]];
+
 /**
  * A component is a now computation of a pair of a value and a list of
  * DOM nodes. I.e. something like `type Component<A> = Now<[A,
@@ -17,9 +21,6 @@ import {Stream, empty} from "./Stream";
  * concatenates the DOM nodes from the first and the returned
  * Component. We use this to build up the view using do-notation.
  */
-
-type CompVal<A> = [A, Node[]];
-
 export class Component<A> {
   constructor(public content: Now<[A, Node[]]>) {}
   static of<B>(b: B): Component<B> {
@@ -130,6 +131,49 @@ export function runMain(selector: string, c: Component<any>): void {
 
 type Showable = string | number;
 
+type BehaviorDescription<A> = {
+  on: string,
+  name: string,
+  initial: A,
+  extractor: (event: any) => A
+}
+
+type StreamDescription<A> = {
+  on: string,
+  name: string,
+  extractor: (event: any) => A
+}
+
+class CreateDomNow<A> extends Now<[A, Node[]]> {
+  constructor(
+    private tagName: string,
+    private behaviors: BehaviorDescription<any>[],
+    private streams: StreamDescription<any>[],
+    private text?: string
+  ) {
+    super();
+  };
+  public run(): [A, Node[]] {
+    const elm = document.createElement(this.tagName);
+    const output: any = {};
+    for (const bd of this.behaviors) {
+      output[bd.name] = behaviorFromEvent(
+        bd.initial, bd.on, bd.extractor, elm
+      );
+    }
+    for (const bd of this.streams) {
+      output[bd.name] = streamFromEvent(
+        bd.on, bd.extractor, elm
+      );
+    }
+    if (this.text !== undefined) {
+      elm.textContent = this.text;
+    }
+    const result: [A, Node[]] = [output, [elm]];
+    return result;
+  }
+}
+
 function behaviorFromEvent<A>(
   initial: A,
   eventName: string,
@@ -155,23 +199,16 @@ function streamFromEvent<A>(
   return s;
 }
 
-export function input(): Component<{inputValue: Behavior<string>}> {
-  const elm = document.createElement("input");
-  const inputValue = behaviorFromEvent(
-    "", "input", (ev: any) => ev.target.value, elm
-  );
-  return Component.fromPair({inputValue}, [elm]);
-}
+export const input = () => new Component(new CreateDomNow<{inputValue: Behavior<string>}>(
+  "input",
+  [{on: "input", name: "inputValue", extractor: (ev: any) => ev.target.value, initial: ""}],
+  []
+));
 
-export function br(): Component<{}> {
-  const elm = document.createElement("br");
-  return Component.fromPair({}, [elm]);
-}
+export const br = new Component(new CreateDomNow<{}>("br", [], []));
 
 export function span(text: string): Component<{}> {
-  const elm = document.createElement("span");
-  elm.innerText = text;
-  return Component.fromPair({}, [elm]);
+  return new Component(new CreateDomNow<{}>("span", [], [], text));
 }
 
 export function text(tOrB: string|Behavior<Showable>): Component<{}> {
@@ -188,10 +225,8 @@ export function text(tOrB: string|Behavior<Showable>): Component<{}> {
 }
 
 export function button(label: string): Component<{click: Stream<Event>}> {
-  const elm = document.createElement("button");
-  elm.textContent = label;
-  const click = streamFromEvent(
-    "click", (ev: any) => ev, elm
-  );
-  return Component.fromPair({click}, [elm]);
+  return new Component(new CreateDomNow<{click: Stream<Event>}>(
+    "button", [],
+    [{on: "click", name: "click", extractor: id}], label
+  ));
 }
