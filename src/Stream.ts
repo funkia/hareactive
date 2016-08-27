@@ -6,7 +6,7 @@ import {
   Consumer
 } from "./frp-common";
 
-import {Behavior, at} from "./Behavior";
+import {Behavior, at, scan} from "./Behavior";
 
 export abstract class Stream<A> {
   public last: A;
@@ -67,10 +67,8 @@ export abstract class Stream<A> {
     return e;
   }
 
-  public scan<B>(fn: ScanFunction<A, B>, startingValue: B): ScanStream<A, B> {
-    const e = new ScanStream<A, B>(fn, startingValue);
-    this.eventListeners.push(e);
-    return e;
+  public scan<B>(fn: ScanFunction<A, B>, init: B): Behavior<Behavior<B>> {
+    return scan(fn, init, this);
   }
 }
 
@@ -105,15 +103,6 @@ class FilterStream<A> extends Stream<A> {
     if (this.fn(a)) {
       this.publish(a);
     }
-  }
-}
-
-class ScanStream<A, B> extends Stream<B> {
-  constructor(private fn: ScanFunction<A, B>, public last: B) {
-    super();
-  }
-  public push(a: A): void {
-    this.publish(this.fn(a, this.last));
   }
 }
 
@@ -176,10 +165,6 @@ export function map<A, B>(fn: MapFunction<A, B> , stream: Stream<A>): MapStream<
 
 export function filter<A>(fn: FilterFunction<A>, stream: Stream<A>): FilterStream<A> {
   return stream.filter(fn);
-}
-
-export function scan<A, B>(fn: ScanFunction<A, B>, startingValue: B, stream: Stream<A>): ScanStream<A, B> {
-  return stream.scan(fn, startingValue);
 }
 
 export function isStream(obj: any): boolean {

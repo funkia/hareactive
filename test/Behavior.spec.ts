@@ -4,7 +4,7 @@ import {assert} from "chai";
 import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
-import {Behavior, at, switcher} from "../src/Behavior";
+import {Behavior, at, switcher, scan} from "../src/Behavior";
 
 function id<A>(v: A): A {
   return v;
@@ -16,6 +16,10 @@ function isEven(n: number): boolean {
 
 function double(n: number): number {
   return n * 2;
+}
+
+function sum(n: number, m: number): number {
+  return n + m;
 }
 
 const add = (a: number) => (b: number) => a + b;
@@ -354,6 +358,21 @@ describe("Behavior and Stream", () => {
       assert.equal(B.at(b), 1);
       e.publish(2);
       assert.equal(B.at(b), 2);
+    });
+  });
+  describe("scan", () => {
+    it("accumulates in a pure way", () => {
+      const s = S.empty<number>();
+      const scanned = scan(sum, 1, s);
+      const b1 = at(scanned);
+      assert.strictEqual(at(b1), 1);
+      s.publish(2);
+      assert.strictEqual(at(b1), 3);
+      const b2 = at(scanned);
+      assert.strictEqual(at(b2), 1);
+      s.publish(4);
+      assert.strictEqual(at(b1), 7);
+      assert.strictEqual(at(b2), 5);
     });
   });
 });

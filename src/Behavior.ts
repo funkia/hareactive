@@ -380,8 +380,30 @@ export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
   return new StepperBehavior(initial, steps);
 }
 
-// Creates a pull Behavior from a continous function
-export function fromFunction<A, B>(fn: () => B): Behavior<B> {
+class ScanBehavior<A, B> extends Behavior<B> {
+  constructor(initial: B,
+              private fn: (a: A, b: B) => B,
+              private source: Stream<A>) {
+    super();
+    this.pushing = true;
+    this.last = initial;
+    source.eventListeners.push(this);
+  }
+  public push(val: A): void {
+    this.last = this.fn(val, this.last);
+    this.publish(this.last);
+  }
+  public pull(): B {
+    throw new Error("Cannot pull from Scan");
+  }
+}
+
+export function scan<A, B>(fn: (a: A, b: B) => B, init: B, source: Stream<A>): Behavior<Behavior<B>> {
+  return fromFunction(() => new ScanBehavior(init, fn, source));
+}
+
+// Creates a pull Behavior from an impure function
+export function fromFunction<B>(fn: () => B): Behavior<B> {
   return new FunctionBehavior(fn);
 }
 

@@ -143,27 +143,6 @@ describe("Stream", () => {
     });
   });
 
-  describe("scan", () => {
-    it("should be a function", () => {
-      assert.isFunction(S.scan);
-    });
-
-    it("should scan the values", () => {
-      const eventS = S.empty();
-      const callback = spy();
-      const sumF = (currSum: number, val: number) => currSum + val;
-
-      const currentSumE = S.scan(sumF, 0, eventS);
-      S.subscribe(callback, currentSumE);
-
-      for (let i = 0; i < 10; i++) {
-        S.publish(i, eventS);
-      }
-
-      assert.deepEqual(callback.args, [[0], [1], [3], [6], [10], [15], [21], [28], [36], [45]]);
-    });
-  });
-
   describe("def", () => {
     it("should merge two streams", () => {
       const callback1 = spy();

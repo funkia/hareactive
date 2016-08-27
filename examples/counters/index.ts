@@ -1,9 +1,9 @@
 import {Do} from "jabz/monad";
 
-import {Behavior, stepper} from "../../src/Behavior";
+import {Behavior, stepper, scan} from "../../src/Behavior";
 import * as B from "../../src/Behavior";
-import {Stream, snapshotWith, scan, merge, map} from "../../src/Stream";
-import {Now} from "../../src/Now";
+import {Stream, snapshotWith, merge, map} from "../../src/Stream";
+import {Now, sample} from "../../src/Now";
 
 import {
   Component, component, runMain, span, input, br, text, button, div
@@ -24,8 +24,7 @@ const counter = component<CounterModelOut, CounterViewOut>({
     Do(function*(): Iterator<Now<any>> {
       const increment = incrementClick.mapTo(1);
       const decrement = decrementClick.mapTo(-1);
-      const count = B.stepper(
-        0,
+      const count = yield sample(
         scan((n, m) => Math.max(n + m, 0), 0, merge(increment, decrement))
       );
       return Now.of({count});
