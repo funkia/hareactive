@@ -20,8 +20,8 @@ type CounterViewOut = {
 };
 
 const counter = component<CounterModelOut, CounterViewOut>({
-  model({streams: [incrementClick, decrementClick]}) {
-    return Do(function*(): Iterator<Now<any>> {
+  model: ({streams: [incrementClick, decrementClick]}) =>
+    Do(function*(): Iterator<Now<any>> {
       const increment = map(_ => 1, incrementClick);
       const decrement = map(_ => -1, decrementClick);
       const count = B.stepper(
@@ -29,10 +29,9 @@ const counter = component<CounterModelOut, CounterViewOut>({
         scan((n, m) => Math.max(n + m, 0), 0, merge(increment, decrement))
       );
       return Now.of({count});
-    });
-  },
+    }),
   view: ({count}) =>
-    div(Do(function*() {
+    div<CounterViewOut>(Do(function*() {
       yield text("Counter ");
       yield text(count);
       yield text(" ");
@@ -53,18 +52,14 @@ type MainModel = {};
 type MainViewOut = {};
 
 const main = component<MainModel, MainViewOut>({
-  model({}) {
-    return Do(function*(): Iterator<Now<any>> {
-      return Now.of({});
-    });
-  },
-  view({}) {
-    return Do(function*(): Iterator<Component<any>> {
-      yield counter;
-      yield counter;
-      return Component.of({behaviors: [], streams: []});
-    });
-  }
+  model: ({}) => Do(function*(): Iterator<Now<any>> {
+    return Now.of({});
+  }),
+  view: ({}) => Do(function*(): Iterator<Component<any>> {
+    yield counter;
+    yield counter;
+    return Component.of({behaviors: [], streams: []});
+  }),
 });
 
 // `runMain` should be the only impure function in application code

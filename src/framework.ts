@@ -14,34 +14,26 @@ function id<A>(a: A): A { return a; };
 type CompVal<A> = [A, Node[]];
 
 /**
- * A component is a now computation of a pair of a value and a list of
- * DOM nodes. I.e. something like `type Component<A> = Now<[A,
- * Node[]]>`. We don't define it as a type alias because we wan't to
- * make it a monad in different way than Now. Component's `chain`
- * concatenates the DOM nodes from the first and the returned
- * Component. We use this to build up the view using do-notation.
+ * A component is a function from a parent DOM node to a now
+ * computation I.e. something like `type Component<A> = (p: Node) =>
+ * Now<A>`. We don't define it as a type alias because we wan't to
+ * make it a monad in different way than Now.
  */
 export class Component<A> {
-  constructor(public content: Now<[A, Node[]]>) {}
+  constructor(public content: (n: Node) => Now<A>) {}
   static of<B>(b: B): Component<B> {
-    // We need this decleration because TS can't infer the tuple type :'(
-    const pair: [B, Node[]] = [b, []];
-    return new Component(Now.of(pair));
+    return new Component(() => Now.of(b));
   }
   public of: <B>(b: B) => Component<B> = Component.of;
-  static fromPair<B>(b: B, nodes: Node[]): Component<B> {
-    const pair: [B, Node[]] = [b, nodes];
-    return new Component(Now.of(pair));
-  }
   public chain<B>(f: (a: A) => Component<B>): Component<B> {
-    return new Component(this.content.chain(([a, nodes]) => {
-      return f(a).content.map(([b, moreNodes]): [B, Node[]] => {
-        return [b, nodes.concat(moreNodes)];
+    return new Component((parent: Node) => {
+      return this.content(parent).chain((a) => {
+        return f(a).content(parent);
       });
-    }));
+    });
   }
   public flatten<B>(now: Component<Component<A>>): Component<A> {
-    return now.chain((n: Component<A>) => n);
+    return now.chain(id);
   }
   map<B>(f: (a: A) => B): Component<B> {
     return this.chain((a: A) => this.of(f(a)));
@@ -65,22 +57,27 @@ export class Component<A> {
   }
 }
 
+/** Run component and the now-computation inside */
+function runComponentNow<A>(parent: Node, c: Component<A>): A {
+  return c.content(parent).run();
+}
+
 interface ViewOutput {
   behaviors?: Array<Behavior<any>>;
   streams?: Array<Stream<any>>;
 }
 
-class MfixNow<V extends ViewOutput> extends Now<[V, Node[]]> {
-  constructor(private fn: (v: [V, Node[]]) => Now<[V, Node[]]>) {
+class MfixNow<V extends ViewOutput> extends Now<V> {
+  constructor(private fn: (v: V) => Now<V>) {
     super();
   };
-  public run(): [V, Node[]] {
+  public run(): V {
     const placeholders: any = {
       behaviors: [placeholder(), placeholder(), placeholder(), placeholder()],
       streams: [empty(), empty(), empty(), empty()]
     };
-    const arg = this.fn([placeholders, []]).run();
-    const [{behaviors, streams}, _] = arg;
+    const arg = this.fn(placeholders).run();
+    const {behaviors, streams} = arg;
     // Tie the recursive knot
     if (behaviors !== undefined) {
       for (let i = 0; i < behaviors.length; ++i) {
@@ -95,39 +92,28 @@ class MfixNow<V extends ViewOutput> extends Now<[V, Node[]]> {
     return arg;
   };
 }
+
 /**
  * Something resembling the monadic fixpoint combinatior for Now.
  */
 export function mfixNow<V extends ViewOutput>(
-  comp: (v: [V, Node[]]) => Now<[V, Node[]]>
-): Now<[V, Node[]]> {
+  comp: (v: V) => Now<V>
+): Now<V> {
   return new MfixNow(comp);
-}
-
-function runComponent<A>(c: Component<A>): Now<[A, Node[]]> {
-  return c.content;
-}
-
-/** Run component and the now-computation inside */
-function runComponentNow<A>(c: Component<A>): [A, Node[]] {
-  return c.content.run();
 }
 
 export function component<M, V extends ViewOutput>({model, view}: {
   model: (v: V) => Now<M>,
   view: (m: M) => Component<V>
 }): Component<V> {
-  return new Component(mfixNow<V>(
-    ([v, _]) => model(v).chain((m: M) => view(m).content)
+  return new Component((parent: Node) => mfixNow<V>(
+    (v) => model(v).chain((m: M) => view(m).content(parent))
   ));
 }
 
 export function runMain(selector: string, c: Component<any>): void {
   const element = document.querySelector(selector);
-  const [_, nodes] = runComponentNow(c);
-  for (const node of nodes) {
-    element.appendChild(node);
-  }
+  runComponentNow(element, c);
 }
 
 // DOM constructor stuff, should eventually be in different file
@@ -147,82 +133,70 @@ type StreamDescription<A> = {
   extractor: (event: any) => A
 }
 
-class CreateDomNow<A> extends Now<[A, Node[]]> {
+class CreateDomNow<A> extends Now<A> {
   constructor(
+    private parent: Node,
     private tagName: string,
     private behaviors: BehaviorDescription<any>[],
     private streams: StreamDescription<any>[],
     private text?: string,
     private children?: Component<any>
   ) { super(); };
-  public run(): [A, Node[]] {
+  public run(): A {
     const elm = document.createElement(this.tagName);
     let output: any;
     if (this.children !== undefined) {
       // If the component has children we don't create event listeners
       // for the element. In this case we instead pass on the streams
       // and behaviors that hte children creates.
-      const [childrenOutput, nodes] = runComponentNow(this.children);
-      for (const node of nodes) {
-        elm.appendChild(node);
-      }
-      output = childrenOutput;
+      output = runComponentNow(elm, this.children);
     } else {
       output = {};
       for (const bd of this.behaviors) {
-        output[bd.name] = behaviorFromEvent(
-          bd.initial, bd.on, bd.extractor, elm
-        );
+        output[bd.name] = behaviorFromEvent(bd, elm);
       }
       for (const bd of this.streams) {
-        output[bd.name] = streamFromEvent(
-          bd.on, bd.extractor, elm
-        );
+        output[bd.name] = streamFromEvent(bd, elm);
       }
       if (this.text !== undefined) {
         elm.textContent = this.text;
       }
     }
-    const result: [A, Node[]] = [output, [elm]];
-    return result;
+    this.parent.appendChild(elm);
+    return output;
   }
 }
 
 function behaviorFromEvent<A>(
-  initial: A,
-  eventName: string,
-  extractor: (ev: Event) => A,
+  {on, initial, extractor}: BehaviorDescription<A>,
   dom: Node
 ): Behavior<A> {
   const b = sink(initial);
-  dom.addEventListener(eventName, (ev) => {
-    b.publish(extractor(ev));
-  });
+  dom.addEventListener(on, (ev) => b.publish(extractor(ev)));
   return b;
 }
 
 function streamFromEvent<A>(
-  eventName: string,
-  extractor: (ev: Event) => A,
+  {on, extractor}: StreamDescription<A>,
   dom: Node
 ): Stream<A> {
   const s = empty<A>();
-  dom.addEventListener(eventName, (ev) => {
+  dom.addEventListener(on, (ev) => {
     s.publish(extractor(ev));
   });
   return s;
 }
 
-export const input = () => new Component(new CreateDomNow<{inputValue: Behavior<string>}>(
-  "input",
+export const input = () => new Component((p) => new CreateDomNow<{inputValue: Behavior<string>}>(
+  p, "input",
   [{on: "input", name: "inputValue", extractor: (ev: any) => ev.target.value, initial: ""}],
   []
 ));
 
-export const br = new Component(new CreateDomNow<{}>("br", [], []));
+export const br = new Component((p) => new CreateDomNow<{}>(p, "br", [], []));
 
 export function span(text: string): Component<{}> {
-  return new Component(new CreateDomNow<{}>("span", [], [], text));
+  return new Component((p) => new CreateDomNow<{}>(p, "span", [], [], text));
 }
 
 export function text(tOrB: string|Behavior<Showable>): Component<{}> {
@@ -235,18 +209,21 @@ export function text(tOrB: string|Behavior<Showable>): Component<{}> {
     }
     subscribe((t) => elm.nodeValue = t.toString(), tOrB);
   }
-  return Component.fromPair({}, [elm]);
+  return new Component((parent: Node) => {
+    parent.appendChild(elm);
+    return Now.of({});
+  });
 }
 
 export function button(label: string): Component<{click: Stream<Event>}> {
-  return new Component(new CreateDomNow<{click: Stream<Event>}>(
-    "button", [],
+  return new Component((p) => new CreateDomNow<{click: Stream<Event>}>(
+    p, "button", [],
     [{on: "click", name: "click", extractor: id}], label
   ));
 }
 
 export function div<A>(children: Component<A>): Component<A> {
-  return new Component(new CreateDomNow<A>(
-    "div", [], [], undefined, children
+  return new Component((p) => new CreateDomNow<A>(
+    p, "div", [], [], undefined, children
   ));
 }
