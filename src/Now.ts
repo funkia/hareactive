@@ -9,7 +9,6 @@ import {Behavior, at} from "./Behavior";
  * momemt and where the moment will always be now when the computation
  * is run.
  */
-
 export abstract class Now<A> implements Monad<A> {
   // Impurely run the now computation
   abstract run(): A;

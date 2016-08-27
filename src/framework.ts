@@ -108,23 +108,26 @@ function runComponent<A>(c: Component<A>): Now<[A, Node[]]> {
   return c.content;
 }
 
+/** Run component and the now-computation inside */
+function runComponentNow<A>(c: Component<A>): [A, Node[]] {
+  return c.content.run();
+}
+
 export function component<M, V extends ViewOutput>({model, view}: {
   model: (v: V) => Now<M>,
   view: (m: M) => Component<V>
 }): Component<V> {
   return new Component(mfixNow<V>(
-    ([v, _]) => model(v).chain((m: M) => runComponent(view(m)))
+    ([v, _]) => model(v).chain((m: M) => view(m).content)
   ));
 }
 
 export function runMain(selector: string, c: Component<any>): void {
   const element = document.querySelector(selector);
-  runNow(runComponent(c).map(([_, nodes]) => {
-    for (const node of nodes) {
-      element.appendChild(node);
-    }
-    return Future.of({});
-  }));
+  const [_, nodes] = runComponentNow(c);
+  for (const node of nodes) {
+    element.appendChild(node);
+  }
 }
 
 // DOM constructor stuff, should eventually be in different file
@@ -149,25 +152,36 @@ class CreateDomNow<A> extends Now<[A, Node[]]> {
     private tagName: string,
     private behaviors: BehaviorDescription<any>[],
     private streams: StreamDescription<any>[],
-    private text?: string
-  ) {
-    super();
-  };
+    private text?: string,
+    private children?: Component<any>
+  ) { super(); };
   public run(): [A, Node[]] {
     const elm = document.createElement(this.tagName);
-    const output: any = {};
-    for (const bd of this.behaviors) {
-      output[bd.name] = behaviorFromEvent(
-        bd.initial, bd.on, bd.extractor, elm
-      );
-    }
-    for (const bd of this.streams) {
-      output[bd.name] = streamFromEvent(
-        bd.on, bd.extractor, elm
-      );
-    }
-    if (this.text !== undefined) {
-      elm.textContent = this.text;
+    let output: any;
+    if (this.children !== undefined) {
+      // If the component has children we don't create event listeners
+      // for the element. In this case we instead pass on the streams
+      // and behaviors that hte children creates.
+      const [childrenOutput, nodes] = runComponentNow(this.children);
+      for (const node of nodes) {
+        elm.appendChild(node);
+      }
+      output = childrenOutput;
+    } else {
+      output = {};
+      for (const bd of this.behaviors) {
+        output[bd.name] = behaviorFromEvent(
+          bd.initial, bd.on, bd.extractor, elm
+        );
+      }
+      for (const bd of this.streams) {
+        output[bd.name] = streamFromEvent(
+          bd.on, bd.extractor, elm
+        );
+      }
+      if (this.text !== undefined) {
+        elm.textContent = this.text;
+      }
     }
     const result: [A, Node[]] = [output, [elm]];
     return result;
@@ -228,5 +242,11 @@ export function button(label: string): Component<{click: Stream<Event>}> {
   return new Component(new CreateDomNow<{click: Stream<Event>}>(
     "button", [],
     [{on: "click", name: "click", extractor: id}], label
+  ));
+}
+
+export function div<A>(children: Component<A>): Component<A> {
+  return new Component(new CreateDomNow<A>(
+    "div", [], [], undefined, children
   ));
 }
