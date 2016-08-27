@@ -101,16 +101,23 @@ describe("Stream", () => {
     it("should map the published values", () => {
       const obs = S.empty();
       const callback = spy();
-
       const mappedObs = S.map(addTwo, obs);
-
       S.subscribe(callback, mappedObs);
-
       for (let i = 0; i < 5; i++) {
         S.publish(i, obs);
       }
+      assert.deepEqual(callback.args, [[2], [3], [4], [5], [6]]);
+    });
 
-      assert.deepEqual(callback.args, [[2], [3], [4], [5], [6]], "Wrong or no value was recieved");
+    it("maps to a constant with mapTo", () => {
+      const stream = S.empty();
+      const callback = spy();
+      const mapped = stream.mapTo(7);
+      S.subscribe(callback, mapped);
+      S.publish(1, stream);
+      S.publish(2, stream);
+      S.publish(3, stream);
+      assert.deepEqual(callback.args, [[7], [7], [7]]);
     });
   });
 

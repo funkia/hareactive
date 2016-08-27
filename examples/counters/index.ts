@@ -22,8 +22,8 @@ type CounterViewOut = {
 const counter = component<CounterModelOut, CounterViewOut>({
   model: ({streams: [incrementClick, decrementClick]}) =>
     Do(function*(): Iterator<Now<any>> {
-      const increment = map(_ => 1, incrementClick);
-      const decrement = map(_ => -1, decrementClick);
+      const increment = incrementClick.mapTo(1);
+      const decrement = decrementClick.mapTo(-1);
       const count = B.stepper(
         0,
         scan((n, m) => Math.max(n + m, 0), 0, merge(increment, decrement))

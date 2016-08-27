@@ -48,6 +48,12 @@ export abstract class Stream<A> {
     return e;
   }
 
+  public mapTo<B>(val: B): Stream<B> {
+    const s = new MapToStream(val);
+    this.eventListeners.push(s);
+    return s;
+  }
+
   public merge<B>(otherStream: Stream<B>): Stream<(A|B)> {
     const e = new SinkStream<(A|B)>();
     this.eventListeners.push(e);
@@ -78,9 +84,15 @@ class MapStream<A, B> extends Stream<B> {
   constructor(private fn: MapFunction<A, B>) {
     super();
   }
-
   public push(a: A): void {
     this.publish(this.fn(a));
+  }
+}
+
+class MapToStream<A> extends Stream<A> {
+  constructor(private val: A) { super(); }
+  public push(a: any): void {
+    this.publish(this.val);
   }
 }
 
@@ -100,7 +112,6 @@ class ScanStream<A, B> extends Stream<B> {
   constructor(private fn: ScanFunction<A, B>, public last: B) {
     super();
   }
-
   public push(a: A): void {
     this.publish(this.fn(a, this.last));
   }
@@ -111,7 +122,6 @@ class SnapshotStream<A, B> extends Stream<[A, B]> {
     super();
     stream.eventListeners.push(this);
   }
-
   public push(a: A): void {
     this.publish([a, at(this.behavior)]);
   }
