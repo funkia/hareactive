@@ -27,12 +27,12 @@ type ViewOut = {
 // The code below creates a `Component` from a `model` function and a
 // `view` function. `component` hooks these up in a feedback loop so
 // that `model` and `view` are circulairly dependent.
-const main = component<ToView, ViewOut>({
+const main = component<ToView, ViewOut, {}>({
   model: ({emailB, calcLength}) => Do(function*(): Iterator<Now<any>> {
     const validB = emailB.map(isValidEmail);
     const lengthUpdate = snapshotWith(getLength, emailB, calcLength);
     const lengthB = stepper(0, lengthUpdate);
-    return Now.of([validB, lengthB]);
+    return Now.of([[validB, lengthB], {}]);
   }),
   view: ([validB, lengthB]) => Do(function*(): Iterator<Component<any>> {
     yield span("Please enter an email address: ");

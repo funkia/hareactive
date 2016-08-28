@@ -10,6 +10,7 @@ import {Stream, empty} from "./Stream";
 // Quick n' dirty proof of concept implementation
 
 function id<A>(a: A): A { return a; };
+function snd<A, B>(a: [A, B]): B { return a[1]; }
 
 type CompVal<A> = [A, Node[]];
 
@@ -62,39 +63,40 @@ function runComponentNow<A>(parent: Node, c: Component<A>): A {
   return c.content(parent).run();
 }
 
-class MfixNow<M extends Behavior<any>[]> extends Now<M> {
-  constructor(private fn: (m: M) => Now<M>) {
+class MfixNow<M extends Behavior<any>[], O> extends Now<[M, O]> {
+  constructor(private fn: (m: M) => Now<[M, O]>) {
     super();
   };
-  public run(): M {
+  public run(): [M, O] {
     const placeholders: any = [
       placeholder(), placeholder(), placeholder(), placeholder()
     ];
-    const behaviors = this.fn(placeholders).run();
+    // const fakeArg: [M, O] = [placeholders, undefined];
+    const [behaviors, out] = this.fn(placeholders).run();
     // Tie the recursive knot
     for (let i = 0; i < behaviors.length; ++i) {
       placeholders[i].replaceWith(behaviors[i]);
     }
-    return behaviors;
+    return [behaviors, out];
   };
 }
 
 /**
  * Something resembling the monadic fixpoint combinatior for Now.
  */
-export function mfixNow<M extends Behavior<any>[]>(
-  comp: (m: M) => Now<M>
-): Now<M> {
+export function mfixNow<M extends Behavior<any>[], O>(
+  comp: (m: M) => Now<[M, O]>
+): Now<[M, O]> {
   return new MfixNow(comp);
 }
 
-export function component<M extends Behavior<any>[], V>({model, view}: {
-  model: (v: V) => Now<M>,
+export function component<M extends Behavior<any>[], V, O>({model, view}: {
+  model: (v: V) => Now<[M, O]>,
   view: (m: M) => Component<V>
-}): Component<M> {
-  return new Component((parent: Node) => mfixNow<M>(
+}): Component<O> {
+  return new Component((parent: Node) => mfixNow<M, O>(
     (bs) => view(bs).content(parent).chain((v: V) => model(v))
-  ));
+  ).map(snd));
 }
 
 export function runMain(selector: string, c: Component<any>): void {
