@@ -16,47 +16,45 @@ const apply = <A>(f: (a: A) => A, a: A) => f(a);
 
 // Counter
 
-type CounterModelOut = {
-  count: Behavior<number>
-};
+type CounterModelOut = [Behavior<number>];
 
 type CounterViewOut = {
-  streams: [Stream<any>, Stream<any>]
+  incrementClick: Stream<any>,
+  decrementClick: Stream<any>
 };
 
 const counter = component<CounterModelOut, CounterViewOut>({
-  model: ({streams: [incrementClick, decrementClick]}) =>
+  model: ({incrementClick, decrementClick}) =>
     Do(function*(): Iterator<Now<any>> {
       const increment = incrementClick.mapTo(1);
       const decrement = decrementClick.mapTo(-1);
       const count = yield sample(
         scan((n, m) => Math.max(n + m, 0), 0, merge(increment, decrement))
       );
-      return Now.of({count});
+      return Now.of([count]);
     }),
-  view: ({count}) =>
+  view: ([count]) =>
     div<CounterViewOut>(Do(function*() {
       yield text("Counter ");
       yield text(count);
       yield text(" ");
-      const {click: increment} = yield button(" + ");
+      const {click: incrementClick} = yield button(" + ");
       yield text(" ");
-      const {click: decrement} = yield button(" - ");
+      const {click: decrementClick} = yield button(" - ");
       yield br;
-      return Component.of({streams: [increment, decrement]})
+      return Component.of({incrementClick, decrementClick})
     }))
 });
 
-type MainModel = {
-  counterIds: Behavior<number[]>,
+type ToView = [Behavior<number[]>];
+
+type ToModel = {
+  addCounter: Stream<Event>,
+  removeCounter: Stream<Event>
 };
 
-type MainViewOut = {
-  streams: [Stream<Event>, Stream<Event>]
-};
-
-const main = component<MainModel, MainViewOut>({
-  model: ({streams: [addCounter, removeCounter]}) => Do(function*(): Iterator<Now<any>> {
+const main = component<ToView, ToModel>({
+  model: ({addCounter, removeCounter}) => Do(function*(): Iterator<Now<any>> {
     const nextId: Behavior<number> =
       yield sample(scan(add, 3, addCounter.mapTo(1)));
     const nextIdS =
@@ -69,9 +67,9 @@ const main = component<MainModel, MainViewOut>({
       merge(appendCounterFn, removeCounterFn);
     const counterIds =
       yield sample(scan(apply, [0,1,2], modifications));
-    return Now.of({counterIds, nextId});
+    return Now.of([counterIds]);
   }),
-  view: ({counterIds}) => Do(function*(): Iterator<Component<any>> {
+  view: ([counterIds]) => Do(function*(): Iterator<Component<any>> {
     yield h1("Counters");
     const {click: addCounter} = yield button("Add counter")
     yield text(" ");
@@ -79,9 +77,7 @@ const main = component<MainModel, MainViewOut>({
     yield br;
     yield br;
     yield list(() => counter, (n: number) => n, counterIds);
-    return Component.of({
-      behaviors: [], streams: [addCounter, removeCounter]
-    });
+    return Component.of({addCounter, removeCounter});
   }),
 });
 

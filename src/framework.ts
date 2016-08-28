@@ -62,52 +62,38 @@ function runComponentNow<A>(parent: Node, c: Component<A>): A {
   return c.content(parent).run();
 }
 
-interface ViewOutput {
-  behaviors?: Array<Behavior<any>>;
-  streams?: Array<Stream<any>>;
-}
-
-class MfixNow<V extends ViewOutput> extends Now<V> {
-  constructor(private fn: (v: V) => Now<V>) {
+class MfixNow<M extends Behavior<any>[]> extends Now<M> {
+  constructor(private fn: (m: M) => Now<M>) {
     super();
   };
-  public run(): V {
-    const placeholders: any = {
-      behaviors: [placeholder(), placeholder(), placeholder(), placeholder()],
-      streams: [empty(), empty(), empty(), empty()]
-    };
-    const arg = this.fn(placeholders).run();
-    const {behaviors, streams} = arg;
+  public run(): M {
+    const placeholders: any = [
+      placeholder(), placeholder(), placeholder(), placeholder()
+    ];
+    const behaviors = this.fn(placeholders).run();
     // Tie the recursive knot
-    if (behaviors !== undefined) {
-      for (let i = 0; i < behaviors.length; ++i) {
-        placeholders.behaviors[i].replaceWith(behaviors[i]);
-      }
+    for (let i = 0; i < behaviors.length; ++i) {
+      placeholders[i].replaceWith(behaviors[i]);
     }
-    if (streams !== undefined) {
-      for (let i = 0; i < streams.length; ++i) {
-        placeholders.streams[i].def = streams[i];
-      }
-    }
-    return arg;
+    return behaviors;
   };
 }
 
 /**
  * Something resembling the monadic fixpoint combinatior for Now.
  */
-export function mfixNow<V extends ViewOutput>(
-  comp: (v: V) => Now<V>
-): Now<V> {
+export function mfixNow<M extends Behavior<any>[]>(
+  comp: (m: M) => Now<M>
+): Now<M> {
   return new MfixNow(comp);
 }
 
-export function component<M, V extends ViewOutput>({model, view}: {
+export function component<M extends Behavior<any>[], V>({model, view}: {
   model: (v: V) => Now<M>,
   view: (m: M) => Component<V>
-}): Component<V> {
-  return new Component((parent: Node) => mfixNow<V>(
-    (v) => model(v).chain((m: M) => view(m).content(parent))
+}): Component<M> {
+  return new Component((parent: Node) => mfixNow<M>(
+    (bs) => view(bs).content(parent).chain((v: V) => model(v))
   ));
 }
 
@@ -244,14 +230,6 @@ class ComponentListNow<A> extends Now<{}> {
     // least avoids recreating elements and is quite simple.
     const end = document.createComment("list end");
     let keyToElm: {[key: string]: Node} = {};
-    for (const a of B.at(this.list)) {
-      const fragment = document.createDocumentFragment();
-      runComponentNow(fragment, this.compFn(a));
-      // Assumes component only adds a single element
-      const elm = fragment.firstChild;
-      keyToElm[this.getKey(a)] = elm;
-      this.parent.appendChild(elm);
-    }
     this.parent.appendChild(end);
     B.subscribe((newAs) => {
       const newKeyToElm: {[key: string]: Node} = {};
