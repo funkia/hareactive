@@ -13,10 +13,10 @@ export abstract class Stream<A> {
   private cbListeners: ((a: A) => void)[] = [];
 
   public publish(a: A): void {
-    for (let i = 0, l = this.cbListeners.length; i < l; i++) {
+    for (let i = 0, l = this.cbListeners.length; i < l; ++i) {
       this.cbListeners[i](a);
     }
-    for (let i = 0, l = this.eventListeners.length; i < l; i++) {
+    for (let i = 0, l = this.eventListeners.length; i < l; ++i) {
       this.eventListeners[i].push(a);
     }
   };
@@ -34,7 +34,7 @@ export abstract class Stream<A> {
 
   public abstract push(a: any): void;
 
-  public map<B>(fn: MapFunction<A, B>): MapStream<A, B> {
+  public map<B>(fn: MapFunction<A, B>): Stream<B> {
     const e = new MapStream(fn);
     this.eventListeners.push(e);
     return e;
@@ -151,7 +151,7 @@ export function merge<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)> {
   return a.merge(b);
 }
 
-export function map<A, B>(fn: MapFunction<A, B> , stream: Stream<A>): MapStream<A, B> {
+export function map<A, B>(fn: MapFunction<A, B> , stream: Stream<A>): Stream<B> {
   return stream.map(fn);
 }
 

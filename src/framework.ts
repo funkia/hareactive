@@ -199,6 +199,10 @@ export function span(text: string): Component<{}> {
   return new Component((p) => new CreateDomNow<{}>(p, "span", [], [], text));
 }
 
+export function h1(text: string): Component<{}> {
+  return new Component((p) => new CreateDomNow<{}>(p, "h1", [], [], text));
+}
+
 export function text(tOrB: string|Behavior<Showable>): Component<{}> {
   const elm = document.createTextNode("");
   if (typeof tOrB === "string") {
@@ -226,4 +230,59 @@ export function div<A>(children: Component<A>): Component<A> {
   return new Component((p) => new CreateDomNow<A>(
     p, "div", [], [], undefined, children
   ));
+}
+
+class ComponentListNow<A> extends Now<{}> {
+  constructor(
+    private parent: Node,
+    private getKey: (a: A) => number,
+    private compFn: (a: A) => Component<any>,
+    private list: Behavior<A[]>
+  ) { super(); }
+  public run(): {} {
+    // The reordering code below is neither pretty nor fast. But it at
+    // least avoids recreating elements and is quite simple.
+    const end = document.createComment("list end");
+    let keyToElm: {[key: string]: Node} = {};
+    for (const a of B.at(this.list)) {
+      const fragment = document.createDocumentFragment();
+      runComponentNow(fragment, this.compFn(a));
+      // Assumes component only adds a single element
+      const elm = fragment.firstChild;
+      keyToElm[this.getKey(a)] = elm;
+      this.parent.appendChild(elm);
+    }
+    this.parent.appendChild(end);
+    B.subscribe((newAs) => {
+      const newKeyToElm: {[key: string]: Node} = {};
+      // Re-add existing elements and new elements
+      for (const a of newAs) {
+        const key = this.getKey(a);
+        let elm: Node = keyToElm[key];
+        if (elm === undefined) {
+          const fragment = document.createDocumentFragment();
+          runComponentNow(fragment, this.compFn(a));
+          // Assumes component only adds a single element
+          elm = fragment.firstChild;
+        }
+        this.parent.insertBefore(elm, end);
+        newKeyToElm[key] = elm;
+      }
+      // Remove elements that are no longer present
+      const oldKeys = Object.keys(keyToElm);
+      for (const key of oldKeys) {
+        if (newKeyToElm[key] === undefined) {
+          this.parent.removeChild(keyToElm[key]);
+        }
+      }
+      keyToElm = newKeyToElm;
+    }, this.list);
+    return {};
+  }
+}
+
+export function list<A>(
+  c: (a: A) => Component<any>, getKey: (a: A) => number, l: Behavior<A[]>
+): Component<{}> {
+  return new Component((p) => new ComponentListNow(p, getKey, c, l));
 }

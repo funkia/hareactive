@@ -6,8 +6,13 @@ import {Stream, snapshotWith, merge, map} from "../../src/Stream";
 import {Now, sample} from "../../src/Now";
 
 import {
-  Component, component, runMain, span, input, br, text, button, div
+  Component, component, runMain, span, input, br, text, button,
+  div, h1, list
 } from "../../src/framework";
+
+const add = (n: number, m: number) => n + m;
+const append = <A>(a: A, as: A[]) => as.concat([a]);
+const apply = <A>(f: (a: A) => A, a: A) => f(a);
 
 // Counter
 
@@ -42,24 +47,42 @@ const counter = component<CounterModelOut, CounterViewOut>({
     }))
 });
 
-const isValidEmail = (s: string) => s.match(/.+@.+\..+/i);
+type MainModel = {
+  counterIds: Behavior<number[]>,
+};
 
-const getLength = (_: any, s: string) => s.length;
-
-type MainModel = {};
-
-type MainViewOut = {};
+type MainViewOut = {
+  streams: [Stream<Event>, Stream<Event>]
+};
 
 const main = component<MainModel, MainViewOut>({
-  model: ({}) => Do(function*(): Iterator<Now<any>> {
-    return Now.of({});
+  model: ({streams: [addCounter, removeCounter]}) => Do(function*(): Iterator<Now<any>> {
+    const nextId: Behavior<number> =
+      yield sample(scan(add, 3, addCounter.mapTo(1)));
+    const nextIdS =
+      snapshotWith((_, b) => b, nextId, addCounter);
+    const appendCounterFn =
+      map((id) => (ids: number[]) => ids.concat([id]), nextIdS);
+    const removeCounterFn =
+      removeCounter.mapTo((ids: number[]) => ids.slice(0, -1));
+    const modifications =
+      merge(appendCounterFn, removeCounterFn);
+    const counterIds =
+      yield sample(scan(apply, [0,1,2], modifications));
+    return Now.of({counterIds, nextId});
   }),
-  view: ({}) => Do(function*(): Iterator<Component<any>> {
-    yield counter;
-    yield counter;
-    return Component.of({behaviors: [], streams: []});
+  view: ({counterIds}) => Do(function*(): Iterator<Component<any>> {
+    yield h1("Counters");
+    const {click: addCounter} = yield button("Add counter")
+    yield text(" ");
+    const {click: removeCounter} = yield button("Remove counter")
+    yield br;
+    yield br;
+    yield list(() => counter, (n: number) => n, counterIds);
+    return Component.of({
+      behaviors: [], streams: [addCounter, removeCounter]
+    });
   }),
 });
 
-// `runMain` should be the only impure function in application code
 runMain("body", main);
