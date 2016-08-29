@@ -8,7 +8,7 @@ import {
 
 import {Behavior, at, scan} from "./Behavior";
 
-export abstract class Stream<A> {
+export abstract class Stream<A> implements Consumer<any> {
   public eventListeners: Consumer<A>[] = [];
   private cbListeners: ((a: A) => void)[] = [];
 
@@ -32,7 +32,7 @@ export abstract class Stream<A> {
     this.cbListeners.push(fn);
   }
 
-  public abstract push(a: any): void;
+  public abstract push(a: any, b: any): void;
 
   public map<B>(fn: MapFunction<A, B>): Stream<B> {
     const e = new MapStream(fn);
@@ -61,6 +61,17 @@ export abstract class Stream<A> {
 
   public scan<B>(fn: ScanFunction<A, B>, init: B): Behavior<Behavior<B>> {
     return scan(fn, init, this);
+  }
+
+  public unlisten(listener: Consumer<any>): void {
+    const l = this.eventListeners;
+    const idx = l.indexOf(listener);
+    if (idx !== -1) {
+      if (idx !== l.length - 1) {
+        l[idx] = l[l.length - 1];
+      }
+      l.length--; // remove the last element of the list
+    }
   }
 }
 
@@ -121,7 +132,6 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
     super();
     stream.eventListeners.push(this);
   }
-
   public push(a: A): void {
     this.publish(this.fn(a, at(this.behavior)));
   }
@@ -133,6 +143,36 @@ export function snapshotWith<A, B, C>(
   stream: Stream<A>
 ): Stream<C> {
   return new SnapshotWithStream(fn, behavior, stream);
+}
+
+class SwitchBehaviorStream<A> extends Stream<A> {
+  private currentSource: Stream<A>;
+  constructor(private b: Behavior<Stream<A>>) {
+    super();
+    b.addListener(this);
+    const cur = this.currentSource = at(b);
+    cur.eventListeners.push(this);
+  }
+  public push(a: any, changer: any): void {
+    if (changer === this.b) {
+      this.doSwitch(a);
+    } else {
+      this.publish(a);
+    }
+  }
+  private doSwitch(newStream: Stream<A>): void {
+    this.currentSource.unlisten(this);
+    newStream.eventListeners.push(this);
+    this.currentSource = newStream;
+  }
+}
+
+/**
+ * Takes a stream valued behavior and returns at stream that emits
+ * values from the current stream at the behavior.
+ */
+export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
+  return new SwitchBehaviorStream(b);
 }
 
 export function empty<A>(): Stream<A> {

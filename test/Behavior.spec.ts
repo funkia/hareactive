@@ -1,10 +1,14 @@
 ///<reference path="./../typings/index.d.ts" />
 import {assert} from "chai";
+import {spy} from "sinon";
 
 import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
-import {Behavior, at, switcher, scan} from "../src/Behavior";
+import {
+  Behavior, at, switcher, scan
+} from "../src/Behavior";
+import {switchStream} from "../src/Stream";
 
 function id<A>(v: A): A {
   return v;
@@ -373,6 +377,26 @@ describe("Behavior and Stream", () => {
       s.publish(4);
       assert.strictEqual(at(b1), 7);
       assert.strictEqual(at(b2), 5);
+    });
+  });
+  describe("switchStream", () => {
+    it("returns stream that emits from stream", () => {
+      const s1 = S.empty();
+      const s2 = S.empty();
+      const s3 = S.empty();
+      const b = B.sink(s1);
+      const switching = switchStream(b);
+      const cb = spy();
+      switching.subscribe(cb);
+      s1.publish(1);
+      s1.publish(2);
+      b.publish(s2);
+      s2.publish(3);
+      b.publish(s3);
+      s2.publish(4);
+      s3.publish(5);
+      s3.publish(6);
+      assert.deepEqual(cb.args, [[1], [2], [3], [5], [6]]);
     });
   });
 });
