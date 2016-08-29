@@ -2,7 +2,7 @@
 import * as S from "../src/Stream";
 import {Stream} from "../src/Stream";
 import * as B from "../src/Behavior";
-import {Behavior} from "../src/Behavior";
+import {Behavior, at} from "../src/Behavior";
 import {assert} from "chai";
 import {spy} from "sinon";
 
@@ -140,6 +140,20 @@ describe("Stream", () => {
         S.publish(i, obs);
       }
       assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]], "Wrong or no value was recieved");
+    });
+  });
+
+  describe("scanS", () => {
+    it("should scan the values to a stream", () => {
+      const eventS = S.empty();
+      const callback = spy();
+      const sumF = (currSum: number, val: number) => currSum + val;
+      const currentSumE = at(S.scanS(sumF, 0, eventS));
+      S.subscribe(callback, currentSumE);
+      for (let i = 0; i < 10; i++) {
+        S.publish(i, eventS);
+      }
+      assert.deepEqual(callback.args, [[0], [1], [3], [6], [10], [15], [21], [28], [36], [45]]);
     });
   });
 

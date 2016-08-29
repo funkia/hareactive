@@ -6,7 +6,7 @@ import {
   Consumer
 } from "./frp-common";
 
-import {Behavior, at, scan} from "./Behavior";
+import {Behavior, at, scan, fromFunction} from "./Behavior";
 
 export abstract class Stream<A> implements Consumer<any> {
   public eventListeners: Consumer<A>[] = [];
@@ -59,6 +59,12 @@ export abstract class Stream<A> implements Consumer<any> {
     return e;
   }
 
+  public scanS<B>(fn: ScanFunction<A, B>, startingValue: B): Stream<B> {
+    const e = new ScanStream<A, B>(fn, startingValue);
+    this.eventListeners.push(e);
+    return e;
+  }
+
   public scan<B>(fn: ScanFunction<A, B>, init: B): Behavior<Behavior<B>> {
     return scan(fn, init, this);
   }
@@ -107,6 +113,20 @@ class FilterStream<A> extends Stream<A> {
       this.publish(a);
     }
   }
+}
+
+class ScanStream<A, B> extends Stream<B> {
+  constructor(private fn: ScanFunction<A, B>, private last: B) {
+    super();
+  }
+  public push(a: A): void {
+    const val = this.last = this.fn(a, this.last);
+    this.publish(val);
+  }
+}
+
+export function scanS<A, B>(fn: ScanFunction<A, B>, startingValue: B, stream: Stream<A>): Behavior<Stream<B>> {
+  return fromFunction(() => stream.scanS(fn, startingValue));
 }
 
 class SnapshotStream<A, B> extends Stream<[A, B]> {

@@ -1,8 +1,10 @@
 import {Do} from "jabz/monad";
 
-import {Behavior, stepper, scan} from "../../src/Behavior";
 import * as B from "../../src/Behavior";
-import {Stream, snapshotWith, merge, map, mergeList, switchStream} from "../../src/Stream";
+import {Behavior, stepper, scan} from "../../src/Behavior";
+import {
+  Stream, snapshotWith, merge, map, mergeList, switchStream, scanS
+} from "../../src/Stream";
 import {Now, sample} from "../../src/Now";
 
 import {
@@ -67,12 +69,10 @@ const main = component<ToView, ToModel, {}>({
     const removeIdB = listOut.map((l) => mergeList(l.map(o => o.deleteS)));
     const removeCounterIdFn =
       switchStream(removeIdB).map(id => arr => arr.filter(i => i !== id));
-    const nextId: Behavior<number> =
-      yield sample(scan(add, 2, addCounter.mapTo(1)));
-    const nextIdS =
-      snapshotWith((_, b) => b, nextId, addCounter);
+    const nextId: Stream<number> =
+      yield sample(scanS(add, 2, addCounter.mapTo(1)));
     const appendCounterFn =
-      map((id) => (ids: number[]) => ids.concat([id]), nextIdS);
+      map((id) => (ids: number[]) => ids.concat([id]), nextId);
     const modifications =
       merge(appendCounterFn, removeCounterIdFn);
     const counterIds =
