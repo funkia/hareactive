@@ -220,44 +220,52 @@ export function div<A>(children: Component<A>): Component<A> {
   ));
 }
 
-class ComponentListNow<A> extends Now<{}> {
+type ComponentStuff<A> = {
+  elm: Node, out: A
+}
+
+class ComponentListNow<A, B> extends Now<Behavior<B[]>> {
   constructor(
     private parent: Node,
     private getKey: (a: A) => number,
-    private compFn: (a: A) => Component<any>,
+    private compFn: (a: A) => Component<B>,
     private list: Behavior<A[]>
   ) { super(); }
-  public run(): {} {
+  public run(): Behavior<B[]> {
     // The reordering code below is neither pretty nor fast. But it at
     // least avoids recreating elements and is quite simple.
+    const resultB = sink<B[]>([]);
     const end = document.createComment("list end");
-    let keyToElm: {[key: string]: Node} = {};
+    let keyToElm: {[key: string]: ComponentStuff<B>} = {};
     this.parent.appendChild(end);
     B.subscribe((newAs) => {
-      const newKeyToElm: {[key: string]: Node} = {};
+      const newKeyToElm: {[key: string]: ComponentStuff<B>} = {};
+      const newArray: B[] = [];
       // Re-add existing elements and new elements
       for (const a of newAs) {
         const key = this.getKey(a);
-        let elm: Node = keyToElm[key];
-        if (elm === undefined) {
+        let stuff = keyToElm[key];
+        if (stuff === undefined) {
           const fragment = document.createDocumentFragment();
-          runComponentNow(fragment, this.compFn(a));
+          const out = runComponentNow(fragment, this.compFn(a));
           // Assumes component only adds a single element
-          elm = fragment.firstChild;
+          stuff = {out, elm: fragment.firstChild};
         }
-        this.parent.insertBefore(elm, end);
-        newKeyToElm[key] = elm;
+        this.parent.insertBefore(stuff.elm, end);
+        newArray.push(stuff.out);
+        newKeyToElm[key] = stuff;
       }
       // Remove elements that are no longer present
       const oldKeys = Object.keys(keyToElm);
       for (const key of oldKeys) {
         if (newKeyToElm[key] === undefined) {
-          this.parent.removeChild(keyToElm[key]);
+          this.parent.removeChild(keyToElm[key].elm);
         }
       }
       keyToElm = newKeyToElm;
+      resultB.publish(newArray);
     }, this.list);
-    return {};
+    return resultB;
   }
 }
 
