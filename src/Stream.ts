@@ -175,6 +175,10 @@ export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
   return new SwitchBehaviorStream(b);
 }
 
+export function mergeList<A>(ss: Stream<A>[]): Stream<A> {
+  return ss.reduce((s1, s2) => s1.merge(s2), empty());
+}
+
 export function empty<A>(): Stream<A> {
   return new SinkStream<A>();
 }
