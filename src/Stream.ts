@@ -59,10 +59,8 @@ export abstract class Stream<A> implements Consumer<any> {
     return e;
   }
 
-  scanS<B>(fn: ScanFunction<A, B>, startingValue: B): Stream<B> {
-    const e = new ScanStream<A, B>(fn, startingValue);
-    this.eventListeners.push(e);
-    return e;
+  scanS<B>(fn: ScanFunction<A, B>, startingValue: B): Behavior<Stream<B>> {
+    return fromFunction(() => new ScanStream(fn, startingValue, this));
   }
 
   scan<B>(fn: ScanFunction<A, B>, init: B): Behavior<Behavior<B>> {
@@ -116,8 +114,9 @@ class FilterStream<A> extends Stream<A> {
 }
 
 class ScanStream<A, B> extends Stream<B> {
-  constructor(private fn: ScanFunction<A, B>, private last: B) {
+  constructor(private fn: ScanFunction<A, B>, private last: B, source: Stream<A>) {
     super();
+    source.eventListeners.push(this);
   }
   push(a: A): void {
     const val = this.last = this.fn(a, this.last);
@@ -126,7 +125,7 @@ class ScanStream<A, B> extends Stream<B> {
 }
 
 export function scanS<A, B>(fn: ScanFunction<A, B>, startingValue: B, stream: Stream<A>): Behavior<Stream<B>> {
-  return fromFunction(() => stream.scanS(fn, startingValue));
+  return fromFunction(() => new ScanStream(fn, startingValue, stream));
 }
 
 class SnapshotStream<A, B> extends Stream<[A, B]> {

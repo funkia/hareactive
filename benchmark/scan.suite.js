@@ -1,6 +1,7 @@
 var Suite = require("./default-suite").Suite;
 var most = require("most");
-var $ = require("../dist/Events.js");
+var S = require("../dist/Stream");
+var B = require("../dist/Behavior");
 
 var n = 100000;
 var testData = [];
@@ -15,32 +16,31 @@ function sum(curr, val) {
     return curr + val;
 }
 
-module.exports = Suite("Scan")
+function pushArray(arr, ev) {
+    for (var i = 0; i < arr.length; ++i) {
+        ev.publish(arr[i]);
+    }
+}
 
-  .add("Events", function (defered) {
-    var j = $.empty();
-    var s = $.scan(sum, 0, j);
-    $.subscribe(function (e) {
+module.exports = Suite("Scan")
+  .add("Stream", function(defered) {
+    var j = S.empty();
+    var s = B.at(S.scanS(sum, 0, j));
+    S.subscribe(function(e) {
       if (e === result) {
         defered.resolve();
       }
     }, s);
     var i = 0;
     var l = testData.length;
-    for (; i < l; i++) {
-      $.publish(testData[i], j);
-    }
+    pushArray(testData, j);
   }, { defer: true })
 
-  .add("most", function (defered) {
-    most.create(function (add) {
-      var i = 0;
-      var l = testData.length;
-      for (; i < l; i++) {
-        add(testData[i]);
-      }
-    }).scan(sum, 0)
-      .observe(function (e) {
+  .add("most", function(defered) {
+    most
+      .from(testData)
+      .scan(sum, 0)
+      .observe(function(e) {
         if (e === result) {
           defered.resolve();
         }

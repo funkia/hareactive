@@ -77,7 +77,7 @@ export function createComponent(
   // Initialize children
   const childrenLength = children.length;
   for (let i = 0; i < childrenLength; i++) {
-    let ch = children[i];
+    const ch = children[i];
 
     if (B.isBehavior(ch)) {
       let node: Node;
@@ -118,7 +118,6 @@ export function createComponent(
             node.nodeValue = t.toString();
           }
         }, ch);
-
       } else {
         // quick hack below
         const sampleFn = () => {
