@@ -2,7 +2,7 @@
 Experimental FRP library for building web applications.
 
 
-# Contribution
+# Contributing
 
 ```
 npm install
@@ -15,19 +15,26 @@ npm test
 ```
 
 ## Benchmark
-To run a single benchmark: (You will have to compile first `npm run build`)
+
+First you will have to get set up to running the benchmarks:
+
+```
+npm run build
+./benchmark/prepare-benchmarks.sh
+```
+
+To run a single benchmark:
 ```
 node benchmark/<name-of-benchmark>
 ```
 
-
-example:
+Example:
 ```
 node benchmark/scan.suite
 ```
 
+To run all benchmarks:
 
-To compile and run all benchmarks
 ```
 npm run bench
 ```

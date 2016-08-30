@@ -2,6 +2,8 @@ var Suite = require("./default-suite").Suite;
 var most = require("most");
 var B = require("../dist/Behavior");
 var S = require("../dist/Stream");
+var Bo = require("./hareactive-old/dist/Behavior");
+var So = require("./hareactive-old/dist/Stream");
 var n = 1000000;
 var a = new Array(n);
 var result = 0;
@@ -30,6 +32,18 @@ function even(x) {
 }
 
 module.exports = Suite("filter-map-reduce")
+
+  .add("Stream old", function(defered) {
+    var ev = S.empty();
+    Bo.at(
+      So.filter(even, ev).map(add1).scanS(sum, 0)
+    ).subscribe(function(v) {
+      if (v === result) {
+        defered.resolve();
+      }
+    });
+    pushArray(a, ev);
+  }, { defer: true })
 
   .add("Stream", function(defered) {
     var ev = S.empty();

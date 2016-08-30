@@ -2,6 +2,8 @@ var Suite = require("./default-suite").Suite;
 var most = require("most");
 var S = require("../dist/Stream");
 var B = require("../dist/Behavior");
+var Bo = require("./hareactive-old/dist/Behavior");
+var So = require("./hareactive-old/dist/Stream");
 
 var n = 100000;
 var testData = [];
@@ -23,6 +25,21 @@ function pushArray(arr, ev) {
 }
 
 module.exports = Suite("Scan")
+
+  .add("Stream old", function(defered) {
+    var j = S.empty();
+    var s = Bo.at(
+      So.scanS(sum, 0, j)
+    ).subscribe(function(e) {
+      if (e === result) {
+        defered.resolve();
+      }
+    }, s);
+    var i = 0;
+    var l = testData.length;
+    pushArray(testData, j);
+  }, { defer: true })
+
   .add("Stream", function(defered) {
     var j = S.empty();
     var s = B.at(S.scanS(sum, 0, j));
