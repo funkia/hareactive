@@ -4,6 +4,7 @@ var B = require("../dist/Behavior");
 var S = require("../dist/Stream");
 var Bo = require("./hareactive-old/dist/Behavior");
 var So = require("./hareactive-old/dist/Stream");
+
 var n = 1000000;
 var a = new Array(n);
 var result = 0;
