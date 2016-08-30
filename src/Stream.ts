@@ -9,10 +9,10 @@ import {
 import {Behavior, at, scan, fromFunction} from "./Behavior";
 
 export abstract class Stream<A> implements Consumer<any> {
-  public eventListeners: Consumer<A>[] = [];
+  eventListeners: Consumer<A>[] = [];
   private cbListeners: ((a: A) => void)[] = [];
 
-  public publish(a: A): void {
+  publish(a: A): void {
     for (let i = 0, l = this.cbListeners.length; i < l; ++i) {
       this.cbListeners[i](a);
     }
@@ -28,48 +28,48 @@ export abstract class Stream<A> implements Consumer<any> {
     this.eventListeners = stream.eventListeners;
   }
 
-  public subscribe(fn: SubscribeFunction<A>): void {
+  subscribe(fn: SubscribeFunction<A>): void {
     this.cbListeners.push(fn);
   }
 
-  public abstract push(a: any, b: any): void;
+  abstract push(a: any, b: any): void;
 
-  public map<B>(fn: MapFunction<A, B>): Stream<B> {
+  map<B>(fn: MapFunction<A, B>): Stream<B> {
     const e = new MapStream(fn);
     this.eventListeners.push(e);
     return e;
   }
 
-  public mapTo<B>(val: B): Stream<B> {
+  mapTo<B>(val: B): Stream<B> {
     const s = new MapToStream(val);
     this.eventListeners.push(s);
     return s;
   }
 
-  public merge<B>(otherStream: Stream<B>): Stream<(A|B)> {
+  merge<B>(otherStream: Stream<B>): Stream<(A|B)> {
     const e = new SinkStream<(A|B)>();
     this.eventListeners.push(e);
     otherStream.eventListeners.push(e);
     return e;
   }
 
-  public filter(fn: FilterFunction<A>): FilterStream<A> {
+  filter(fn: FilterFunction<A>): FilterStream<A> {
     const e = new FilterStream<A>(fn);
     this.eventListeners.push(e);
     return e;
   }
 
-  public scanS<B>(fn: ScanFunction<A, B>, startingValue: B): Stream<B> {
+  scanS<B>(fn: ScanFunction<A, B>, startingValue: B): Stream<B> {
     const e = new ScanStream<A, B>(fn, startingValue);
     this.eventListeners.push(e);
     return e;
   }
 
-  public scan<B>(fn: ScanFunction<A, B>, init: B): Behavior<Behavior<B>> {
+  scan<B>(fn: ScanFunction<A, B>, init: B): Behavior<Behavior<B>> {
     return scan(fn, init, this);
   }
 
-  public unlisten(listener: Consumer<any>): void {
+  unlisten(listener: Consumer<any>): void {
     const l = this.eventListeners;
     const idx = l.indexOf(listener);
     if (idx !== -1) {
@@ -82,7 +82,7 @@ export abstract class Stream<A> implements Consumer<any> {
 }
 
 export class SinkStream<A> extends Stream<A> {
-  public push(a: A): void {
+  push(a: A): void {
     this.publish(a);
   }
 }
@@ -91,14 +91,14 @@ class MapStream<A, B> extends Stream<B> {
   constructor(private fn: MapFunction<A, B>) {
     super();
   }
-  public push(a: A): void {
+  push(a: A): void {
     this.publish(this.fn(a));
   }
 }
 
 class MapToStream<A> extends Stream<A> {
   constructor(private val: A) { super(); }
-  public push(a: any): void {
+  push(a: any): void {
     this.publish(this.val);
   }
 }
@@ -108,7 +108,7 @@ class FilterStream<A> extends Stream<A> {
     super();
   }
 
-  public push(a: A): void {
+  push(a: A): void {
     if (this.fn(a)) {
       this.publish(a);
     }
@@ -119,7 +119,7 @@ class ScanStream<A, B> extends Stream<B> {
   constructor(private fn: ScanFunction<A, B>, private last: B) {
     super();
   }
-  public push(a: A): void {
+  push(a: A): void {
     const val = this.last = this.fn(a, this.last);
     this.publish(val);
   }
@@ -134,7 +134,7 @@ class SnapshotStream<A, B> extends Stream<[A, B]> {
     super();
     stream.eventListeners.push(this);
   }
-  public push(a: A): void {
+  push(a: A): void {
     this.publish([a, at(this.behavior)]);
   }
 }
@@ -152,7 +152,7 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
     super();
     stream.eventListeners.push(this);
   }
-  public push(a: A): void {
+  push(a: A): void {
     this.publish(this.fn(a, at(this.behavior)));
   }
 }
@@ -173,7 +173,7 @@ class SwitchBehaviorStream<A> extends Stream<A> {
     const cur = this.currentSource = at(b);
     cur.eventListeners.push(this);
   }
-  public push(a: any, changer: any): void {
+  push(a: any, changer: any): void {
     if (changer === this.b) {
       this.doSwitch(a);
     } else {

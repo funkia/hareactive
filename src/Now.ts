@@ -12,16 +12,16 @@ import {Behavior, at} from "./Behavior";
 export abstract class Now<A> implements Monad<A> {
   // Impurely run the now computation
   abstract run(): A;
-  public of<B>(b: B): Now<B> {
+  of<B>(b: B): Now<B> {
     return new OfNow(b);
   }
   static of<B>(b: B): Now<B> {
     return new OfNow(b);
   }
-  public chain<B>(f: (a: A) => Now<B>): Now<B> {
+  chain<B>(f: (a: A) => Now<B>): Now<B> {
     return new ChainNow(this, f);
   }
-  public flatten<B>(now: Now<Now<A>>): Now<A> {
+  flatten<B>(now: Now<Now<A>>): Now<A> {
     return now.chain((n: Now<A>) => n);
   }
   map<B>(f: (a: A) => B): Now<B> {
@@ -50,7 +50,7 @@ class OfNow<A> extends Now<A> {
   constructor(private value: A) {
     super();
   }
-  public run() {
+  run() {
     return this.value;
   }
 }
@@ -59,7 +59,7 @@ class ChainNow<B> extends Now<B> {
   constructor(private first: Now<any>, private f: (a: any) => Now<B>) {
     super();
   }
-  public run() {
+  run() {
     return this.f(this.first.run()).run();
   }
 }
@@ -68,7 +68,7 @@ class AsyncNow<A> extends Now<Future<A>> {
   constructor(private comp: IO<A>) {
     super();
   }
-  public run(): Future<A> {
+  run(): Future<A> {
     return fromPromise<A>(runIO(this.comp));
   }
 }
@@ -87,7 +87,7 @@ class SampleNow<A> extends Now<A> {
   constructor(private b: Behavior<A>) {
     super();
   }
-  public run(): A {
+  run(): A {
     return at(this.b);
   }
 }
@@ -109,7 +109,7 @@ class PlanNow<A> extends Now<Future<A>> {
   constructor(private future: Future<Now<A>>) {
     super();
   }
-  public run(): Future<A> {
+  run(): Future<A> {
     return this.future.map(run);
   }
 }

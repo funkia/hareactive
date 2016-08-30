@@ -24,7 +24,7 @@
       true,
       140
     ],
-    "member-access": true,
+    "member-access": false,
     "new-parens": true,
     "no-arg": true,
     "no-bitwise": true,

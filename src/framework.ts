@@ -25,15 +25,15 @@ export class Component<A> {
   static of<B>(b: B): Component<B> {
     return new Component(() => Now.of(b));
   }
-  public of: <B>(b: B) => Component<B> = Component.of;
-  public chain<B>(f: (a: A) => Component<B>): Component<B> {
+  of: <B>(b: B) => Component<B> = Component.of;
+  chain<B>(f: (a: A) => Component<B>): Component<B> {
     return new Component((parent: Node) => {
       return this.content(parent).chain((a) => {
         return f(a).content(parent);
       });
     });
   }
-  public flatten<B>(now: Component<Component<A>>): Component<A> {
+  flatten<B>(now: Component<Component<A>>): Component<A> {
     return now.chain(id);
   }
   map<B>(f: (a: A) => B): Component<B> {
@@ -67,7 +67,7 @@ class MfixNow<M extends Behavior<any>[], O> extends Now<[M, O]> {
   constructor(private fn: (m: M) => Now<[M, O]>) {
     super();
   };
-  public run(): [M, O] {
+  run(): [M, O] {
     const placeholders: any = [
       placeholder(), placeholder(), placeholder(), placeholder()
     ];
@@ -130,7 +130,7 @@ class CreateDomNow<A> extends Now<A> {
     private text?: string,
     private children?: Component<any>
   ) { super(); };
-  public run(): A {
+  run(): A {
     const elm = document.createElement(this.tagName);
     let output: any;
     if (this.children !== undefined) {
@@ -231,7 +231,7 @@ class ComponentListNow<A, B> extends Now<Behavior<B[]>> {
     private compFn: (a: A) => Component<B>,
     private list: Behavior<A[]>
   ) { super(); }
-  public run(): Behavior<B[]> {
+  run(): Behavior<B[]> {
     // The reordering code below is neither pretty nor fast. But it at
     // least avoids recreating elements and is quite simple.
     const resultB = sink<B[]>([]);

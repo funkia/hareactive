@@ -14,13 +14,13 @@ import {Stream} from "./Stream";
  * Behavior<A> = (t: Time) => A`.
  */
 export abstract class Behavior<A> {
-  public cbListeners: ((b: A) => void)[] = [];
+  cbListeners: ((b: A) => void)[] = [];
   // The consumers that depends on this behavior
-  public listeners: Consumer<any>[] = [];
-  public last: A;
-  public pushing: boolean;
+  listeners: Consumer<any>[] = [];
+  last: A;
+  pushing: boolean;
 
-  public publish(b: A): void {
+  publish(b: A): void {
     this.last = b;
 
     let l = this.cbListeners.length;
@@ -34,9 +34,9 @@ export abstract class Behavior<A> {
     }
   };
 
-  public abstract push(a: any, changed: Behavior<any>): void;
+  abstract push(a: any, changed: Behavior<any>): void;
 
-  public abstract pull(): A;
+  abstract pull(): A;
 
   set def(b: Behavior<A>) {
     b.cbListeners.push(...this.cbListeners);
@@ -45,26 +45,26 @@ export abstract class Behavior<A> {
     this.listeners = b.listeners;
   }
 
-  public map<B>(fn: MapFunction<A, B>): Behavior<B> {
+  map<B>(fn: MapFunction<A, B>): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
     this.listeners.push(newB);
     return newB;
   }
 
-  public of: <A>(v: A) => Behavior<A> = of;
+  of: <A>(v: A) => Behavior<A> = of;
   static of: <A>(v: A) => Behavior<A> = of;
 
-  public chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
+  chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     const newB = new ChainBehavior<A, B>(this, fn);
     this.listeners.push(newB);
     return newB;
   }
 
-  public addListener(listener: Consumer<any>): void {
+  addListener(listener: Consumer<any>): void {
     this.listeners.push(listener);
   }
 
-  public unlisten(listener: Consumer<any>): void {
+  unlisten(listener: Consumer<any>): void {
     // The indexOf here is O(n), where n is the number of listeners,
     // if using a linked list it should be possible to perform the
     // unsubscribe operation in constant time.
@@ -96,11 +96,11 @@ class ConstantBehavior<A> extends Behavior<A> {
     this.pushing = true;
   }
 
-  public push(): void {
+  push(): void {
     throw new Error("Cannot push a value to a constant behavior");
   }
 
-  public pull(): A {
+  pull(): A {
     return this.last;
   }
 }
@@ -117,13 +117,13 @@ class MapBehavior<A, B> extends Behavior<B> {
     }
   }
 
-  public push(a: any): void {
+  push(a: any): void {
     this.pushing = true;
     this.last = this.fn(a);
     this.publish(this.last);
   }
 
-  public pull(): B {
+  pull(): B {
     return this.fn(at(this.parent));
   }
 }
@@ -142,7 +142,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
     this.last = at(this.innerB);
   }
 
-  public push(a: any, changed: Behavior<any>): void {
+  push(a: any, changed: Behavior<any>): void {
     if (changed === this.outer) {
       this.innerB.unlisten(this);
       const newInner = this.fn(at(this.outer));
@@ -153,7 +153,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
     this.publish(this.last);
   }
 
-  public pull(): B {
+  pull(): B {
     return at(this.fn(at(this.outer)));
   }
 }
@@ -164,18 +164,18 @@ class FunctionBehavior<A> extends Behavior<A> {
     this.pushing = false;
   }
 
-  public push(v: A): void {
+  push(v: A): void {
     throw new Error("Cannot push to a FunctionBehavior");
   }
 
-  public pull(): A {
+  pull(): A {
     return this.fn();
   }
 }
 
 /** @private */
 class ApBehavior<A, B> extends Behavior<B> {
-  public last: B;
+  last: B;
 
   constructor(
     private fn: Behavior<(a: A) => B>,
@@ -186,14 +186,14 @@ class ApBehavior<A, B> extends Behavior<B> {
     this.last = at(fn)(at(val));
   }
 
-  public push(): void {
+  push(): void {
     const fn = at(this.fn);
     const val = at(this.val);
     this.last = fn(val);
     this.publish(this.last);
   }
 
-  public pull(): B {
+  pull(): B {
     return at(this.fn)(at(this.val));
   }
 }
@@ -204,12 +204,12 @@ class SinkBehavior<B> extends Behavior<B> {
     this.pushing = true;
   }
 
-  public push(v: B): void {
+  push(v: B): void {
     this.last = v;
     this.publish(v);
   }
 
-  public pull(): B {
+  pull(): B {
     return this.last;
   }
 }
@@ -226,16 +226,16 @@ export class PlaceholderBehavior<B> extends Behavior<B> {
     this.pushing = false;
   }
 
-  public push(v: B): void {
+  push(v: B): void {
     this.last = v;
     this.publish(v);
   }
 
-  public pull(): B {
+  pull(): B {
     return this.last;
   }
 
-  public replaceWith(b: Behavior<B>): void {
+  replaceWith(b: Behavior<B>): void {
     this.source = b;
     b.addListener(this);
     this.pushing = b.pushing;
@@ -256,14 +256,14 @@ class WhenBehavior extends Behavior<Future<{}>> {
     parent.addListener(this);
     this.push(at(parent));
   }
-  public push(val: boolean): void {
+  push(val: boolean): void {
     if (val === true) {
       this.last = Future.of({});
     } else {
       this.last = new BehaviorFuture(this.parent);
     }
   }
-  public pull(): Future<{}> {
+  pull(): Future<{}> {
     return this.last;
   }
 }
@@ -295,7 +295,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
       future.listen(this);
     }
   }
-  public push(val: any): void {
+  push(val: any): void {
     if (this.afterFuture === false) {
       // The push is coming from the Future, it has just occurred.
       this.afterFuture = true;
@@ -307,7 +307,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
       this.last = Future.of(val);
     }
   }
-  public pull(): Future<A> {
+  pull(): Future<A> {
     return this.last;
   }
 }
@@ -327,11 +327,11 @@ class SwitcherBehavior<A> extends Behavior<A> {
     // FIXME: Using `bind` is hardly optimal for performance.
     next.subscribe(this.doSwitch.bind(this));
   }
-  public push(val: A): void {
+  push(val: A): void {
     this.last = val;
     this.publish(val);
   }
-  public pull(): A {
+  pull(): A {
     return this.last;
   }
   private doSwitch(newBehavior: Behavior<A>): void {
@@ -361,12 +361,12 @@ class StepperBehavior<B> extends Behavior<B> {
     steps.eventListeners.push(this);
   }
 
-  public push(val: B): void {
+  push(val: B): void {
     this.last = val;
     this.publish(val);
   }
 
-  public pull(): B {
+  pull(): B {
     throw new Error("Cannot pull from StepperBehavior");
   }
 }
@@ -389,11 +389,11 @@ class ScanBehavior<A, B> extends Behavior<B> {
     this.last = initial;
     source.eventListeners.push(this);
   }
-  public push(val: A): void {
+  push(val: A): void {
     this.last = this.fn(val, this.last);
     this.publish(this.last);
   }
-  public pull(): B {
+  pull(): B {
     throw new Error("Cannot pull from Scan");
   }
 }
