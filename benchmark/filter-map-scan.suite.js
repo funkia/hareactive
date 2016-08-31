@@ -35,7 +35,7 @@ function even(x) {
 module.exports = Suite("filter-map-reduce")
 
   .add("Stream old", function(defered) {
-    var ev = S.empty();
+    var ev = So.empty();
     Bo.at(
       So.filter(even, ev).map(add1).scanS(sum, 0)
     ).subscribe(function(v) {

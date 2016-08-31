@@ -24,7 +24,7 @@ function pushArray(arr, ev) {
     }
 }
 
-module.exports = Suite("Scan")
+module.exports = Suite("scan-stream")
 
   .add("Stream old", function(defered) {
     var j = So.empty();
