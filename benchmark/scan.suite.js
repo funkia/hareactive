@@ -27,7 +27,7 @@ function pushArray(arr, ev) {
 module.exports = Suite("Scan")
 
   .add("Stream old", function(defered) {
-    var j = S.empty();
+    var j = So.empty();
     var s = Bo.at(
       So.scanS(sum, 0, j)
     ).subscribe(function(e) {
