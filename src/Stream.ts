@@ -10,26 +10,26 @@ import {Behavior, at, scan, fromFunction} from "./Behavior";
 
 export abstract class Stream<A> implements Consumer<any> {
   eventListeners: Consumer<A>[] = [];
-  private cbListeners: ((a: A) => void)[] = [];
 
   publish(a: A): void {
-    for (let i = 0, l = this.cbListeners.length; i < l; ++i) {
-      this.cbListeners[i](a);
-    }
-    for (let i = 0, l = this.eventListeners.length; i < l; ++i) {
-      this.eventListeners[i].push(a);
+    const list = this.eventListeners;
+    const l = this.eventListeners.length;
+    if (l === 1) {
+      list[0].push(a);
+    } else {
+      for (let i = 0; i < l; ++i) {
+        list[i].push(a);
+      }
     }
   };
 
   set def(stream: Stream<any>) {
-    stream.cbListeners.push(...this.cbListeners);
     stream.eventListeners.push(...this.eventListeners);
-    this.cbListeners = stream.cbListeners;
     this.eventListeners = stream.eventListeners;
   }
 
   subscribe(fn: SubscribeFunction<A>): void {
-    this.cbListeners.push(fn);
+    this.eventListeners.push({push: fn});
   }
 
   abstract push(a: any, b: any): void;
@@ -105,7 +105,6 @@ class FilterStream<A> extends Stream<A> {
   constructor(private fn: FilterFunction<A>) {
     super();
   }
-
   push(a: A): void {
     if (this.fn(a)) {
       this.publish(a);

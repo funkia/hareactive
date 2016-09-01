@@ -32,7 +32,7 @@ function even(x) {
     return x % 2 === 0;
 }
 
-module.exports = Suite("filter-map-reduce")
+module.exports = Suite("filter-map-scan")
 
   .add("Stream old", function(defered) {
     var ev = So.empty();
