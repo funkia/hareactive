@@ -4,7 +4,6 @@
   "description": "Experimental FRP library for building web applications.",
   "main": "index.js",
   "directories": {
-    "example": "examples",
     "test": "test"
   },
   "scripts": {
@@ -31,7 +30,6 @@
     "jabz": "0.0.5"
   },
   "devDependencies": {
-    "awesome-typescript-loader": "^0.17.0",
     "benchmark": "^2.1.0",
     "chai": "^3.5.0",
     "mocha": "^2.5.3",
