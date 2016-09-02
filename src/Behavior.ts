@@ -349,7 +349,7 @@ class SwitcherBehavior<A> extends Behavior<A> {
 export function switcher<A>(
   init: Behavior<A>,
   next: Future<Behavior<A>>
-) {
+): Behavior<A> {
   return new SwitcherBehavior(init, next);
 }
 

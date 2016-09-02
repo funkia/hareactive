@@ -53,7 +53,7 @@ export abstract class Stream<A> implements Consumer<any> {
     return e;
   }
 
-  filter(fn: FilterFunction<A>): FilterStream<A> {
+  filter(fn: FilterFunction<A>): Stream<A> {
     const e = new FilterStream<A>(fn);
     this.eventListeners.push(e);
     return e;
@@ -217,7 +217,7 @@ export function map<A, B>(fn: MapFunction<A, B> , stream: Stream<A>): Stream<B> 
   return stream.map(fn);
 }
 
-export function filter<A>(fn: FilterFunction<A>, stream: Stream<A>): FilterStream<A> {
+export function filter<A>(fn: FilterFunction<A>, stream: Stream<A>): Stream<A> {
   return stream.filter(fn);
 }
 

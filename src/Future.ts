@@ -25,8 +25,8 @@ export abstract class Future<A> implements Consumer<any> {
       o.push(this.value);
     }
   }
-  subscribe(f: (a: A) => void): Subscribtion<A> {
-    return new Subscribtion(f, this);
+  subscribe(f: (a: A) => void): void {
+    new Subscribtion(f, this);
   }
   // `push` is called by the parent of a future once it resolves with
   // a value.
