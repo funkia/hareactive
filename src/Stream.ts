@@ -1,3 +1,5 @@
+/** @module hareactive/stream */
+
 import {
   MapFunction,
   SubscribeFunction,
@@ -8,6 +10,11 @@ import {
 
 import {Behavior, at, scan, fromFunction} from "./Behavior";
 
+/**
+ * A stream is a list of occurences over time. Each occurence happens
+ * at a discrete point in time and has an associated value.
+ * Semantically it is a list `type Stream<A> = [Time, A]`.
+ */
 export abstract class Stream<A> implements Consumer<any> {
   eventListeners: Consumer<A>[] = [];
 
@@ -79,6 +86,7 @@ export abstract class Stream<A> implements Consumer<any> {
   }
 }
 
+/** @private */
 export class SinkStream<A> extends Stream<A> {
   push(a: A): void {
     this.publish(a);
@@ -112,6 +120,16 @@ class FilterStream<A> extends Stream<A> {
   }
 }
 
+/**
+ * @param fn A predicate function that returns a boolean for `A`.
+ * @param stream The stream to filter.
+ * @returns Stream that only contains the occurences from `stream`
+ * for which `fn` returns true.
+ */
+export function filter<A>(fn: (a: A) => boolean, stream: Stream<A>): Stream<A> {
+  return stream.filter(fn);
+}
+
 class ScanStream<A, B> extends Stream<B> {
   constructor(private fn: ScanFunction<A, B>, private last: B, source: Stream<A>) {
     super();
@@ -123,6 +141,12 @@ class ScanStream<A, B> extends Stream<B> {
   }
 }
 
+/**
+ * The returned  initially has the initial value, on each
+ * occurence in `source` the function is applied to the current value
+ * of the behaviour and the value of the occurence, the returned value
+ * becomes the next value of the behavior.
+ */
 export function scanS<A, B>(fn: ScanFunction<A, B>, startingValue: B, stream: Stream<A>): Behavior<Stream<B>> {
   return fromFunction(() => new ScanStream(fn, startingValue, stream));
 }
@@ -197,6 +221,9 @@ export function mergeList<A>(ss: Stream<A>[]): Stream<A> {
   return ss.reduce((s1, s2) => s1.merge(s2), empty());
 }
 
+/**
+ * @returns A stream that never has any occurrences.
+ */
 export function empty<A>(): Stream<A> {
   return new SinkStream<A>();
 }
@@ -215,10 +242,6 @@ export function merge<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)> {
 
 export function map<A, B>(fn: MapFunction<A, B> , stream: Stream<A>): Stream<B> {
   return stream.map(fn);
-}
-
-export function filter<A>(fn: FilterFunction<A>, stream: Stream<A>): Stream<A> {
-  return stream.filter(fn);
 }
 
 export function isStream(obj: any): boolean {

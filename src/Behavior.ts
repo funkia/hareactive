@@ -1,3 +1,5 @@
+/** @module hareactive/behavior */
+
 import {
   MapFunction,
   SubscribeFunction,
@@ -85,7 +87,10 @@ export function of<B>(val: B): Behavior<B> {
   return new ConstantBehavior(val);
 }
 
-// Impure function that gets the current value of a behavior.
+/*
+ * Impure function that gets the current value of a behavior. For a
+ * pure variant see `sample`.
+ */
 export function at<B>(b: Behavior<B>): B {
   return b.pushing === true ? b.last : b.pull();
 }
@@ -105,6 +110,7 @@ class ConstantBehavior<A> extends Behavior<A> {
   }
 }
 
+/** @private */
 class MapBehavior<A, B> extends Behavior<B> {
   constructor(
     private parent: Behavior<any>,
@@ -128,6 +134,16 @@ class MapBehavior<A, B> extends Behavior<B> {
   }
 }
 
+/**
+ * Map a function over a behavior. This means that if at some point in
+ * time the value of `b` is `bVal` then the value of the returned
+ * behavior is `fn(bVal)`.
+ */
+export function map<A, B>(fn: MapFunction<A, B> , b: Behavior<A>): Behavior<B> {
+  return b.map(fn);
+}
+
+/** @private */
 class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
@@ -158,6 +174,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
   }
 }
 
+/** @private */
 class FunctionBehavior<A> extends Behavior<A> {
   constructor(private fn: () => A) {
     super();
@@ -198,6 +215,7 @@ class ApBehavior<A, B> extends Behavior<B> {
   }
 }
 
+/** @private */
 class SinkBehavior<B> extends Behavior<B> {
   constructor(public last: B) {
     super();
@@ -219,7 +237,7 @@ class SinkBehavior<B> extends Behavior<B> {
  * to do value recursion in `./framework.ts`.
  * @private
  */
-export class PlaceholderBehavior<B> extends Behavior<B> {
+class PlaceholderBehavior<B> extends Behavior<B> {
   private source: Behavior<B>;
   constructor() {
     super();
@@ -249,6 +267,7 @@ export function placeholder(): PlaceholderBehavior<any> {
   return new PlaceholderBehavior();
 }
 
+/** @private */
 class WhenBehavior extends Behavior<Future<{}>> {
   constructor(private parent: Behavior<boolean>) {
     super();
@@ -278,6 +297,7 @@ export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
 }
 
 // FIXME: This can probably be made less ugly.
+/** @private */
 class SnapshotBehavior<A> extends Behavior<Future<A>> {
   private afterFuture: boolean;
   constructor(private parent: Behavior<A>, future: Future<any>) {
@@ -312,6 +332,12 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
   }
 }
 
+/**
+ * Creates a future than on occurence samples the current value of the
+ * behavior and occurs with that value. That is, the original value of
+ * the future is overwritten with the behavior value at the time when
+ * the future occurs.
+ */
 export function snapshot<A>(
   behavior: Behavior<A>,
   future: Future<any>
@@ -319,6 +345,7 @@ export function snapshot<A>(
   return new SnapshotBehavior(behavior, future);
 }
 
+/** @private */
 class SwitcherBehavior<A> extends Behavior<A> {
   constructor(private behavior: Behavior<A>, next: Future<Behavior<A>>) {
     super();
@@ -353,6 +380,7 @@ export function switcher<A>(
   return new SwitcherBehavior(init, next);
 }
 
+/** @private */
 class StepperBehavior<B> extends Behavior<B> {
   constructor(initial: B, private steps: Stream<B>) {
     super();
@@ -380,6 +408,7 @@ export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
   return new StepperBehavior(initial, steps);
 }
 
+/** @private */
 class ScanBehavior<A, B> extends Behavior<B> {
   constructor(initial: B,
               private fn: (a: A, b: B) => B,
@@ -398,31 +427,55 @@ class ScanBehavior<A, B> extends Behavior<B> {
   }
 }
 
+/**
+ * The returned behavior initially has the initial value, on each
+ * occurence in `source` the function is applied to the current value
+ * of the behaviour and the value of the occurence, the returned value
+ * becomes the next value of the behavior.
+ */
 export function scan<A, B>(fn: (a: A, b: B) => B, init: B, source: Stream<A>): Behavior<Behavior<B>> {
   return fromFunction(() => new ScanBehavior(init, fn, source));
 }
 
-// Creates a pull Behavior from an impure function
+
+/**
+ * This takes an impure function that varies over time and returns a
+ * pull-driven behavior. This is particulairly useful if the function
+ * is contionusly changing, like `Date.now`.
+ */
 export function fromFunction<B>(fn: () => B): Behavior<B> {
   return new FunctionBehavior(fn);
 }
 
+/**
+ * Creates a behavior for imperative impure pushing.
+ */
 export function sink<A>(initialValue: A): Behavior<A> {
   return new SinkBehavior<A>(initialValue);
 }
 
+/**
+ * Subscribe to a behavior in order to run imperative actions when the
+ * value in the behavior changes.
+ */
 export function subscribe<A>(fn: SubscribeFunction<A>, b: Behavior<A>): void {
   b.cbListeners.push(fn);
 }
 
+/**
+ * Imperatively push a value into a behavior.
+ */
 export function publish<A>(a: A, b: Behavior<A>): void {
   b.publish(a);
 }
 
-export function map<A, B>(fn: MapFunction<A, B> , b: Behavior<A>): Behavior<B> {
-  return b.map(fn);
-}
-
+/**
+ * Apply a function valued behavior to a value behavior.
+ *
+ * @param fnB behavior of functions from `A` to `B`
+ * @param valB A behavior of `A`
+ * @returns Behavior of the function in `fnB` applied to the value in `valB`
+ */
 export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
   const newB = new ApBehavior<A, B>(fnB, valB);
   fnB.listeners.push(newB);
