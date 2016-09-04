@@ -30,11 +30,6 @@ export abstract class Stream<A> implements Consumer<any> {
     }
   };
 
-  set def(stream: Stream<any>) {
-    stream.eventListeners.push(...this.eventListeners);
-    this.eventListeners = stream.eventListeners;
-  }
-
   subscribe(fn: SubscribeFunction<A>): void {
     this.eventListeners.push({push: fn});
   }

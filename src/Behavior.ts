@@ -40,13 +40,6 @@ export abstract class Behavior<A> {
 
   abstract pull(): A;
 
-  set def(b: Behavior<A>) {
-    b.cbListeners.push(...this.cbListeners);
-    b.listeners.push(...this.listeners);
-    this.cbListeners = b.cbListeners;
-    this.listeners = b.listeners;
-  }
-
   map<B>(fn: MapFunction<A, B>): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
     this.listeners.push(newB);

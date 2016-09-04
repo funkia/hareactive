@@ -157,23 +157,6 @@ describe("Stream", () => {
     });
   });
 
-  describe("def", () => {
-    it("should merge two streams", () => {
-      const callback1 = spy();
-      const callback2 = spy();
-      const e1 = S.empty();
-      const e1Mapped = S.map(addTwo, e1);
-      S.subscribe(callback1, e1);
-      S.subscribe(callback2, e1Mapped);
-      const e2 = S.empty();
-      e1.def = e2;
-      S.publish(1, e2);
-      S.publish(2, e2);
-      assert.deepEqual(callback1.args, [[1], [2]]);
-      assert.deepEqual(callback2.args, [[3], [4]]);
-    });
-  });
-
   describe("snapshot", () => {
     it("it snapshots pull based Behavior", () => {
       let n = 0;
