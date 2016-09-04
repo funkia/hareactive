@@ -230,7 +230,7 @@ class SinkBehavior<B> extends Behavior<B> {
  * to do value recursion in `./framework.ts`.
  * @private
  */
-class PlaceholderBehavior<B> extends Behavior<B> {
+export class PlaceholderBehavior<B> extends Behavior<B> {
   private source: Behavior<B>;
   constructor() {
     super();

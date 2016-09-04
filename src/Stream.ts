@@ -93,7 +93,11 @@ class MapStream<A, B> extends Stream<B> {
     super();
   }
   push(a: A): void {
-    this.publish(this.fn(a));
+    if (this.eventListeners.length === 1) {
+      this.eventListeners[0].push(this.fn(a));
+    } else {
+      this.publish(this.fn(a));
+    }
   }
 }
 
@@ -109,8 +113,12 @@ class FilterStream<A> extends Stream<A> {
     super();
   }
   push(a: A): void {
-    if (this.fn(a)) {
-      this.publish(a);
+    if (this.fn(a) === true) {
+      if (this.eventListeners.length === 1) {
+        this.eventListeners[0].push(a);
+      } else {
+        this.publish(a);
+      }
     }
   }
 }
@@ -132,7 +140,11 @@ class ScanStream<A, B> extends Stream<B> {
   }
   push(a: A): void {
     const val = this.last = this.fn(a, this.last);
-    this.publish(val);
+    if (this.eventListeners.length === 1) {
+      this.eventListeners[0].push(val);
+    } else {
+      this.publish(val);
+    }
   }
 }
 
