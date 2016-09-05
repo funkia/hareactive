@@ -11,10 +11,6 @@ const sum = (a: number, b: number): number => a + b;
 
 describe("Stream", () => {
   describe("isStream", () => {
-    it("should be a function", () => {
-      assert.isFunction(S.isStream);
-    });
-
     it("should be true when Stream object", () => {
       assert.isTrue(S.isStream(S.empty()));
     });
@@ -30,8 +26,28 @@ describe("Stream", () => {
   });
 
   describe("subscribe", () => {
-    it("should be a function", () => {
-      assert.isFunction(S.subscribe);
+    it("supports multiple listeners", () => {
+      const s = S.empty();
+      const cb1 = spy();
+      const cb2 = spy();
+      s.subscribe(cb1);
+      s.subscribe(cb2);
+      S.publish(2, s);
+      S.publish(3, s);
+      assert.strictEqual(cb1.callCount, 2);
+      assert.strictEqual(cb2.callCount, 2);
+    });
+    it("single listeners can be removed", () => {
+      const s = S.empty();
+      const cb1 = spy();
+      const cb2 = spy();
+      s.subscribe(cb1);
+      const listener = s.subscribe(cb2);
+      s.removeListener(listener);
+      S.publish(2, s);
+      S.publish(3, s);
+      assert.strictEqual(cb1.callCount, 2);
+      assert.strictEqual(cb2.callCount, 0);
     });
   });
 

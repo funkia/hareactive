@@ -379,7 +379,7 @@ class StepperBehavior<B> extends Behavior<B> {
     super();
     this.pushing = true;
     this.last = initial;
-    steps.eventListeners.push(this);
+    steps.addListener(this);
   }
 
   push(val: B): void {
@@ -409,7 +409,7 @@ class ScanBehavior<A, B> extends Behavior<B> {
     super();
     this.pushing = true;
     this.last = initial;
-    source.eventListeners.push(this);
+    source.addListener(this);
   }
   push(val: A): void {
     this.last = this.fn(val, this.last);
@@ -429,7 +429,6 @@ class ScanBehavior<A, B> extends Behavior<B> {
 export function scan<A, B>(fn: (a: A, b: B) => B, init: B, source: Stream<A>): Behavior<Behavior<B>> {
   return fromFunction(() => new ScanBehavior(init, fn, source));
 }
-
 
 /**
  * This takes an impure function that varies over time and returns a
