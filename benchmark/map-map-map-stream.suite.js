@@ -32,6 +32,12 @@ function pushArray(arr, ev) {
   }
 }
 
+function pushArray2(arr, ev) {
+  for (var i = 0; i < arr.length; ++i) {
+    ev.push(arr[i]);
+  }
+}
+
 module.exports = Suite("map-map-map-stream")
 
   .add("Stream old", function(defered) {
@@ -55,7 +61,7 @@ module.exports = Suite("map-map-map-stream")
           defered.resolve();
         }
       });
-    pushArray(testData, stream);
+    pushArray2(testData, stream);
   }, {defer: true})
 
   .add("most", function(defered) {

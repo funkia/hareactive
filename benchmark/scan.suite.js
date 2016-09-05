@@ -24,6 +24,12 @@ function pushArray(arr, ev) {
     }
 }
 
+function pushArray2(arr, ev) {
+    for (var i = 0; i < arr.length; ++i) {
+        ev.push(arr[i]);
+    }
+}
+
 module.exports = Suite("scan-stream")
 
   .add("Stream old", function(defered) {
@@ -50,7 +56,7 @@ module.exports = Suite("scan-stream")
     }, s);
     var i = 0;
     var l = testData.length;
-    pushArray(testData, j);
+    pushArray2(testData, j);
   }, { defer: true })
 
   .add("most", function(defered) {
