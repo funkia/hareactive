@@ -28,12 +28,6 @@ var result = sub3(double(add1(n - 1)));
 
 function pushArray(arr, b) {
   for (var i = 0; i < arr.length; ++i) {
-    b.publish(arr[i]);
-  }
-}
-
-function pushArray2(arr, b) {
-  for (var i = 0; i < arr.length; ++i) {
     b.push(arr[i]);
   }
 }
@@ -57,7 +51,7 @@ module.exports = Suite("map-map-map-behavior")
         defered.resolve();
       }
     }, b.map(add1).map(double).map(sub3));
-    pushArray2(testData, b);
+    pushArray(testData, b);
   }, {defer: true})
 
   .run({"async": true});
