@@ -50,16 +50,16 @@ module.exports = Suite("chain-behavior")
     for (var i = 0; i <= n; ++i) {
       switch (i % 4) {
       case 0:
-        b1.publish(false);
+        b1.push(false);
         break;
       case 1:
-        b2.publish(i);
+        b2.push(i);
         break;
       case 2:
-        b1.publish(true);
+        b1.push(true);
         break;
       case 3:
-        b3.publish(i);
+        b3.push(i);
         break;
       }
     }

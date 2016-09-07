@@ -180,7 +180,7 @@ export class BehaviorFuture<A> extends Future<A> {
     b.addListener(this);
   }
   push(a: A): void {
-    this.b.unlisten(this);
+    this.b.removeListener(this);
     this.resolve(a);
   }
 }

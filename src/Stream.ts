@@ -216,22 +216,26 @@ export function snapshotWith<A, B, C>(
   return new SnapshotWithStream(fn, behavior, stream);
 }
 
+/** @private */
+class SwitchOuter<A> implements Consumer<Stream<A>> {
+  constructor(private s: SwitchBehaviorStream<A>) {};
+  push(a: Stream<A>): void { this.s.doSwitch(a); }
+}
+
 class SwitchBehaviorStream<A> extends Stream<A> {
   private currentSource: Stream<A>;
+  private outerConsumer: Consumer<Stream<A>>;
   constructor(private b: Behavior<Stream<A>>) {
     super();
-    b.addListener(this);
+    this.outerConsumer = new SwitchOuter(this);
+    b.addListener(this.outerConsumer);
     const cur = this.currentSource = at(b);
     cur.addListener(this);
   }
-  push(a: any, changer: any): void {
-    if (changer === this.b) {
-      this.doSwitch(a);
-    } else {
-      this.child.push(a);
-    }
+  push(a: A): void {
+    this.child.push(a);
   }
-  private doSwitch(newStream: Stream<A>): void {
+  public doSwitch(newStream: Stream<A>): void {
     this.currentSource.removeListener(this);
     newStream.addListener(this);
     this.currentSource = newStream;
@@ -240,7 +244,8 @@ class SwitchBehaviorStream<A> extends Stream<A> {
 
 /**
  * Takes a stream valued behavior and returns at stream that emits
- * values from the current stream at the behavior.
+ * values from the current stream at the behavior. I.e. the returned
+ * stream always "switches" to the current stream at the behavior.
  */
 export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
   return new SwitchBehaviorStream(b);

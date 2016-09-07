@@ -30,13 +30,13 @@ const add = (a: number) => (b: number) => a + b;
 
 describe("Behavior", () => {
   it("pulls constant function", () => {
-    const b = B.of(0);
+    const b = B.sink(0);
     assert.equal(B.at(b), 0);
-    b.publish(1);
+    b.push(1);
     assert.equal(B.at(b), 1);
-    b.publish(2);
+    b.push(2);
     assert.equal(B.at(b), 2);
-    b.publish(3);
+    b.push(3);
     assert.equal(B.at(b), 3);
   });
 
@@ -58,9 +58,9 @@ describe("Behavior", () => {
     const b = B.sink(0);
     const result: number[] = [];
     B.subscribe((v) => { result.push(v); }, b);
-    b.publish(1);
-    b.publish(2);
-    b.publish(3);
+    b.push(1);
+    b.push(2);
+    b.push(3);
     assert.deepEqual(result, [1, 2, 3]);
   });
 
@@ -129,7 +129,7 @@ describe("Behavior", () => {
       assert.strictEqual(at(mapped), 6);
     });
     it("maps constant function", () => {
-      const b = B.of(0);
+      const b = B.sink(0);
       const mapped = B.map(double, b);
       assert.equal(B.at(b), 0);
       B.publish(1, b);
@@ -142,11 +142,11 @@ describe("Behavior", () => {
     it("maps values method", () => {
       const b = B.sink(0);
       const mapped = b.map(double);
-      b.publish(1);
+      b.push(1);
       assert.equal(B.at(mapped), 2);
-      b.publish(2);
+      b.push(2);
       assert.equal(B.at(mapped), 4);
-      b.publish(3);
+      b.push(3);
       assert.equal(B.at(mapped), 6);
     });
     it("maps time function", () => {
@@ -170,11 +170,11 @@ describe("Behavior", () => {
       const numE = B.sink(3);
       const applied = B.ap(fnB, numE);
       assert.equal(B.at(applied), 4);
-      fnB.publish(add(2));
+      fnB.push(add(2));
       assert.equal(B.at(applied), 5);
-      numE.publish(4);
+      numE.push(4);
       assert.equal(B.at(applied), 6);
-      fnB.publish(double);
+      fnB.push(double);
       assert.equal(B.at(applied), 8);
     });
     it("applies event of functions to event of numbers with pull", () => {
@@ -196,17 +196,17 @@ describe("Behavior", () => {
     });
     it("applies pushed event of functions to pulled event of numbers", () => {
       let n = 1;
-      const fnB = B.of(add(5));
+      const fnB = B.sink(add(5));
       const numE = B.fromFunction(() => {
         return n;
       });
       const applied = B.ap(fnB, numE);
       assert.equal(B.at(applied), 6);
-      fnB.publish(add(2));
+      fnB.push(add(2));
       assert.equal(B.at(applied), 3);
       n = 4;
       assert.equal(B.at(applied), 6);
-      fnB.publish(double);
+      fnB.push(double);
       assert.equal(B.at(applied), 8);
       n = 8;
       assert.equal(B.at(applied), 16);
@@ -222,18 +222,18 @@ describe("Behavior", () => {
       const b1 = B.sink(0);
       const b2 = b1.chain(x => B.of(x * x));
       assert.strictEqual(at(b2), 0);
-      b1.publish(2);
+      b1.push(2);
       assert.strictEqual(at(b2), 4);
-      b1.publish(3);
+      b1.push(3);
       assert.strictEqual(at(b2), 9);
     });
     it("handles changing inner behavior", () => {
       const inner = B.sink(0);
       const b = B.of(1).chain(_ => inner);
       assert.strictEqual(at(b), 0);
-      inner.publish(2);
+      inner.push(2);
       assert.strictEqual(at(b), 2);
-      inner.publish(3);
+      inner.push(3);
       assert.strictEqual(at(b), 3);
     });
     it("stops subscribing to past inner behavior", () => {
@@ -241,11 +241,11 @@ describe("Behavior", () => {
       const outer = B.sink(1);
       const b = outer.chain(n => n === 1 ? inner : B.of(6));
       assert.strictEqual(at(b), 0);
-      inner.publish(2);
+      inner.push(2);
       assert.strictEqual(at(b), 2);
-      outer.publish(2);
+      outer.push(2);
       assert.strictEqual(at(b), 6);
-      inner.publish(3);
+      inner.push(3);
       assert.strictEqual(at(b), 6);
     });
     it("handles changes from both inner and outer", () => {
@@ -262,15 +262,15 @@ describe("Behavior", () => {
         }
       });
       assert.strictEqual(at(b), 0);
-      outer.publish(1);
+      outer.push(1);
       assert.strictEqual(at(b), 1);
-      inner1.publish(2);
+      inner1.push(2);
       assert.strictEqual(at(b), 2);
-      outer.publish(2);
+      outer.push(2);
       assert.strictEqual(at(b), 3);
-      inner1.publish(7); // Pushing to previous inner should have no effect
+      inner1.push(7); // Pushing to previous inner should have no effect
       assert.strictEqual(at(b), 3);
-      inner2.publish(4);
+      inner2.push(4);
       assert.strictEqual(at(b), 4);
     });
   });
@@ -303,7 +303,7 @@ describe("Behavior and Future", () => {
       const fut = at(w);
       fut.subscribe((_) => occurred = true);
       assert.strictEqual(occurred, false);
-      b.publish(true);
+      b.push(true);
       assert.strictEqual(occurred, true);
     });
   });
@@ -314,20 +314,20 @@ describe("Behavior and Future", () => {
       const futureSink = F.sink();
       const mySnapshot = at(B.snapshot(bSink, futureSink));
       mySnapshot.subscribe(res => result = res);
-      bSink.publish(2);
-      bSink.publish(3);
+      bSink.push(2);
+      bSink.push(3);
       futureSink.resolve({});
-      bSink.publish(4);
+      bSink.push(4);
       assert.strictEqual(result, 3);
     });
     it("uses current value when future occured in the past", () => {
       let result: number;
       const bSink = B.sink(1);
       const occurredFuture = F.of({});
-      bSink.publish(2);
+      bSink.push(2);
       const mySnapshot = at(B.snapshot(bSink, occurredFuture));
       mySnapshot.subscribe(res => result = res);
-      bSink.publish(3);
+      bSink.push(3);
       assert.strictEqual(result, 2);
     });
   });
@@ -338,15 +338,15 @@ describe("Behavior and Future", () => {
       const futureSink = F.sink<Behavior<number>>();
       const switching = switcher(b1, futureSink);
       assert.strictEqual(at(switching), 1);
-      b2.publish(9);
+      b2.push(9);
       assert.strictEqual(at(switching), 1);
-      b1.publish(2);
+      b1.push(2);
       assert.strictEqual(at(switching), 2);
-      b1.publish(3);
+      b1.push(3);
       assert.strictEqual(at(switching), 3);
       futureSink.resolve(b2);
       assert.strictEqual(at(switching), 9);
-      b2.publish(10);
+      b2.push(10);
       assert.strictEqual(at(switching), 10);
     });
   });
@@ -390,9 +390,9 @@ describe("Behavior and Stream", () => {
       switching.subscribe(cb);
       s1.push(1);
       s1.push(2);
-      b.publish(s2);
+      b.push(s2);
       s2.push(3);
-      b.publish(s3);
+      b.push(s3);
       s2.push(4);
       s3.push(5);
       s3.push(6);

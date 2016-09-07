@@ -10,39 +10,53 @@ import {Future, BehaviorFuture} from "./Future";
 import * as F from "./Future";
 import {Stream} from "./Stream";
 
+class NoopConsumer implements Consumer<any> {
+  push(): void {};
+}
+
+const noopConsumer = new NoopConsumer();
+
+class MultiConsumer<A> implements Consumer<A> {
+  listeners: Consumer<A>[];
+  constructor(c1: Consumer<A>, c2: Consumer<A>) {
+    this.listeners = [c1, c2];
+  }
+  push(a: A): void {
+    for (let i = 0; i < this.listeners.length; ++i) {
+      this.listeners[i].push(a);
+    }
+  }
+}
+
 /**
  * A behavior is a value that changes over time. Conceptually it can
  * be though of as a function from time to a value. I.e. `type
  * Behavior<A> = (t: Time) => A`.
  */
 export abstract class Behavior<A> {
-  cbListeners: ((b: A) => void)[] = [];
-  // The consumers that depends on this behavior
-  listeners: Consumer<any>[] = [];
+  child: Consumer<A>;
+  nrOfListeners: number;
   last: A;
   pushing: boolean;
 
-  publish(b: A): void {
-    this.last = b;
+  constructor() {
+    this.child = noopConsumer;
+    this.nrOfListeners = 0;
+  }
 
-    let l = this.cbListeners.length;
-    for (let i = 0; i < l; i++) {
-      this.cbListeners[i](b);
-    }
-
-    l = this.listeners.length;
-    for (let i = 0; i < l; i++) {
-      this.listeners[i].push(b, this);
-    }
-  };
-
-  abstract push(a: any, changed: Behavior<any>): void;
+  abstract push(a: any, changed?: Behavior<any>): void;
 
   abstract pull(): A;
 
+  subscribe(fn: SubscribeFunction<A>): Consumer<A> {
+    const listener = {push: fn};
+    this.addListener(listener);
+    return listener;
+  }
+
   map<B>(fn: MapFunction<A, B>): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
-    this.listeners.push(newB);
+    this.addListener(newB);
     return newB;
   }
 
@@ -50,28 +64,39 @@ export abstract class Behavior<A> {
   static of: <A>(v: A) => Behavior<A> = of;
 
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
-    const newB = new ChainBehavior<A, B>(this, fn);
-    this.listeners.push(newB);
-    return newB;
+    return new ChainBehavior<A, B>(this, fn);
   }
 
-  addListener(listener: Consumer<any>): void {
-    this.listeners.push(listener);
+  addListener(c: Consumer<A>): void {
+    const nr = ++this.nrOfListeners;
+    if (nr === 1) {
+      this.child = c;
+    } else if (nr === 2) {
+      this.child = new MultiConsumer(this.child, c);
+    } else {
+      (<MultiConsumer<A>>this.child).listeners.push(c);
+    }
   }
 
-  unlisten(listener: Consumer<any>): void {
-    // The indexOf here is O(n), where n is the number of listeners,
-    // if using a linked list it should be possible to perform the
-    // unsubscribe operation in constant time.
-    const l = this.listeners;
-    const idx = l.indexOf(listener);
-    if (idx !== -1) {
-      // if the subscriber is not at the end of the list we overwrite
-      // it with the element at the end of the list
-      if (idx !== l.length - 1) {
-        l[idx] = l[l.length - 1];
+  removeListener(listener: Consumer<any>): void {
+    const nr = --this.nrOfListeners;
+    if (nr === 0) {
+      this.child = noopConsumer;
+    } else if (nr === 1) {
+      const l = (<MultiConsumer<A>>this.child).listeners;
+      this.child = l[l[0] === listener ? 1 : 0];
+    } else {
+      const l = (<MultiConsumer<A>>this.child).listeners;
+      // The indexOf here is O(n), where n is the number of listeners,
+      // if using a linked list it should be possible to perform the
+      // unsubscribe operation in constant time.
+      const idx = l.indexOf(listener);
+      if (idx !== -1) {
+        if (idx !== l.length - 1) {
+          l[idx] = l[l.length - 1];
+        }
+        l.length--; // remove the last element of the list
       }
-      l.length--; // remove the last element of the list
     }
   }
 }
@@ -119,7 +144,7 @@ class MapBehavior<A, B> extends Behavior<B> {
   push(a: any): void {
     this.pushing = true;
     this.last = this.fn(a);
-    this.publish(this.last);
+    this.child.push(this.last);
   }
 
   pull(): B {
@@ -137,29 +162,46 @@ export function map<A, B>(fn: MapFunction<A, B> , b: Behavior<A>): Behavior<B> {
 }
 
 /** @private */
+class ChainOuter<A> implements Consumer<A> {
+  constructor(private chainB: ChainBehavior<A, any>) {};
+  push(a: A): void { this.chainB.pushOuter(a); }
+}
+
+/** @private */
 class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
+  private outerConsumer: Consumer<A>;
+  // private innerConsumer: Consumer<B>;
   constructor(
-    private outer: Behavior<any>,
+    private outer: Behavior<A>,
     private fn: (a: A) => Behavior<B>
   ) {
     super();
+    // Create the outer consumers
+    this.outerConsumer = new ChainOuter(this);
     this.innerB = this.fn(at(this.outer));
-    this.pushing = outer.pushing && this.innerB.pushing;
-    this.innerB.listeners.push(this);
+    this.pushing = this.innerB.pushing;
+    // Make the consumers listen to inner and outer behavior
+    outer.addListener(this.outerConsumer);
+    this.innerB.addListener(this);
     this.last = at(this.innerB);
   }
 
-  push(a: any, changed: Behavior<any>): void {
-    if (changed === this.outer) {
-      this.innerB.unlisten(this);
-      const newInner = this.fn(at(this.outer));
-      newInner.addListener(this);
-      this.innerB = newInner;
-    }
-    this.last = at(this.innerB);
-    this.publish(this.last);
+  pushOuter(a: A): void {
+    // The outer behavior has changed. This means that we will have to
+    // call our function, which will result in a new inner behavior.
+    // We therefore stop listening to the old inner behavior and begin
+    // listening to the new one.
+    this.innerB.removeListener(this);
+    const newInner = this.innerB = this.fn(a);
+    newInner.addListener(this);
+    this.push(at(newInner));
+  }
+
+  push(b: B): void {
+    this.last = b;
+    this.child.push(b);
   }
 
   pull(): B {
@@ -200,7 +242,7 @@ class ApBehavior<A, B> extends Behavior<B> {
     const fn = at(this.fn);
     const val = at(this.val);
     this.last = fn(val);
-    this.publish(this.last);
+    this.child.push(this.last);
   }
 
   pull(): B {
@@ -217,7 +259,7 @@ class SinkBehavior<B> extends Behavior<B> {
 
   push(v: B): void {
     this.last = v;
-    this.publish(v);
+    this.child.push(v);
   }
 
   pull(): B {
@@ -239,7 +281,7 @@ export class PlaceholderBehavior<B> extends Behavior<B> {
 
   push(v: B): void {
     this.last = v;
-    this.publish(v);
+    this.child.push(v);
   }
 
   pull(): B {
@@ -349,13 +391,13 @@ class SwitcherBehavior<A> extends Behavior<A> {
   }
   push(val: A): void {
     this.last = val;
-    this.publish(val);
+    this.child.push(val);
   }
   pull(): A {
     return this.last;
   }
   private doSwitch(newBehavior: Behavior<A>): void {
-    this.behavior.unlisten(this);
+    this.behavior.removeListener(this);
     newBehavior.addListener(this);
     this.push(at(newBehavior));
   }
@@ -384,7 +426,7 @@ class StepperBehavior<B> extends Behavior<B> {
 
   push(val: B): void {
     this.last = val;
-    this.publish(val);
+    this.child.push(val);
   }
 
   pull(): B {
@@ -413,7 +455,7 @@ class ScanBehavior<A, B> extends Behavior<B> {
   }
   push(val: A): void {
     this.last = this.fn(val, this.last);
-    this.publish(this.last);
+    this.child.push(this.last);
   }
   pull(): B {
     throw new Error("Cannot pull from Scan");
@@ -451,14 +493,14 @@ export function sink<A>(initialValue: A): Behavior<A> {
  * value in the behavior changes.
  */
 export function subscribe<A>(fn: SubscribeFunction<A>, b: Behavior<A>): void {
-  b.cbListeners.push(fn);
+  b.subscribe(fn);
 }
 
 /**
  * Imperatively push a value into a behavior.
  */
 export function publish<A>(a: A, b: Behavior<A>): void {
-  b.publish(a);
+  b.push(a);
 }
 
 /**
@@ -470,8 +512,8 @@ export function publish<A>(a: A, b: Behavior<A>): void {
  */
 export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
   const newB = new ApBehavior<A, B>(fnB, valB);
-  fnB.listeners.push(newB);
-  valB.listeners.push(newB);
+  fnB.addListener(newB);
+  valB.addListener(newB);
   return newB;
 }
 

@@ -32,11 +32,17 @@ function pushArray(arr, b) {
   }
 }
 
+function pushArray2(arr, b) {
+  for (var i = 0; i < arr.length; ++i) {
+    b.push(arr[i]);
+  }
+}
+
 module.exports = Suite("map-map-map-behavior")
 
   .add("Behavior old", function(defered) {
     var b = Bo.sink();
-    B.subscribe(function(e) {
+    Bo.subscribe(function(e) {
       if (e === result) {
         defered.resolve();
       }
@@ -51,7 +57,7 @@ module.exports = Suite("map-map-map-behavior")
         defered.resolve();
       }
     }, b.map(add1).map(double).map(sub3));
-    pushArray(testData, b);
+    pushArray2(testData, b);
   }, {defer: true})
 
   .run({"async": true});
