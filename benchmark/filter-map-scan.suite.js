@@ -17,15 +17,9 @@ for (var i = 0; i < a.length; ++i) {
 }
 
 function pushArray(arr, ev) {
-    for (var i = 0; i < arr.length; ++i) {
-        ev.publish(arr[i]);
-    }
-}
-
-function pushArray2(arr, ev) {
-    for (var i = 0; i < arr.length; ++i) {
-        ev.push(arr[i]);
-    }
+  for (var i = 0; i < arr.length; ++i) {
+    ev.push(arr[i]);
+  }
 }
 
 function sum(c, b) {
@@ -61,7 +55,7 @@ module.exports = Suite("filter-map-scan")
         defered.resolve();
       }
     });
-    pushArray2(a, ev);
+    pushArray(a, ev);
   }, { defer: true })
 
   .add("most", function(defered) {

@@ -26,9 +26,9 @@ function sub3(n) {
 
 var result = sub3(double(add1(n - 1)));
 
-function pushArray(arr, ev) {
+function pushArray(arr, b) {
   for (var i = 0; i < arr.length; ++i) {
-    ev.publish(arr[i]);
+    b.publish(arr[i]);
   }
 }
 

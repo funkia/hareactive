@@ -28,12 +28,6 @@ var result = sub3(double(add1(n - 1)));
 
 function pushArray(arr, ev) {
   for (var i = 0; i < arr.length; ++i) {
-    ev.publish(arr[i]);
-  }
-}
-
-function pushArray2(arr, ev) {
-  for (var i = 0; i < arr.length; ++i) {
     ev.push(arr[i]);
   }
 }
@@ -61,7 +55,7 @@ module.exports = Suite("map-map-map-stream")
           defered.resolve();
         }
       });
-    pushArray2(testData, stream);
+    pushArray(testData, stream);
   }, {defer: true})
 
   .add("most", function(defered) {

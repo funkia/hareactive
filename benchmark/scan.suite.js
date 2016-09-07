@@ -20,12 +20,6 @@ function sum(curr, val) {
 
 function pushArray(arr, ev) {
     for (var i = 0; i < arr.length; ++i) {
-        ev.publish(arr[i]);
-    }
-}
-
-function pushArray2(arr, ev) {
-    for (var i = 0; i < arr.length; ++i) {
         ev.push(arr[i]);
     }
 }
@@ -56,7 +50,7 @@ module.exports = Suite("scan-stream")
     }, s);
     var i = 0;
     var l = testData.length;
-    pushArray2(testData, j);
+    pushArray(testData, j);
   }, { defer: true })
 
   .add("most", function(defered) {

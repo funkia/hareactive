@@ -29,16 +29,16 @@ module.exports = Suite("merge-stream")
     for (var i = 0; i < a.length; ++i) {
       switch (i % 4) {
       case 0:
-        s1.publish(a[i]);
+        s1.push(a[i]);
         break;
       case 1:
-        s2.publish(a[i]);
+        s2.push(a[i]);
         break;
       case 2:
-        s3.publish(a[i]);
+        s3.push(a[i]);
         break;
       case 3:
-        s4.publish(a[i]);
+        s4.push(a[i]);
         break;
       }
     }}, {defer: true})
