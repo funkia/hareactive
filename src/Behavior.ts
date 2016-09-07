@@ -3,56 +3,29 @@
 import {
   MapFunction,
   SubscribeFunction,
-  Consumer
+  Consumer, Reactive,
 } from "./frp-common";
 
 import {Future, BehaviorFuture} from "./Future";
 import * as F from "./Future";
 import {Stream} from "./Stream";
 
-class NoopConsumer implements Consumer<any> {
-  push(): void {};
-}
-
-const noopConsumer = new NoopConsumer();
-
-class MultiConsumer<A> implements Consumer<A> {
-  listeners: Consumer<A>[];
-  constructor(c1: Consumer<A>, c2: Consumer<A>) {
-    this.listeners = [c1, c2];
-  }
-  push(a: A): void {
-    for (let i = 0; i < this.listeners.length; ++i) {
-      this.listeners[i].push(a);
-    }
-  }
-}
-
 /**
  * A behavior is a value that changes over time. Conceptually it can
  * be though of as a function from time to a value. I.e. `type
  * Behavior<A> = (t: Time) => A`.
  */
-export abstract class Behavior<A> {
-  child: Consumer<A>;
-  nrOfListeners: number;
+export abstract class Behavior<A> extends Reactive<A> {
   last: A;
   pushing: boolean;
 
   constructor() {
-    this.child = noopConsumer;
-    this.nrOfListeners = 0;
+    super();
   }
 
-  abstract push(a: any, changed?: Behavior<any>): void;
+  abstract push(a: any): void;
 
   abstract pull(): A;
-
-  subscribe(fn: SubscribeFunction<A>): Consumer<A> {
-    const listener = {push: fn};
-    this.addListener(listener);
-    return listener;
-  }
 
   map<B>(fn: MapFunction<A, B>): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
@@ -65,39 +38,6 @@ export abstract class Behavior<A> {
 
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new ChainBehavior<A, B>(this, fn);
-  }
-
-  addListener(c: Consumer<A>): void {
-    const nr = ++this.nrOfListeners;
-    if (nr === 1) {
-      this.child = c;
-    } else if (nr === 2) {
-      this.child = new MultiConsumer(this.child, c);
-    } else {
-      (<MultiConsumer<A>>this.child).listeners.push(c);
-    }
-  }
-
-  removeListener(listener: Consumer<any>): void {
-    const nr = --this.nrOfListeners;
-    if (nr === 0) {
-      this.child = noopConsumer;
-    } else if (nr === 1) {
-      const l = (<MultiConsumer<A>>this.child).listeners;
-      this.child = l[l[0] === listener ? 1 : 0];
-    } else {
-      const l = (<MultiConsumer<A>>this.child).listeners;
-      // The indexOf here is O(n), where n is the number of listeners,
-      // if using a linked list it should be possible to perform the
-      // unsubscribe operation in constant time.
-      const idx = l.indexOf(listener);
-      if (idx !== -1) {
-        if (idx !== l.length - 1) {
-          l[idx] = l[l.length - 1];
-        }
-        l.length--; // remove the last element of the list
-      }
-    }
   }
 }
 
@@ -118,11 +58,9 @@ class ConstantBehavior<A> extends Behavior<A> {
     super();
     this.pushing = true;
   }
-
   push(): void {
     throw new Error("Cannot push a value to a constant behavior");
   }
-
   pull(): A {
     return this.last;
   }

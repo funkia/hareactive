@@ -5,35 +5,19 @@ import {
   SubscribeFunction,
   ScanFunction,
   FilterFunction,
-  Consumer
+  Consumer, Reactive
 } from "./frp-common";
 
 import {Behavior, at, scan, fromFunction} from "./Behavior";
-
-class NoopConsumer implements Consumer<any> {
-  push(): void {};
-}
-
-const noopConsumer = new NoopConsumer();
 
 /**
  * A stream is a list of occurences over time. Each occurence happens
  * at a discrete point in time and has an associated value.
  * Semantically it is a list `type Stream<A> = [Time, A]`.
  */
-export abstract class Stream<A> implements Consumer<any> {
-  child: Consumer<A>;
-  nrOfListeners: number;
-
+export abstract class Stream<A> extends Reactive<A> {
   constructor() {
-    this.child = noopConsumer;
-    this.nrOfListeners = 0;
-  }
-
-  subscribe(fn: SubscribeFunction<A>): Consumer<A> {
-    const listener = {push: fn};
-    this.addListener(listener);
-    return listener;
+    super();
   }
 
   abstract push(a: any, changed?: any): void;
@@ -69,36 +53,6 @@ export abstract class Stream<A> implements Consumer<any> {
 
   scan<B>(fn: ScanFunction<A, B>, init: B): Behavior<Behavior<B>> {
     return scan(fn, init, this);
-  }
-
-  addListener(c: Consumer<A>): void {
-    const nr = ++this.nrOfListeners;
-    if (nr === 1) {
-      this.child = c;
-    } else if (nr === 2) {
-      this.child = new MultiConsumer(this.child, c);
-    } else {
-      (<MultiConsumer<A>>this.child).listeners.push(c);
-    }
-  }
-
-  removeListener(listener: Consumer<any>): void {
-    const nr = --this.nrOfListeners;
-    if (nr === 0) {
-      this.child = noopConsumer;
-    } else if (nr === 1) {
-      const l = (<MultiConsumer<A>>this.child).listeners;
-      this.child = l[l[0] === listener ? 1 : 0];
-    } else {
-      const l = (<MultiConsumer<A>>this.child).listeners;
-      const idx = l.indexOf(listener);
-      if (idx !== -1) {
-        if (idx !== l.length - 1) {
-          l[idx] = l[l.length - 1];
-        }
-        l.length--; // remove the last element of the list
-      }
-    }
   }
 }
 
@@ -193,18 +147,6 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
   }
   push(a: A): void {
     this.child.push(this.fn(a, at(this.behavior)));
-  }
-}
-
-class MultiConsumer<A> implements Consumer<A> {
-  listeners: Consumer<A>[];
-  constructor(c1: Consumer<A>, c2: Consumer<A>) {
-    this.listeners = [c1, c2];
-  }
-  push(a: A): void {
-    for (let i = 0; i < this.listeners.length; ++i) {
-      this.listeners[i].push(a);
-    }
   }
 }
 
