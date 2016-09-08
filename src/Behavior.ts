@@ -476,5 +476,11 @@ class TimeFromBehavior extends Behavior<Time> {
   }
 }
 
+/**
+ * A behavior giving access to continous time. When sampled the outer
+ * behavior gives a behavior with values that contain the difference
+ * between the current sample time and the time at which the outer
+ * behavior was sampled.
+ */
 export const timeFrom: Behavior<Behavior<Time>>
   = fromFunction(() => new TimeFromBehavior());
