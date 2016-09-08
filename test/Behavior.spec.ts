@@ -6,7 +6,7 @@ import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
 import {
-  Behavior, at, switcher, scan
+  Behavior, at, switcher, scan, timeFrom
 } from "../src/Behavior";
 import {switchStream} from "../src/Stream";
 
@@ -399,4 +399,27 @@ describe("Behavior and Stream", () => {
       assert.deepEqual(cb.args, [[1], [2], [3], [5], [6]]);
     });
   });
+  describe("continous time", () => {
+    it("gives time from sample point", () => {
+      const [setTime, restore] = mockNow();
+      setTime(3);
+      const time = at(timeFrom);
+      assert.strictEqual(at(time), 0);
+      setTime(4);
+      assert.strictEqual(at(time), 1);
+      setTime(7);
+      assert.strictEqual(at(time), 4);
+      restore();
+    });
+  });
 });
+
+function mockNow(): [(t: number) => void, () => void] {
+  const orig = Date.now;
+  let time = 0;
+  Date.now = () => time;
+  return [
+    (t: number) => time = t,
+    () => Date.now = orig
+  ];
+}

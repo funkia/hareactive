@@ -3,7 +3,7 @@
 import {
   MapFunction,
   SubscribeFunction,
-  Consumer, Reactive,
+  Consumer, Reactive
 } from "./frp-common";
 
 import {Future, BehaviorFuture} from "./Future";
@@ -458,3 +458,23 @@ export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavio
 export function isBehavior(b: any): b is Behavior<any> {
   return b instanceof Behavior;
 }
+
+export type Time = number;
+
+class TimeFromBehavior extends Behavior<Time> {
+  private startTime: Time;
+  constructor() {
+    super();
+    this.startTime = Date.now();
+    this.pushing = false;
+  }
+  push(): void {
+    throw new Error("Cannot push to TimeFromBehavior");
+  }
+  pull(): Time {
+    return Date.now() - this.startTime;
+  }
+}
+
+export const timeFrom: Behavior<Behavior<Time>>
+  = fromFunction(() => new TimeFromBehavior());
