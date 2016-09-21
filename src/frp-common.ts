@@ -31,7 +31,7 @@ export abstract class Reactive<A> implements Consumer<A> {
 
   abstract push(a: any): void;
 
-  subscribe(fn: SubscribeFunction<A>): Consumer<A> {
+  subscribe(fn: (a: A) => void): Consumer<A> {
     const listener = {push: fn};
     this.addListener(listener);
     return listener;
@@ -70,9 +70,3 @@ export abstract class Reactive<A> implements Consumer<A> {
     }
   }
 }
-
-export type MapFunction<A, B> = ((a: A) => B);
-export type SubscribeFunction<A> = ((a: A) => void);
-export type PushFunction<A> = ((a: A) => any);
-export type ScanFunction<A, B> = ((a: A, b: B) => B);
-export type FilterFunction<A> = ((a: A) => boolean);

@@ -1,12 +1,6 @@
 /** @module hareactive/stream */
 
-import {
-  MapFunction,
-  SubscribeFunction,
-  ScanFunction,
-  FilterFunction,
-  Consumer, Reactive
-} from "./frp-common";
+import {Consumer, Reactive} from "./frp-common";
 
 import {Behavior, at, scan, fromFunction} from "./Behavior";
 
@@ -22,7 +16,7 @@ export abstract class Stream<A> extends Reactive<A> {
 
   abstract push(a: any, changed?: any): void;
 
-  map<B>(fn: MapFunction<A, B>): Stream<B> {
+  map<B>(fn: (a: A) => B): Stream<B> {
     const s = new MapStream(fn);
     this.addListener(s);
     return s;
@@ -41,17 +35,17 @@ export abstract class Stream<A> extends Reactive<A> {
     return s;
   }
 
-  filter(fn: FilterFunction<A>): Stream<A> {
+  filter(fn: (a: A) => boolean): Stream<A> {
     const s = new FilterStream<A>(fn);
     this.addListener(s);
     return s;
   }
 
-  scanS<B>(fn: ScanFunction<A, B>, startingValue: B): Behavior<Stream<B>> {
+  scanS<B>(fn: (a: A, b: B) => B, startingValue: B): Behavior<Stream<B>> {
     return fromFunction(() => new ScanStream(fn, startingValue, this));
   }
 
-  scan<B>(fn: ScanFunction<A, B>, init: B): Behavior<Behavior<B>> {
+  scan<B>(fn: (a: A, b: B) => B, init: B): Behavior<Behavior<B>> {
     return scan(fn, init, this);
   }
 }
@@ -64,7 +58,7 @@ export class SinkStream<A> extends Stream<A> {
 }
 
 class MapStream<A, B> extends Stream<B> {
-  constructor(private fn: MapFunction<A, B>) {
+  constructor(private fn: (a: A) => B) {
     super();
   }
   push(a: A): void {
@@ -80,7 +74,7 @@ class MapToStream<A> extends Stream<A> {
 }
 
 class FilterStream<A> extends Stream<A> {
-  constructor(private fn: FilterFunction<A>) {
+  constructor(private fn: (a: A) => boolean) {
     super();
   }
   push(a: A): void {
@@ -101,7 +95,7 @@ export function filter<A>(fn: (a: A) => boolean, stream: Stream<A>): Stream<A> {
 }
 
 class ScanStream<A, B> extends Stream<B> {
-  constructor(private fn: ScanFunction<A, B>, private last: B, source: Stream<A>) {
+  constructor(private fn: (a: A, b: B) => B, private last: B, source: Stream<A>) {
     super();
     source.addListener(this);
   }
@@ -117,7 +111,7 @@ class ScanStream<A, B> extends Stream<B> {
  * of the behaviour and the value of the occurence, the returned value
  * becomes the next value of the behavior.
  */
-export function scanS<A, B>(fn: ScanFunction<A, B>, startingValue: B, stream: Stream<A>): Behavior<Stream<B>> {
+export function scanS<A, B>(fn: (a: A, b: B) => B, startingValue: B, stream: Stream<A>): Behavior<Stream<B>> {
   return fromFunction(() => new ScanStream(fn, startingValue, stream));
 }
 
@@ -204,7 +198,7 @@ export function empty<A>(): Stream<A> {
   return new SinkStream<A>();
 }
 
-export function subscribe<A>(fn: SubscribeFunction<A>, stream: Stream<A>): void {
+export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
   stream.subscribe(fn);
 }
 
@@ -216,7 +210,7 @@ export function merge<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)> {
   return a.merge(b);
 }
 
-export function map<A, B>(fn: MapFunction<A, B> , stream: Stream<A>): Stream<B> {
+export function map<A, B>(fn: (a: A) => B , stream: Stream<A>): Stream<B> {
   return stream.map(fn);
 }
 

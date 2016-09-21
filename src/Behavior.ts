@@ -1,10 +1,6 @@
 /** @module hareactive/behavior */
 
-import {
-  MapFunction,
-  SubscribeFunction,
-  Consumer, Reactive
-} from "./frp-common";
+import {Consumer, Reactive} from "./frp-common";
 
 import {Future, BehaviorFuture} from "./Future";
 import * as F from "./Future";
@@ -27,7 +23,7 @@ export abstract class Behavior<A> extends Reactive<A> {
 
   abstract pull(): A;
 
-  map<B>(fn: MapFunction<A, B>): Behavior<B> {
+  map<B>(fn: (a: A) => B): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
     this.addListener(newB);
     return newB;
@@ -70,7 +66,7 @@ class ConstantBehavior<A> extends Behavior<A> {
 class MapBehavior<A, B> extends Behavior<B> {
   constructor(
     private parent: Behavior<any>,
-    private fn: MapFunction<A, B>
+    private fn: (a: A) => B
   ) {
     super();
     this.pushing = parent.pushing;
@@ -95,7 +91,7 @@ class MapBehavior<A, B> extends Behavior<B> {
  * time the value of `b` is `bVal` then the value of the returned
  * behavior is `fn(bVal)`.
  */
-export function map<A, B>(fn: MapFunction<A, B> , b: Behavior<A>): Behavior<B> {
+export function map<A, B>(fn: (a: A) => B , b: Behavior<A>): Behavior<B> {
   return b.map(fn);
 }
 
@@ -430,7 +426,7 @@ export function sink<A>(initialValue: A): Behavior<A> {
  * Subscribe to a behavior in order to run imperative actions when the
  * value in the behavior changes.
  */
-export function subscribe<A>(fn: SubscribeFunction<A>, b: Behavior<A>): void {
+export function subscribe<A>(fn: (a: A) => void, b: Behavior<A>): void {
   b.subscribe(fn);
 }
 
