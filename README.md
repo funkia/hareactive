@@ -1,5 +1,4 @@
 <img align="right" src="https://avatars0.githubusercontent.com/u/21360882?v=3&s=200">
-[![Build Status](https://travis-ci.org/Funkia/hareactive.svg?branch=master)](https://travis-ci.org/Funkia/hareactive)
 
 # Hareactive
 
@@ -9,6 +8,9 @@ A pure FRP library for JavaScript with the following features/goals:
 * Support for continuous time
 * Splendid performance
 * Monad IO
+
+[![Build Status](https://travis-ci.org/Funkia/hareactive.svg?branch=master)](https://travis-ci.org/Funkia/hareactive)
+[![codecov](https://codecov.io/gh/Funkia/hareactive/branch/master/graph/badge.svg)](https://codecov.io/gh/Funkia/hareactive)
 
 # Contributing
 
