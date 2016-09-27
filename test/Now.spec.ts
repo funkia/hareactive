@@ -3,7 +3,6 @@ import {assert} from "chai";
 import {IO, withEffects, withEffectsP, fromPromise} from "jabz/io";
 import {Do, Monad} from "jabz/monad";
 
-
 import * as B from "../src/Behavior";
 import {Behavior, switcher, when} from "../src/Behavior";
 import * as S from "../src/Stream";

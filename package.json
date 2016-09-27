@@ -8,10 +8,12 @@
   },
   "scripts": {
     "postinstall": "./node_modules/.bin/typings install",
-    "build": "./node_modules/.bin/tsc",
-    "test": "./node_modules/.bin/ts-node -P ./test/tsconfig.json node_modules/.bin/_mocha test/**/*.spec.ts",
-    "prebench": "./node_modules/.bin/tsc",
-    "bench": "node benchmark"
+    "build": "tsc",
+    "prebench": "tsc",
+    "bench": "node benchmark",
+    "test": "ts-node -P ./test/tsconfig.json node_modules/.bin/_mocha test/**/*.spec.ts",
+    "test-browser": "",
+    "test-coverage": "tsc -P ./tsconfig-coverage.json && karma start karma-coverage.conf.js && remap-istanbul -i ./generated/chrome/coverage-final.json -t html -o ./coverage/chrome"
   },
   "repository": {
     "type": "git",
@@ -31,12 +33,23 @@
   },
   "devDependencies": {
     "benchmark": "^2.1.0",
+    "browserify": "^13.1.0",
     "chai": "^3.5.0",
+    "karma": "^1.3.0",
+    "karma-browserify": "^5.1.0",
+    "watchify": "^3.7.0",
+    "tsify": "^1.0.7",
+    "browserify-istanbul": "^2.0.0",
+    "karma-chrome-launcher": "^2.0.0",
+    "karma-mocha": "^1.1.1",
+    "karma-mocha-reporter": "^2.2.0",
+    "karma-source-map-support": "^1.2.0",
     "mocha": "^2.5.3",
     "most": "^0.19.7",
+    "remap-istanbul": "^0.6.4",
     "sinon": "^1.17.4",
     "ts-node": "^1.3.0",
-    "typescript": "^2.0.0",
+    "typescript": "^2.1.0-dev.20160925",
     "typings": "^1.0.4",
     "webpack": "^1.13.1"
   }
