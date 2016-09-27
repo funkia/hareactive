@@ -1,4 +1,5 @@
 <img align="right" src="https://avatars0.githubusercontent.com/u/21360882?v=3&s=200">
+[![Build Status](https://travis-ci.org/Funkia/hareactive.svg?branch=master)](https://travis-ci.org/Funkia/hareactive)
 
 # Hareactive
 
