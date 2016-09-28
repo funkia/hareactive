@@ -21,5 +21,5 @@ module.exports = function(config) {
     browsers: ['Chromium'],
     singleRun: false,
     concurrency: Infinity
-  })
-}
+  });
+};
