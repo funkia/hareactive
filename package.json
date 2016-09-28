@@ -7,7 +7,6 @@
     "test": "test"
   },
   "scripts": {
-    "postinstall": "./node_modules/.bin/typings install",
     "build": "tsc",
     "prebench": "tsc",
     "bench": "node benchmark",
@@ -33,6 +32,10 @@
     "jabz": "0.0.5"
   },
   "devDependencies": {
+    "@types/benchmark": "^1.0.30",
+    "@types/chai": "^3.4.34",
+    "@types/mocha": "^2.2.32",
+    "@types/sinon": "^1.16.31",
     "benchmark": "^2.1.0",
     "browserify": "^13.1.0",
     "browserify-istanbul": "^2.0.0",
@@ -52,7 +55,6 @@
     "ts-node": "^1.3.0",
     "tsify": "^1.0.7",
     "typescript": "^2.1.0-dev.20160925",
-    "typings": "^1.0.4",
     "watchify": "^3.7.0",
     "webpack": "^1.13.1"
   },
@@ -60,9 +62,6 @@
     "include": [
       "src/*.ts",
       "src/**/*.ts"
-    ],
-    "exclude": [
-      "typings"
     ],
     "extension": [
       ".ts"
