@@ -1,7 +1,6 @@
-///<reference path="./../typings/index.d.ts" />
 import {assert} from "chai";
 import {IO, withEffects, withEffectsP, fromPromise} from "jabz/io";
-import {Do, Monad} from "jabz/monad";
+import {go, Monad} from "jabz/monad";
 
 import * as B from "../src/Behavior";
 import {Behavior, switcher, when} from "../src/Behavior";
@@ -51,7 +50,7 @@ describe("Now", () => {
       function comp(n: number): Now<number> {
         return Now.of(n * 2);
       }
-      const prog = Do(function*(): Iterator<Now<any>> {
+      const prog = go(function*(): Iterator<Now<any>> {
         const e = yield async(fn());
         const e2 = yield plan(e.map(comp));
         return Now.of(e2);
@@ -93,14 +92,14 @@ describe("Now", () => {
       })();
     }
     function loop(n: number): Now<Behavior<number>> {
-      return Do(function*(): Iterator<Now<any>> {
+      return go(function*(): Iterator<Now<any>> {
         const e = yield async(getNextNr());
         const e1 = yield plan(e.map(loop));
         return Now.of(switcher(Behavior.of(n), e1));
       });
     }
     function main(): Now<Future<number>> {
-      return Do(function*(): Iterator<Now<any>> {
+      return go(function*(): Iterator<Now<any>> {
         const b: Behavior<number> = yield loop(0);
         const e = yield sample(when(b.map((n: number) => {
           return n === 3;

@@ -1,4 +1,3 @@
-///<reference path="./../typings/index.d.ts" />
 import * as S from "../src/Stream";
 import {Stream} from "../src/Stream";
 import * as B from "../src/Behavior";

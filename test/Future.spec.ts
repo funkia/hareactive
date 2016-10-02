@@ -1,5 +1,3 @@
-///<reference path="./../typings/index.d.ts" />
-
 import {assert} from "chai";
 
 import * as Future from "../src/Future";

@@ -1,4 +1,3 @@
-///<reference path="./../node_modules/@types/mocha/index.d.ts" />
 import {assert} from "chai";
 import {spy} from "sinon";
 

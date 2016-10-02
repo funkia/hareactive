@@ -29,7 +29,7 @@
   },
   "homepage": "https://github.com/paldepind/hareactive#readme",
   "dependencies": {
-    "jabz": "0.0.5"
+    "jabz": "0.0.7"
   },
   "devDependencies": {
     "@types/benchmark": "^1.0.30",
