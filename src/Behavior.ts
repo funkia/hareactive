@@ -12,26 +12,25 @@ import {Stream} from "./Stream";
  * Behavior<A> = (t: Time) => A`.
  */
 export abstract class Behavior<A> extends Reactive<A> {
-  last: A;
+  // Behaviors that a pushing caches their last value in `last`. For
+  // behaviors that pull `last` is unused.
   pushing: boolean;
+  last: A;
+  child: Behavior<any>;
+
+  abstract push(a: any): void;
+  abstract pull(): A;
 
   constructor() {
     super();
   }
-
-  abstract push(a: any): void;
-
-  abstract pull(): A;
-
   map<B>(fn: (a: A) => B): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
     this.addListener(newB);
     return newB;
   }
-
   of: <A>(v: A) => Behavior<A> = of;
   static of: <A>(v: A) => Behavior<A> = of;
-
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new ChainBehavior<A, B>(this, fn);
   }
@@ -49,6 +48,7 @@ export function at<B>(b: Behavior<B>): B {
   return b.pushing === true ? b.last : b.pull();
 }
 
+/** @private */
 class ConstantBehavior<A> extends Behavior<A> {
   constructor(public last: A) {
     super();
@@ -184,21 +184,40 @@ class ApBehavior<A, B> extends Behavior<B> {
   }
 }
 
+/**
+ * Apply a function valued behavior to a value behavior.
+ *
+ * @param fnB behavior of functions from `A` to `B`
+ * @param valB A behavior of `A`
+ * @returns Behavior of the function in `fnB` applied to the value in `valB`
+ */
+export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
+  const newB = new ApBehavior<A, B>(fnB, valB);
+  fnB.addListener(newB);
+  valB.addListener(newB);
+  return newB;
+}
+
 /** @private */
 class SinkBehavior<B> extends Behavior<B> {
   constructor(public last: B) {
     super();
     this.pushing = true;
   }
-
   push(v: B): void {
     this.last = v;
     this.child.push(v);
   }
-
   pull(): B {
     return this.last;
   }
+}
+
+/**
+ * Creates a behavior for imperative impure pushing.
+ */
+export function sink<A>(initialValue: A): Behavior<A> {
+  return new SinkBehavior<A>(initialValue);
 }
 
 /**
@@ -208,20 +227,18 @@ class SinkBehavior<B> extends Behavior<B> {
  */
 export class PlaceholderBehavior<B> extends Behavior<B> {
   private source: Behavior<B>;
+
   constructor() {
     super();
     this.pushing = false;
   }
-
   push(v: B): void {
     this.last = v;
     this.child.push(v);
   }
-
   pull(): B {
     return this.last;
   }
-
   replaceWith(b: Behavior<B>): void {
     this.source = b;
     b.addListener(this);
@@ -416,13 +433,6 @@ export function fromFunction<B>(fn: () => B): Behavior<B> {
 }
 
 /**
- * Creates a behavior for imperative impure pushing.
- */
-export function sink<A>(initialValue: A): Behavior<A> {
-  return new SinkBehavior<A>(initialValue);
-}
-
-/**
  * Subscribe to a behavior in order to run imperative actions when the
  * value in the behavior changes.
  */
@@ -435,20 +445,6 @@ export function subscribe<A>(fn: (a: A) => void, b: Behavior<A>): void {
  */
 export function publish<A>(a: A, b: Behavior<A>): void {
   b.push(a);
-}
-
-/**
- * Apply a function valued behavior to a value behavior.
- *
- * @param fnB behavior of functions from `A` to `B`
- * @param valB A behavior of `A`
- * @returns Behavior of the function in `fnB` applied to the value in `valB`
- */
-export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
-  const newB = new ApBehavior<A, B>(fnB, valB);
-  fnB.addListener(newB);
-  valB.addListener(newB);
-  return newB;
 }
 
 export function isBehavior(b: any): b is Behavior<any> {

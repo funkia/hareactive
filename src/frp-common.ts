@@ -24,19 +24,17 @@ export abstract class Reactive<A> implements Consumer<A> {
   child: Consumer<A>;
   nrOfListeners: number;
 
+  abstract push(a: any): void;
+
   constructor() {
     this.child = noopConsumer;
     this.nrOfListeners = 0;
   }
-
-  abstract push(a: any): void;
-
   subscribe(fn: (a: A) => void): Consumer<A> {
     const listener = {push: fn};
     this.addListener(listener);
     return listener;
   }
-
   addListener(c: Consumer<A>): void {
     const nr = ++this.nrOfListeners;
     if (nr === 1) {
@@ -47,7 +45,6 @@ export abstract class Reactive<A> implements Consumer<A> {
       (<MultiConsumer<A>>this.child).listeners.push(c);
     }
   }
-
   removeListener(listener: Consumer<any>): void {
     const nr = --this.nrOfListeners;
     if (nr === 0) {

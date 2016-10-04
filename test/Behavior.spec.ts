@@ -1,3 +1,4 @@
+import "mocha";
 import {assert} from "chai";
 import {spy} from "sinon";
 
@@ -26,6 +27,16 @@ function sum(n: number, m: number): number {
 }
 
 const add = (a: number) => (b: number) => a + b;
+
+function mockNow(): [(t: number) => void, () => void] {
+  const orig = Date.now;
+  let time = 0;
+  Date.now = () => time;
+  return [
+    (t: number) => time = t,
+    () => Date.now = orig
+  ];
+}
 
 describe("Behavior", () => {
   it("pulls constant function", () => {
@@ -412,13 +423,3 @@ describe("Behavior and Stream", () => {
     });
   });
 });
-
-function mockNow(): [(t: number) => void, () => void] {
-  const orig = Date.now;
-  let time = 0;
-  Date.now = () => time;
-  return [
-    (t: number) => time = t,
-    () => Date.now = orig
-  ];
-}
