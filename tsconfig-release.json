@@ -3,15 +3,17 @@
     "target": "es5",
     "module": "commonjs",
     "declaration": true,
-    "outDir": "./generated",
-    "rootDir": "./",
+    "outDir": "./dist",
+    "rootDir": "./src",
     "noImplicitAny": true,
     "sourceMap": true,
     "lib": ["es5", "es2015.core", "es2015.promise", "es2015.iterable"]
   },
+  "files": [
+    "node_modules/@types/mocha/index.d.ts"
+  ],
   "include": [
-    "src/**/*.ts",
-    "test/**/*.ts"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules"

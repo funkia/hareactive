@@ -8,3 +8,5 @@ typings
 .#*
 dist/
 benchmark/hareactive-old
+.nyc_output/
+coverage/

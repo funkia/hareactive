@@ -1,20 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es6",
     "module": "commonjs",
-    "declaration": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
     "noImplicitAny": true,
-    "sourceMap": true,
-    "lib": ["es5", "es2015.core", "es2015.promise", "es2015.iterable"]
+    "sourceMap": true
   },
-  "files": [
-    "node_modules/@types/mocha/index.d.ts"
-  ],
-  "include": [
-    "src/**/*.ts"
-  ],
   "exclude": [
     "node_modules"
   ]
