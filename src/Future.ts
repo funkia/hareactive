@@ -1,4 +1,4 @@
-import {Consumer} from "./frp-common";
+import {Consumer, Observer} from "./frp-common";
 import {Behavior} from "./Behavior";
 
 /**
@@ -174,10 +174,17 @@ export function fromPromise<A>(p: Promise<A>): Future<A> {
  * impure and should not be done direcly.
  * @private
  */
-export class BehaviorFuture<A> extends Future<A> {
+export class BehaviorFuture<A> extends Future<A> implements Observer<A> {
   constructor(private b: Behavior<A>) {
     super();
     b.addListener(this);
+  }
+  endPulling(): void {
+    throw new Error("Behavior future should never switch to pushing");
+  }
+  beginPulling(): void {
+    this.b.removeListener(this);
+    this.resolve(this.b.pull());
   }
   push(a: A): void {
     this.b.removeListener(this);

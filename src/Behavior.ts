@@ -1,28 +1,53 @@
 /** @module hareactive/behavior */
 
-import {Consumer, Reactive} from "./frp-common";
+import {
+  Consumer, Reactive, Observer, MultiObserver, noopObserver
+} from "./frp-common";
 
 import {Future, BehaviorFuture} from "./Future";
 import * as F from "./Future";
 import {Stream} from "./Stream";
+
+class IncompleteObserver<A> implements Observer<A> {
+  beginPulling(): void {
+    throw new Error("beginPulling not implemented");
+  }
+  endPulling(): void {
+    throw new Error("beginPushing not implemented");
+  }
+  push(a: A): void {
+    throw new Error("push not implemented");
+  }
+}
+
+class OnlyPushObserver<A> implements Observer<A> {
+  constructor(private cb: (a: A) => void) {};
+  beginPulling(): void {}
+  endPulling(): void {}
+  push(a: A): void {
+    this.cb(a);
+  }
+}
 
 /**
  * A behavior is a value that changes over time. Conceptually it can
  * be though of as a function from time to a value. I.e. `type
  * Behavior<A> = (t: Time) => A`.
  */
-export abstract class Behavior<A> extends Reactive<A> {
+export abstract class Behavior<A> implements Observer<A> {
   // Behaviors that a pushing caches their last value in `last`. For
   // behaviors that pull `last` is unused.
   pushing: boolean;
   last: A;
-  child: Behavior<any>;
+  nrOfListeners: number;
+  child: Observer<any>;
 
   abstract push(a: any): void;
   abstract pull(): A;
 
   constructor() {
-    super();
+    this.child = noopObserver;
+    this.nrOfListeners = 0;
   }
   map<B>(fn: (a: A) => B): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
@@ -33,6 +58,50 @@ export abstract class Behavior<A> extends Reactive<A> {
   static of: <A>(v: A) => Behavior<A> = of;
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new ChainBehavior<A, B>(this, fn);
+  }
+  endPulling(): void {
+    this.pushing = true;
+    this.child.endPulling();
+  }
+  beginPulling(): void {
+    this.pushing = false;
+    this.child.beginPulling();
+  }
+  subscribe(cb: (a: A) => void): Observer<A> {
+    const listener = new OnlyPushObserver(cb);
+    this.addListener(listener);
+    return listener;
+  }
+  addListener(c: Observer<A>): void {
+    const nr = ++this.nrOfListeners;
+    if (nr === 1) {
+      this.child = c;
+    } else if (nr === 2) {
+      this.child = new MultiObserver(this.child, c);
+    } else {
+      (<MultiObserver<A>>this.child).listeners.push(c);
+    }
+  }
+  removeListener(listener: Observer<any>): void {
+    const nr = --this.nrOfListeners;
+    if (nr === 0) {
+      this.child = noopObserver;
+    } else if (nr === 1) {
+      const l = (<MultiObserver<A>>this.child).listeners;
+      this.child = l[l[0] === listener ? 1 : 0];
+    } else {
+      const l = (<MultiObserver<A>>this.child).listeners;
+      // The indexOf here is O(n), where n is the number of listeners,
+      // if using a linked list it should be possible to perform the
+      // unsubscribe operation in constant time.
+      const idx = l.indexOf(listener);
+      if (idx !== -1) {
+        if (idx !== l.length - 1) {
+          l[idx] = l[l.length - 1];
+        }
+        l.length--; // remove the last element of the list
+      }
+    }
   }
 }
 
@@ -70,17 +139,14 @@ class MapBehavior<A, B> extends Behavior<B> {
   ) {
     super();
     this.pushing = parent.pushing;
-    if (parent.pushing) {
+    if (this.pushing === true) {
       this.last = fn(at(parent));
     }
   }
-
-  push(a: any): void {
-    this.pushing = true;
+  push(a: A): void {
     this.last = this.fn(a);
     this.child.push(this.last);
   }
-
   pull(): B {
     return this.fn(at(this.parent));
   }
@@ -96,16 +162,20 @@ export function map<A, B>(fn: (a: A) => B , b: Behavior<A>): Behavior<B> {
 }
 
 /** @private */
-class ChainOuter<A> implements Consumer<A> {
-  constructor(private chainB: ChainBehavior<A, any>) {};
-  push(a: A): void { this.chainB.pushOuter(a); }
+class ChainOuter<A> extends IncompleteObserver<A> {
+  constructor(private chainB: ChainBehavior<A, any>) {
+    super();
+  };
+  push(a: A): void {
+    this.chainB.pushOuter(a);
+  }
 }
 
 /** @private */
 class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
-  private outerConsumer: Consumer<A>;
+  private outerConsumer: Observer<A>;
   // private innerConsumer: Consumer<B>;
   constructor(
     private outer: Behavior<A>,
@@ -333,10 +403,13 @@ export function snapshot<A>(
 
 /** @private */
 class SwitcherBehavior<A> extends Behavior<A> {
-  constructor(private behavior: Behavior<A>, next: Future<Behavior<A>>) {
+  constructor(private b: Behavior<A>, next: Future<Behavior<A>>) {
     super();
-    this.last = at(behavior);
-    behavior.addListener(this);
+    this.pushing = b.pushing;
+    if (this.pushing === true) {
+      this.last = at(b);
+    }
+    b.addListener(this);
     // FIXME: Using `bind` is hardly optimal for performance.
     next.subscribe(this.doSwitch.bind(this));
   }
@@ -345,12 +418,20 @@ class SwitcherBehavior<A> extends Behavior<A> {
     this.child.push(val);
   }
   pull(): A {
-    return this.last;
+    return at(this.b);
   }
-  private doSwitch(newBehavior: Behavior<A>): void {
-    this.behavior.removeListener(this);
-    newBehavior.addListener(this);
-    this.push(at(newBehavior));
+  private doSwitch(newB: Behavior<A>): void {
+    this.b.removeListener(this);
+    this.b = newB;
+    newB.addListener(this);
+    if (newB.pushing === true) {
+      if (this.pushing === false) {
+        this.endPulling();
+      }
+      this.push(at(newB));
+    } else if (this.pushing === true) {
+      this.beginPulling();
+    }
   }
 }
 
@@ -438,6 +519,44 @@ export function fromFunction<B>(fn: () => B): Behavior<B> {
  */
 export function subscribe<A>(fn: (a: A) => void, b: Behavior<A>): void {
   b.subscribe(fn);
+}
+
+class CbObserver<A> implements Observer<A> {
+  constructor(
+    private _push: (a: A) => void,
+    private _beginPulling: () => void,
+    private _endPulling: () => void,
+    private source: Behavior<A>
+  ) {
+    source.addListener(this);
+    if (source.pushing === false) {
+      _beginPulling();
+    } else {
+      _push(source.last);
+    }
+  }
+  push(a: A): void {
+    this._push(a);
+  }
+  beginPulling(): void {
+    this._beginPulling();
+  }
+  endPulling(): void {
+    this._endPulling();
+  }
+}
+
+/**
+ * Observe a behavior for the purpose of executing imperative actions
+ * based on the value of the behavior.
+ */
+export function observe<A>(
+  push: (a: A) => void,
+  beginPulling: () => void,
+  endPulling: () => void,
+  b: Behavior<A>
+): CbObserver<A> {
+  return new CbObserver(push, beginPulling, endPulling, b);
 }
 
 /**

@@ -1,6 +1,6 @@
 /** @module hareactive/stream */
 
-import {Consumer, Reactive} from "./frp-common";
+import {Consumer, Reactive, Observer} from "./frp-common";
 
 import {Behavior, at, scan, fromFunction} from "./Behavior";
 
@@ -153,14 +153,22 @@ export function snapshotWith<A, B, C>(
 }
 
 /** @private */
-class SwitchOuter<A> implements Consumer<Stream<A>> {
+class SwitchOuter<A> implements Observer<Stream<A>> {
   constructor(private s: SwitchBehaviorStream<A>) {};
-  push(a: Stream<A>): void { this.s.doSwitch(a); }
+  beginPulling(): void {
+    throw new Error("not implemented");
+  }
+  endPulling(): void {
+    throw new Error("not implemented");
+  }
+  push(a: Stream<A>): void {
+    this.s.doSwitch(a);
+  }
 }
 
 class SwitchBehaviorStream<A> extends Stream<A> {
   private currentSource: Stream<A>;
-  private outerConsumer: Consumer<Stream<A>>;
+  private outerConsumer: Observer<Stream<A>>;
   constructor(private b: Behavior<Stream<A>>) {
     super();
     this.outerConsumer = new SwitchOuter(this);

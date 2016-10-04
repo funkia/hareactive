@@ -20,11 +20,9 @@ export class MultiConsumer<A> implements Consumer<A> {
   }
 }
 
-export abstract class Reactive<A> implements Consumer<A> {
+export abstract class Reactive<A> {
   child: Consumer<A>;
   nrOfListeners: number;
-
-  abstract push(a: any): void;
 
   constructor() {
     this.child = noopConsumer;
@@ -67,3 +65,42 @@ export abstract class Reactive<A> implements Consumer<A> {
     }
   }
 }
+
+/**
+ * Things capable of observing behaviors
+ */
+export interface Observer<A> {
+  beginPulling(): void;
+  endPulling(): void;
+  push(a: A): void;
+}
+
+export class MultiObserver<A> implements Observer<A> {
+  listeners: Observer<A>[];
+  constructor(c1: Observer<A>, c2: Observer<A>) {
+    this.listeners = [c1, c2];
+  }
+  beginPulling(): void {
+    for (let i = 0; i < this.listeners.length; ++i) {
+      this.listeners[i].beginPulling();
+    }
+  }
+  endPulling(): void {
+    for (let i = 0; i < this.listeners.length; ++i) {
+      this.listeners[i].endPulling();
+    }
+  }
+  push(a: A): void {
+    for (let i = 0; i < this.listeners.length; ++i) {
+      this.listeners[i].push(a);
+    }
+  }
+}
+
+class NoopObserver<A> implements Observer<A> {
+  beginPulling(): void {}
+  endPulling(): void {}
+  push(a: A): void {}
+}
+
+export const noopObserver = new NoopObserver();

@@ -6,7 +6,7 @@ import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
 import {
-  Behavior, at, switcher, scan, timeFrom
+  Behavior, at, switcher, scan, timeFrom, observe
 } from "../src/Behavior";
 import {switchStream} from "../src/Stream";
 
@@ -358,6 +358,40 @@ describe("Behavior and Future", () => {
       assert.strictEqual(at(switching), 9);
       b2.push(10);
       assert.strictEqual(at(switching), 10);
+    });
+    it("works when initial behavior is pulling", () => {
+      let x = 0;
+      const b1 = B.fromFunction(() => x);
+      const futureSink = F.sink<Behavior<number>>();
+      const switching = switcher(b1, futureSink);
+      assert.strictEqual(at(switching), 0);
+      x = 1;
+      assert.strictEqual(at(switching), 1);
+    });
+    it("changes from pull to push", () => {
+      let beginPull = false;
+      let endPull = false;
+      let pushed: number[] = [];
+      let x = 0;
+      const b1 = B.fromFunction(() => x);
+      const b2 = B.sink(2);
+      const futureSink = F.sink<Behavior<number>>();
+      const switching = switcher(b1, futureSink);
+      observe(
+        (n: number) => pushed.push(n),
+        () => beginPull = true,
+        () => endPull = true,
+        switching
+      );
+      assert.strictEqual(beginPull, true);
+      assert.strictEqual(at(switching), 0);
+      x = 1;
+      assert.strictEqual(at(switching), 1);
+      assert.strictEqual(endPull, false);
+      futureSink.resolve(b2);
+      assert.strictEqual(endPull, true);
+      b2.push(3);
+      assert.deepEqual(pushed, [2, 3]);
     });
   });
 });
