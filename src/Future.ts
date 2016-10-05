@@ -8,7 +8,7 @@ import {Behavior} from "./Behavior";
  * promise.
  */
 export abstract class Future<A> implements Consumer<any> {
-  // Flag indicating wether or not this future has occured.
+  // Flag indicating whether or not this future has occured.
   occured: boolean;
   // The value of the future. Often `undefined` until occurence.
   value: A;
@@ -26,7 +26,7 @@ export abstract class Future<A> implements Consumer<any> {
     }
   }
   subscribe(f: (a: A) => void): void {
-    new Subscribtion(f, this);
+    new Subscription(f, this);
   }
   // `push` is called by the parent of a future once it resolves with
   // a value.
@@ -39,7 +39,7 @@ export abstract class Future<A> implements Consumer<any> {
       listeners[i].push(val);
     }
   }
-  // A future is a functor, when the future occurs we can feed is't
+  // A future is a functor, when the future occurs we can feed its
   // result through the mapping function
   map<B>(f: (a: A) => B): Future<B> {
     return new MapFuture(f, this);
@@ -130,7 +130,7 @@ class ChainFuture<A, B> extends Future<B> {
   }
   push(val: any): void {
     if (this.parentOccurred === false) {
-      // The first future occured. We can now call `f` with it's value
+      // The first future occured. We can now call `f` with its value
       // and listen to the future it returns.
       this.parentOccurred = true;
       const newFuture = this.f(val);
@@ -141,7 +141,7 @@ class ChainFuture<A, B> extends Future<B> {
   }
 }
 
-// I Sink is a producer that one can imperatively resolve.
+// A Sink is a producer that one can imperatively resolve.
 class Sink<A> extends Future<A> {
   push(val: any): void {
     throw new Error("A sink should never be pushed to.");
@@ -152,8 +152,8 @@ export function sink<A>(): Future<A> {
   return new Sink<A>();
 }
 
-// A subscribtion is a consumer that performs a side
-class Subscribtion<A> implements Consumer<A> {
+// A subscription is a consumer that performs a side-effect
+class Subscription<A> implements Consumer<A> {
   constructor(private f: (a: A) => void, private parent: Future<A>) {
     parent.listen(this);
   }
@@ -170,7 +170,7 @@ export function fromPromise<A>(p: Promise<A>): Future<A> {
 
 /**
  * Create a future from a pushing behavior. The future occurs when the
- * behavior pushes it's next value. Constructing a BehaviorFuture is
+ * behavior pushes its next value. Constructing a BehaviorFuture is
  * impure and should not be done direcly.
  * @private
  */
