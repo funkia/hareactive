@@ -588,6 +588,14 @@ class TimeFromBehavior extends Behavior<Time> {
 }
 
 /**
+ * A behavior whose value is the number of milliseconds elapsed win
+ * UNIX epoch. I.e. its current value is equal to the value got by
+ * calling `Date.now`.
+ */
+export const time: Behavior<Time>
+  = fromFunction(Date.now);
+
+/**
  * A behavior giving access to continous time. When sampled the outer
  * behavior gives a behavior with values that contain the difference
  * between the current sample time and the time at which the outer

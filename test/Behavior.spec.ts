@@ -6,7 +6,7 @@ import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
 import {
-  Behavior, at, switcher, scan, timeFrom, observe
+  Behavior, at, switcher, scan, timeFrom, observe, time
 } from "../src/Behavior";
 import {switchStream} from "../src/Stream";
 
@@ -454,6 +454,22 @@ describe("Behavior and Stream", () => {
       setTime(7);
       assert.strictEqual(at(time), 4);
       restore();
+    });
+    it("gives time since UNIX epoch", () => {
+      let beginPull = false;
+      let endPull = false;
+      let pushed: number[] = [];
+      observe(
+        (n: number) => pushed.push(n),
+        () => beginPull = true,
+        () => endPull = true,
+        time
+      );
+      assert.strictEqual(beginPull, true);
+      const t = at(time);
+      const now = Date.now();
+      assert(now - 2 <= t && t <= now);
+      assert.strictEqual(endPull, false);
     });
   });
 });
