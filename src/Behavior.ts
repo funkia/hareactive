@@ -307,14 +307,17 @@ export class PlaceholderBehavior<B> extends Behavior<B> {
     this.child.push(v);
   }
   pull(): B {
-    return this.last;
+    return this.source.pull();
   }
   replaceWith(b: Behavior<B>): void {
     this.source = b;
     b.addListener(this);
     this.pushing = b.pushing;
     if (b.pushing === true) {
+      this.pushing = false;
       this.push(at(b));
+    } else {
+      this.beginPulling();
     }
   }
 }
@@ -521,7 +524,7 @@ export function subscribe<A>(fn: (a: A) => void, b: Behavior<A>): void {
   b.subscribe(fn);
 }
 
-class CbObserver<A> implements Observer<A> {
+export class CbObserver<A> implements Observer<A> {
   constructor(
     private _push: (a: A) => void,
     private _beginPulling: () => void,

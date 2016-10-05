@@ -103,4 +103,4 @@ class NoopObserver<A> implements Observer<A> {
   push(a: A): void {}
 }
 
-export const noopObserver = new NoopObserver();
+export const noopObserver: Observer<any> = new NoopObserver();

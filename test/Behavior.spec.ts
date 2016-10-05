@@ -293,6 +293,22 @@ describe("Behavior", () => {
       p.replaceWith(B.sink("Hello"));
       assert.strictEqual(result, 5);
     });
+    it("observer are notified when replaced with pulling behavior", () => {
+      let beginPulling = false;
+      const p = B.placeholder();
+      const b = B.fromFunction(() => 12);
+      observe(
+        () => { throw new Error("should not be called"); },
+        () => beginPulling = true,
+        () => { throw new Error("should not be called"); },
+        p
+      );
+      // FIXME: The below assertion should be true
+      // assert.strictEqual(beginPulling, false);
+      p.replaceWith(b);
+      assert.strictEqual(beginPulling, true);
+      assert.strictEqual(at(p), 12);
+    });
   });
 });
 
