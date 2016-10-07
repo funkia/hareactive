@@ -7,7 +7,9 @@ import {Behavior, switcher, when} from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
 import {Future} from "../src/Future";
-import {Now, runNow, async, sample, plan} from "../src/Now";
+import {
+  Now, runNow, async, sample, plan, performStream
+} from "../src/Now";
 
 // A reference that can be mutated
 type Ref<A> = {ref: A};
@@ -117,5 +119,30 @@ describe("Now", () => {
       });
     });
     return runNow(main());
+  });
+  describe("performStream", () => {
+    it("runs io actions", (done) => {
+      let actions: number[] = [];
+      let results: number[] = [];
+      const impure = withEffects<number>((n: number) => {
+        actions.push(n);
+        return n + 2;
+      });
+      const s = S.empty();
+      const mappedS = s.map(impure);
+      performStream(mappedS).run().subscribe((n) => results.push(n));
+      s.push(1);
+      setTimeout(() => {
+        s.push(2);
+        setTimeout(() => {
+          s.push(3);
+          setTimeout(() => {
+            assert.deepEqual(actions, [1, 2, 3]);
+            assert.deepEqual(results, [3, 4, 5]);
+            done();
+          });
+        });
+      });
+    });
   });
 });

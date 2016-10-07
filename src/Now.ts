@@ -3,6 +3,7 @@ import {Monad} from "jabz/monad";
 
 import {Future, fromPromise, sink} from "./Future";
 import {Behavior, at} from "./Behavior";
+import {Stream} from "./Stream";
 
 /**
  * The Now monad represents a computation that takes place in a given
@@ -99,6 +100,34 @@ class SampleNow<A> extends Now<A> {
  */
 export function sample<A>(b: Behavior<A>): Now<A> {
   return new SampleNow(b);
+}
+
+class PerformIOStream<A> extends Stream<A> {
+  constructor(s: Stream<IO<A>>) {
+    super();
+    s.addListener(this);
+  }
+  push(io: IO<A>): void {
+    runIO(io).then((a: A) => this.child.push(a));
+  }
+}
+
+class PerformStreamNow<A> extends Now<Stream<A>> {
+  constructor(private s: Stream<IO<A>>) {
+    super();
+  }
+  run(): Stream<A> {
+    return new PerformIOStream(this.s);
+  }
+}
+
+/**
+ * Takes a stream of `IO` actions and return a stream in a now
+ * computation. When run the now computation executes each `IO` action
+ * and delivers their result into the created stream.
+ */
+export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
+  return new PerformStreamNow(s);
 }
 
 function run<A>(now: Now<A>): A {
