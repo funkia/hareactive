@@ -6,7 +6,7 @@ import {Behavior, at} from "./Behavior";
 
 /**
  * The Now monad represents a computation that takes place in a given
- * momemt and where the moment will always be now when the computation
+ * moment and where the moment will always be now when the computation
  * is run.
  */
 export abstract class Now<A> implements Monad<A> {
@@ -94,7 +94,7 @@ class SampleNow<A> extends Now<A> {
 
 /**
  * Returns the current value of a behavior in the Now monad. This is
- * possible because computations in the Now monad has an associated
+ * possible because computations in the Now monad have an associated
  * point in time.
  */
 export function sample<A>(b: Behavior<A>): Now<A> {
