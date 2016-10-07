@@ -4,10 +4,14 @@
 
 A pure FRP library for JavaScript with the following features/goals:
 
-* Precise semantics similar to classic FRP
-* Support for continuous time
+* Precise semantics similar to classic FRP (the semantics is WIP
+  see [here](./semantics.md))
+* Support for continuous time for performant and expressive
+  declaration of time-dependent behavior and motions.
 * Splendid performance
-* Monad IO
+* Monadic IO integrated with FRP for expressing side-effects in an
+  expressive and tetsable way that utilizes FRP for powerful handling
+  of asynchronous operations.
 
 [![Build Status](https://travis-ci.org/Funkia/hareactive.svg?branch=master)](https://travis-ci.org/Funkia/hareactive)
 [![codecov](https://codecov.io/gh/Funkia/hareactive/branch/master/graph/badge.svg)](https://codecov.io/gh/Funkia/hareactive)
