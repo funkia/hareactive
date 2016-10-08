@@ -177,7 +177,7 @@ describe("Stream", () => {
       let n = 0;
       const b: Behavior<number> = B.fromFunction(() => n);
       const e: Stream<number> = S.empty<number>();
-      const shot = S.snapshot<number, number>(b, e);
+      const shot = S.snapshot<number>(b, e);
       const callback = spy();
       S.subscribe(callback, shot);
       S.publish(0, e);
