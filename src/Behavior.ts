@@ -300,7 +300,9 @@ export class PlaceholderBehavior<B> extends Behavior<B> {
 
   constructor() {
     super();
-    this.pushing = false;
+    // `undefined` indicates that this behavior is neither pushing nor
+    // pulling
+    this.pushing = undefined;
   }
   push(v: B): void {
     this.last = v;
@@ -532,9 +534,11 @@ export class CbObserver<A> implements Observer<A> {
     private source: Behavior<A>
   ) {
     source.addListener(this);
+    // We explicitly checks for both `true` and `false` because
+    // placeholder behavior is `undefined`
     if (source.pushing === false) {
       _beginPulling();
-    } else {
+    } else if (source.pushing === true) {
       _push(source.last);
     }
   }

@@ -303,8 +303,7 @@ describe("Behavior", () => {
         () => { throw new Error("should not be called"); },
         p
       );
-      // FIXME: The below assertion should be true
-      // assert.strictEqual(beginPulling, false);
+      assert.strictEqual(beginPulling, false);
       p.replaceWith(b);
       assert.strictEqual(beginPulling, true);
       assert.strictEqual(at(p), 12);
