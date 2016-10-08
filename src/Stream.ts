@@ -14,37 +14,32 @@ export abstract class Stream<A> extends Reactive<A> {
     super();
   }
 
-  abstract push(a: any, changed?: any): void;
+  abstract push(a: any): void;
 
   map<B>(fn: (a: A) => B): Stream<B> {
     const s = new MapStream(fn);
     this.addListener(s);
     return s;
   }
-
   mapTo<B>(val: B): Stream<B> {
     const s = new MapToStream(val);
     this.addListener(s);
     return s;
   }
-
   merge<B>(otherStream: Stream<B>): Stream<(A|B)> {
     const s = new SinkStream<(A|B)>();
     this.addListener(s);
     otherStream.addListener(s);
     return s;
   }
-
   filter(fn: (a: A) => boolean): Stream<A> {
     const s = new FilterStream<A>(fn);
     this.addListener(s);
     return s;
   }
-
   scanS<B>(fn: (a: A, b: B) => B, startingValue: B): Behavior<Stream<B>> {
     return fromFunction(() => new ScanStream(fn, startingValue, this));
   }
-
   scan<B>(fn: (a: A, b: B) => B, init: B): Behavior<Behavior<B>> {
     return scan(fn, init, this);
   }
@@ -64,6 +59,10 @@ class MapStream<A, B> extends Stream<B> {
   push(a: A): void {
     this.child.push(this.fn(a));
   }
+}
+
+export function map<A, B>(fn: (a: A) => B , stream: Stream<A>): Stream<B> {
+  return stream.map(fn);
 }
 
 class MapToStream<A> extends Stream<A> {
@@ -195,6 +194,7 @@ export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
 }
 
 export function mergeList<A>(ss: Stream<A>[]): Stream<A> {
+  // FIXME: More performant implementation with benchmark
   return ss.reduce((s1, s2) => s1.merge(s2), empty());
 }
 
@@ -215,10 +215,6 @@ export function publish<A>(a: A, stream: Stream<A>): void {
 
 export function merge<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)> {
   return a.merge(b);
-}
-
-export function map<A, B>(fn: (a: A) => B , stream: Stream<A>): Stream<B> {
-  return stream.map(fn);
 }
 
 export function isStream(obj: any): boolean {
