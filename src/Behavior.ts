@@ -275,8 +275,10 @@ class SinkBehavior<B> extends Behavior<B> {
     this.pushing = true;
   }
   push(v: B): void {
-    this.last = v;
-    this.child.push(v);
+    if (this.last !== v) {
+      this.last = v;
+      this.child.push(v);
+    }
   }
   pull(): B {
     return this.last;

@@ -193,6 +193,26 @@ export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
   return new SwitchBehaviorStream(b);
 }
 
+class ChangesStream<A> extends Stream<A> {
+  constructor(private b: Behavior<A>) {
+    super();
+    b.addListener(this);
+  }
+  push(a: A) {
+    this.child.push(a);
+  }
+  beginPulling(): void {
+    throw new Error("Cannot get changes from pulling behavior");
+  }
+  endPulling(): void {
+    throw new Error("Cannot get changes from pulling behavior");
+  }
+}
+
+export function changes<A>(b: Behavior<A>): Stream<A> {
+  return new ChangesStream(b);
+}
+
 export function mergeList<A>(ss: Stream<A>[]): Stream<A> {
   // FIXME: More performant implementation with benchmark
   return ss.reduce((s1, s2) => s1.merge(s2), empty());

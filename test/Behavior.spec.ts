@@ -8,7 +8,7 @@ import * as F from "../src/Future";
 import {
   Behavior, at, switcher, scan, timeFrom, observe, time
 } from "../src/Behavior";
-import {switchStream} from "../src/Stream";
+import {switchStream, changes} from "../src/Stream";
 
 function id<A>(v: A): A {
   return v;
@@ -485,6 +485,20 @@ describe("Behavior and Stream", () => {
       const now = Date.now();
       assert(now - 2 <= t && t <= now);
       assert.strictEqual(endPull, false);
+    });
+  });
+  describe("changes", () => {
+    it("gives changes from pushing behavior", () => {
+      const b = B.sink(0);
+      const s = changes(b);
+      const cb = spy();
+      S.subscribe(cb, s);
+      b.push(1);
+      b.push(2);
+      b.push(2);
+      b.push(2);
+      b.push(3);
+      assert.deepEqual(cb.args, [[1], [2], [3]]);
     });
   });
 });
