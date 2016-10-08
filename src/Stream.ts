@@ -115,17 +115,17 @@ export function scanS<A, B>(fn: (a: A, b: B) => B, startingValue: B, stream: Str
   return fromFunction(() => new ScanStream(fn, startingValue, stream));
 }
 
-class SnapshotStream<A, B> extends Stream<[A, B]> {
-  constructor(private behavior: Behavior<B>, stream: Stream<A>) {
+class SnapshotStream<B> extends Stream<B> {
+  constructor(private behavior: Behavior<B>, stream: Stream<any>) {
     super();
     stream.addListener(this);
   }
-  push(a: A): void {
-    this.child.push([a, at(this.behavior)]);
+  push(a: any): void {
+    this.child.push(at(this.behavior));
   }
 }
 
-export function snapshot<A, B>(behavior: Behavior<B>, stream: Stream<A>): Stream<[A, B]> {
+export function snapshot<B>(behavior: Behavior<B>, stream: Stream<any>): Stream<B> {
   return new SnapshotStream(behavior, stream);
 }
 
@@ -137,7 +137,6 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
   ) {
     super();
     stream.child = this;
-    // stream.eventListeners.push(this);
   }
   push(a: A): void {
     this.child.push(this.fn(a, at(this.behavior)));

@@ -188,7 +188,7 @@ describe("Stream", () => {
       S.publish(3, e);
       S.publish(4, e);
       assert.deepEqual(callback.args, [
-        [[0, 0]], [[1, 0]], [[2, 1]], [[3, 2]], [[4, 2]]
+        [0], [0], [1], [2], [2]
       ]);
     });
     it("it applies function in snapshotWith to pull based Behavior", () => {
