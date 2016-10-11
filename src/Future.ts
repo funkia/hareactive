@@ -183,8 +183,7 @@ export class BehaviorFuture<A> extends Future<A> implements Observer<A> {
     throw new Error("Behavior future should never switch to pushing");
   }
   beginPulling(): void {
-    this.b.removeListener(this);
-    this.resolve(this.b.pull());
+    throw new Error("Behavior future does not support pushing behavior");
   }
   push(a: A): void {
     this.b.removeListener(this);

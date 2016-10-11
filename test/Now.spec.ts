@@ -1,5 +1,6 @@
 import {assert} from "chai";
 import {IO, withEffects, withEffectsP, fromPromise} from "jabz/io";
+import {lift} from "jabz/applicative";
 import {go, Monad} from "jabz/monad";
 
 import * as B from "../src/Behavior";
@@ -67,7 +68,26 @@ describe("Now", () => {
       });
     });
   });
-  describe("chain", () => {
+  describe("functor", () => {
+    it("mapTo", () => {
+      assert.strictEqual(Now.of(12).mapTo(4).run(), 4);
+    });
+  });
+  describe("applicative", () => {
+    it("lifts over constant now", () => {
+      const n = Now.of(1);
+      assert.strictEqual(n.lift((n) => n * n, n.of(3)).run(), 9);
+      assert.strictEqual(
+        n.lift((n, m) => n + m, n.of(1), n.of(3)).run(),
+        4
+      );
+      assert.strictEqual(
+        n.lift((n, m, p) => n + m + p, n.of(1), n.of(3), n.of(5)).run(),
+        9
+      );
+    });
+  });
+  describe("monad", () => {
     it("executes several `async`s in succession", () => {
       const ref1 = createRef(1);
       const ref2 = createRef("Hello");
@@ -82,6 +102,9 @@ describe("Now", () => {
         assert.strictEqual(ref1.ref, 2);
         assert.strictEqual(ref2.ref, "World");
       });
+    });
+    it("can flatten pure nows", () => {
+      assert.strictEqual(Now.of(0).flatten(Now.of(Now.of(12))).run(), 12);
     });
   });
   it("handles recursively defined behavior", () => {
