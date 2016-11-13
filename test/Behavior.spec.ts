@@ -6,7 +6,7 @@ import * as B from "../src/Behavior";
 import * as S from "../src/Stream";
 import * as F from "../src/Future";
 import {
-  Behavior, at, switcher, scan, timeFrom, observe, time
+  Behavior, at, switcher, scan, timeFrom, observe, time, lift
 } from "../src/Behavior";
 import {switchStream, changes} from "../src/Stream";
 
@@ -220,6 +220,21 @@ describe("Behavior", () => {
       assert.equal(B.at(applied), 8);
       n = 8;
       assert.equal(B.at(applied), 16);
+    });
+  });
+  describe("lift", () => {
+    it("lifts function of three arguments", () => {
+      const b1 = B.sink(1);
+      const b2 = B.sink(1);
+      const b3 = B.sink(1);
+      const lifted = lift((a, b, c) => a * b + c, b1, b2, b3);
+      assert.strictEqual(at(lifted), 2);
+      b2.push(2);
+      assert.strictEqual(at(lifted), 3);
+      b1.push(3);
+      assert.strictEqual(at(lifted), 7);
+      b3.push(3);
+      assert.strictEqual(at(lifted), 9);
     });
   });
   describe("chain", () => {

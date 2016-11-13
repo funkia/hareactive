@@ -56,6 +56,29 @@ export abstract class Behavior<A> implements Observer<A> {
   }
   of: <A>(v: A) => Behavior<A> = of;
   static of: <A>(v: A) => Behavior<A> = of;
+  ap<B>(f: Behavior<(a: A) => B>): Behavior<B> {
+    const newB = new ApBehavior<A, B>(f, this);
+    f.addListener(newB);
+    this.addListener(newB);
+    return newB;
+  }
+  lift<T1, R>(f: (t: T1) => R, m: Behavior<T1>): Behavior<R>;
+  lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Behavior<T1>, m2: Behavior<T2>): Behavior<R>;
+  lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Behavior<T1>, m2: Behavior<T2>, m3: Behavior<T3>): Behavior<R>;
+  lift(/* arguments */): any {
+    // TODO: Experiment with faster specialized `lift` implementation
+    const f = arguments[0];
+    switch (arguments.length - 1) {
+    case 1:
+      return arguments[1].map(f);
+    case 2:
+      return arguments[2].ap(arguments[1].map((a: any) => (b: any) => f(a, b)));
+    case 3:
+      return arguments[3].ap(arguments[2].ap(arguments[1].map(
+        (a: any) => (b: any) => (c: any) => f(a, b, c)
+      )));
+    }
+  }
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new ChainBehavior<A, B>(this, fn);
   }
@@ -262,10 +285,7 @@ class ApBehavior<A, B> extends Behavior<B> {
  * @returns Behavior of the function in `fnB` applied to the value in `valB`
  */
 export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
-  const newB = new ApBehavior<A, B>(fnB, valB);
-  fnB.addListener(newB);
-  valB.addListener(newB);
-  return newB;
+  return valB.ap(fnB);
 }
 
 /** @private */
@@ -612,3 +632,10 @@ export const time: Behavior<Time>
  */
 export const timeFrom: Behavior<Behavior<Time>>
   = fromFunction(() => new TimeFromBehavior());
+
+export function lift<T1, R>(f: (t: T1) => R, m: Behavior<T1>): Behavior<R>;
+export function lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Behavior<T1>, m2: Behavior<T2>): Behavior<R>;
+export function lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Behavior<T1>, m2: Behavior<T2>, m3: Behavior<T3>): Behavior<R>;
+export function lift(/* arguments */): any {
+  return arguments[1].lift.apply(undefined, arguments);
+}
