@@ -1,7 +1,10 @@
 import {assert} from "chai";
-import {IO, withEffects, withEffectsP, fromPromise} from "jabz/io";
+
+import {IO, callP, withEffects, withEffectsP} from "jabz/io";
+import {map} from "jabz/functor";
 import {lift} from "jabz/applicative";
 import {go, Monad} from "jabz/monad";
+import {Either, right, fromEither} from "jabz/either";
 
 import * as B from "../src/Behavior";
 import {Behavior, switcher, when} from "../src/Behavior";
@@ -25,10 +28,12 @@ describe("Now", () => {
   describe("async", () => {
     it("works with runNow", () => {
       let resolve: (n: number) => void;
-      const promise = runNow(async(fromPromise(new Promise((res) => resolve = res))));
+      const promise = runNow(
+        async(callP((n: number) => new Promise((res) => resolve = res), 0))
+      );
       setTimeout(() => { resolve(12); });
-      return promise.then((result: number) => {
-        assert.strictEqual(result, 12);
+      return promise.then((result: Either<any, number>) => {
+        assert.deepEqual(result, right(12));
       });
     });
   });
@@ -42,10 +47,10 @@ describe("Now", () => {
     });
   });
   describe("plan", () => {
-    it("excutes plan asynchronously", () => {
+    it("executes plan asynchronously", () => {
       let resolve: (n: number) => void;
       let done = false;
-      const fn = withEffectsP(() => {
+      const fn = withEffectsP((n: number) => {
         return new Promise((res) => {
           resolve = res;
         });
@@ -54,8 +59,8 @@ describe("Now", () => {
         return Now.of(n * 2);
       }
       const prog = go(function*(): Iterator<Now<any>> {
-        const e = yield async(fn());
-        const e2 = yield plan(e.map(comp));
+        const e: Future<Either<any, number>> = yield async(fn(1));
+        const e2 = yield plan(e.map((r) => comp(fromEither(r))));
         return Now.of(e2);
       });
       setTimeout(() => {
@@ -76,13 +81,13 @@ describe("Now", () => {
   describe("applicative", () => {
     it("lifts over constant now", () => {
       const n = Now.of(1);
-      assert.strictEqual(n.lift((n) => n * n, n.of(3)).run(), 9);
+      assert.strictEqual(lift((n) => n * n, n.of(3)).run(), 9);
       assert.strictEqual(
-        n.lift((n, m) => n + m, n.of(1), n.of(3)).run(),
+        lift((n, m) => n + m, n.of(1), n.of(3)).run(),
         4
       );
       assert.strictEqual(
-        n.lift((n, m, p) => n + m + p, n.of(1), n.of(3), n.of(5)).run(),
+        lift((n, m, p) => n + m + p, n.of(1), n.of(3), n.of(5)).run(),
         9
       );
     });
@@ -104,21 +109,19 @@ describe("Now", () => {
       });
     });
     it("can flatten pure nows", () => {
-      assert.strictEqual(Now.of(0).flatten(Now.of(Now.of(12))).run(), 12);
+      assert.strictEqual(Now.of(Now.of(12)).flatten().run(), 12);
     });
   });
   it("handles recursively defined behavior", () => {
     let resolve: (n: number) => void;
-    function getNextNr(): IO<number> {
-      return withEffectsP(() => {
-        return new Promise((res) => {
-          resolve = res;
-        });
-      })();
-    }
+    const getNextNr = withEffectsP((n: number) => {
+      return new Promise((res) => {
+        resolve = res;
+      });
+    });
     function loop(n: number): Now<Behavior<number>> {
       return go(function*(): Iterator<Now<any>> {
-        const e = yield async(getNextNr());
+        const e = yield async(getNextNr(1));
         const e1 = yield plan(e.map(loop));
         return Now.of(switcher(Behavior.of(n), e1));
       });
@@ -144,10 +147,10 @@ describe("Now", () => {
     return runNow(main());
   });
   describe("performStream", () => {
-    it("runs io actions", (done) => {
+    it("runs io actions", (done: Function) => {
       let actions: number[] = [];
       let results: number[] = [];
-      const impure = withEffects<number>((n: number) => {
+      const impure = withEffects((n: number) => {
         actions.push(n);
         return n + 2;
       });

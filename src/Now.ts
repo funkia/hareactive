@@ -1,5 +1,5 @@
 import {IO, runIO} from "jabz/io";
-import {Monad} from "jabz/monad";
+import {Monad, monad} from "jabz/monad";
 
 import {Future, fromPromise, sink} from "./Future";
 import {Behavior, at} from "./Behavior";
@@ -10,6 +10,7 @@ import {Stream} from "./Stream";
  * moment and where the moment will always be now when the computation
  * is run.
  */
+@monad
 export abstract class Now<A> implements Monad<A> {
   // Impurely run the now computation
   abstract run(): A;
@@ -22,29 +23,14 @@ export abstract class Now<A> implements Monad<A> {
   chain<B>(f: (a: A) => Now<B>): Now<B> {
     return new ChainNow(this, f);
   }
-  flatten<B>(now: Now<Now<A>>): Now<A> {
-    return now.chain((n: Now<A>) => n);
-  }
-  map<B>(f: (a: A) => B): Now<B> {
-    return this.chain((a: A) => this.of(f(a)));
-  }
-  mapTo<B>(b: B): Now<B> {
-    return this.chain((_) => this.of(b));
-  }
-  lift<T1, R>(f: (t: T1) => R, m: Now<T1>): Now<R>;
-  lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Now<T1>, m2: Now<T2>): Now<R>;
-  lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Now<T1>, m2: Now<T2>, m3: Now<T3>): Now<R>;
-  lift(f: Function, ...ms: any[]): Now<any> {
-    const {of} = ms[0];
-    switch (f.length) {
-    case 1:
-      return ms[0].map(f);
-    case 2:
-      return ms[0].chain((a: any) => ms[1].chain((b: any) => of(f(a, b))));
-    case 3:
-      return ms[0].chain((a: any) => ms[1].chain((b: any) => ms[2].chain((c: any) => of(f(a, b, c)))));
-    }
-  }
+  static multi = false;
+  multi = false;
+  // Definitions below are inserted by Jabz
+  flatten: <B>() => Now<B>;
+  map: <B>(f: (a: A) => B) => Now<B>;
+  mapTo: <B>(b: B) => Now<B>;
+  ap: <B>(a: Now<(a: A) => B>) => Now<B>;
+  lift: (f: Function, ...ms: any[]) => Now<any>;
 }
 
 class OfNow<A> extends Now<A> {

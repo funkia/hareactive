@@ -1,5 +1,6 @@
 /** @module hareactive/behavior */
 
+import {Monad, monad} from "jabz/monad";
 import {
   Consumer, Reactive, Observer, MultiObserver, noopObserver
 } from "./frp-common";
@@ -34,7 +35,8 @@ class OnlyPushObserver<A> implements Observer<A> {
  * be though of as a function from time to a value. I.e. `type
  * Behavior<A> = (t: Time) => A`.
  */
-export abstract class Behavior<A> implements Observer<A> {
+@monad
+export abstract class Behavior<A> implements Observer<A>, Monad<A> {
   // Behaviors that a pushing caches their last value in `last`. For
   // behaviors that pull `last` is unused.
   pushing: boolean;
@@ -54,8 +56,15 @@ export abstract class Behavior<A> implements Observer<A> {
     this.addListener(newB);
     return newB;
   }
-  of: <A>(v: A) => Behavior<A> = of;
-  static of: <A>(v: A) => Behavior<A> = of;
+  mapTo<A>(v: A): Behavior<A> {
+    return of(v);
+  }
+  of<A>(v: A): Behavior<A> {
+    return of(v);
+  }
+  static of<A>(v: A): Behavior<A> {
+    return of(v);
+  };
   ap<B>(f: Behavior<(a: A) => B>): Behavior<B> {
     const newB = new ApBehavior<A, B>(f, this);
     f.addListener(newB);
@@ -82,6 +91,7 @@ export abstract class Behavior<A> implements Observer<A> {
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new ChainBehavior<A, B>(this, fn);
   }
+  flatten: <B>() => Behavior<B>;
   endPulling(): void {
     this.pushing = true;
     this.child.endPulling();
@@ -126,6 +136,8 @@ export abstract class Behavior<A> implements Observer<A> {
       }
     }
   }
+  static multi = false;
+  multi = false;
 }
 
 export function of<B>(val: B): Behavior<B> {
