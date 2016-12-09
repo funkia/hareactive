@@ -1,7 +1,7 @@
 import {assert} from "chai";
 
-import * as Future from "../src/Future";
-import {sink, lift} from "../src/Future";
+import * as Future from "../src/future";
+import {sink, lift} from "../src/future";
 
 describe("Future", () => {
   describe("sink", () => {

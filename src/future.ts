@@ -1,5 +1,5 @@
 import {Consumer, Observer} from "./frp-common";
-import {Behavior} from "./Behavior";
+import {Behavior} from "./behavior";
 
 /**
  * A future is a thing that occurs at some point in time with a value.

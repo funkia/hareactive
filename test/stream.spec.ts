@@ -1,7 +1,7 @@
-import * as S from "../src/Stream";
-import {Stream} from "../src/Stream";
-import * as B from "../src/Behavior";
-import {Behavior, at} from "../src/Behavior";
+import * as S from "../src/stream";
+import {Stream} from "../src/stream";
+import * as B from "../src/behavior";
+import {Behavior, at} from "../src/behavior";
 import {assert} from "chai";
 import {spy} from "sinon";
 

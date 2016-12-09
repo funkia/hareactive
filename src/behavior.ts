@@ -5,9 +5,9 @@ import {
   Consumer, Reactive, Observer, MultiObserver, noopObserver
 } from "./frp-common";
 
-import {Future, BehaviorFuture} from "./Future";
-import * as F from "./Future";
-import {Stream} from "./Stream";
+import {Future, BehaviorFuture} from "./future";
+import * as F from "./future";
+import {Stream} from "./stream";
 
 class IncompleteObserver<A> implements Observer<A> {
   beginPulling(): void {
@@ -633,8 +633,7 @@ class TimeFromBehavior extends Behavior<Time> {
  * UNIX epoch. I.e. its current value is equal to the value got by
  * calling `Date.now`.
  */
-export const time: Behavior<Time>
-  = fromFunction(Date.now);
+export const time: Behavior<Time> = fromFunction(Date.now);
 
 /**
  * A behavior giving access to continous time. When sampled the outer

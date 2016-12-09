@@ -6,14 +6,14 @@ import {lift} from "jabz/applicative";
 import {go, Monad} from "jabz/monad";
 import {Either, right, fromEither} from "jabz/either";
 
-import * as B from "../src/Behavior";
-import {Behavior, switcher, when} from "../src/Behavior";
-import * as S from "../src/Stream";
-import * as F from "../src/Future";
-import {Future} from "../src/Future";
+import * as B from "../src/behavior";
+import {Behavior, switcher, when} from "../src/behavior";
+import * as S from "../src/stream";
+import * as F from "../src/future";
+import {Future} from "../src/future";
 import {
   Now, runNow, async, sample, plan, performStream
-} from "../src/Now";
+} from "../src/now";
 
 // A reference that can be mutated
 type Ref<A> = {ref: A};

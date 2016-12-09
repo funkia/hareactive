@@ -1,9 +1,9 @@
 import {IO, runIO} from "jabz/io";
 import {Monad, monad} from "jabz/monad";
 
-import {Future, fromPromise, sink} from "./Future";
-import {Behavior, at} from "./Behavior";
-import {Stream} from "./Stream";
+import {Future, fromPromise, sink} from "./future";
+import {Behavior, at} from "./behavior";
+import {Stream} from "./stream";
 
 /**
  * The Now monad represents a computation that takes place in a given

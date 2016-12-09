@@ -2,7 +2,7 @@
 
 import {Consumer, Reactive, Observer} from "./frp-common";
 
-import {Behavior, at, scan, fromFunction} from "./Behavior";
+import {Behavior, at, scan, fromFunction} from "./behavior";
 
 /**
  * A stream is a list of occurences over time. Each occurence happens

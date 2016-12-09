@@ -2,13 +2,13 @@ import "mocha";
 import {assert} from "chai";
 import {spy} from "sinon";
 
-import * as B from "../src/Behavior";
-import * as S from "../src/Stream";
-import * as F from "../src/Future";
+import * as B from "../src/behavior";
+import * as S from "../src/stream";
+import * as F from "../src/future";
 import {
   Behavior, at, switcher, scan, timeFrom, observe, time, lift
-} from "../src/Behavior";
-import {switchStream, changes} from "../src/Stream";
+} from "../src/behavior";
+import {switchStream, changes} from "../src/stream";
 
 function id<A>(v: A): A {
   return v;
