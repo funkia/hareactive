@@ -1,6 +1,6 @@
 {
   "name": "hareactive",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Experimental FRP library for building web applications.",
   "main": "index.js",
   "directories": {
