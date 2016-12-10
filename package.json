@@ -13,7 +13,10 @@
     "test": "nyc mocha --compilers ts:ts-node/register test/**/*.ts && nyc report",
     "test-watch": "mocha --watch --compilers ts:ts-node/register test/**/*.ts",
     "test-browser": "karma start karma.conf.js",
-    "codecov": "codecov -f coverage/coverage-final.json"
+    "codecov": "codecov -f coverage/coverage-final.json",
+    "release-major": "xyz --repo git@github.com:funkia/hareactive.git --increment major",
+    "release-minor": "xyz --repo git@github.com:funkia/hareactive.git --increment minor",
+    "release-patch": "xyz --repo git@github.com:funkia/hareactive.git --increment patch"
   },
   "repository": {
     "type": "git",
@@ -55,7 +58,8 @@
     "tsify": "^1.0.7",
     "typescript": "^2.1.0-dev.20160925",
     "watchify": "^3.7.0",
-    "webpack": "^1.13.1"
+    "webpack": "^1.13.1",
+    "xyz": "0.5.x"
   },
   "nyc": {
     "include": [
