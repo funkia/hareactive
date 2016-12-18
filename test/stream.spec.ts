@@ -89,18 +89,18 @@ describe("Stream", () => {
     });
   });
 
-  describe("merge", () => {
+  describe("combine", () => {
     it("should be a function", () => {
-      assert.isFunction(S.merge);
+      assert.isFunction(S.combine);
     });
 
-    it("should merge two streams", () => {
+    it("should combine two streams", () => {
       const stream1 = S.empty();
       const stream2 = S.empty();
       const callback = spy();
 
-      const mergedS = S.merge(stream1, stream2);
-      S.subscribe(callback, mergedS);
+      const combinedS = S.combine(stream1, stream2);
+      S.subscribe(callback, combinedS);
       S.publish(1, stream1);
       S.publish("2", stream2);
 

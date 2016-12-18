@@ -57,3 +57,12 @@ To run all benchmarks:
 ```
 npm run bench
 ```
+
+## API
+
+### Stream
+
+#### `combine<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)>`
+
+Combines two streams into a single stream that contains the occurrences
+of both `a` and `b`.

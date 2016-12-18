@@ -26,7 +26,7 @@ export abstract class Stream<A> extends Reactive<A> {
     this.addListener(s);
     return s;
   }
-  merge<B>(otherStream: Stream<B>): Stream<(A|B)> {
+  combine<B>(otherStream: Stream<B>): Stream<(A|B)> {
     const s = new SinkStream<(A|B)>();
     this.addListener(s);
     otherStream.addListener(s);
@@ -213,9 +213,9 @@ export function changes<A>(b: Behavior<A>): Stream<A> {
   return new ChangesStream(b);
 }
 
-export function mergeList<A>(ss: Stream<A>[]): Stream<A> {
+export function combineList<A>(ss: Stream<A>[]): Stream<A> {
   // FIXME: More performant implementation with benchmark
-  return ss.reduce((s1, s2) => s1.merge(s2), empty());
+  return ss.reduce((s1, s2) => s1.combine(s2), empty());
 }
 
 /**
@@ -233,8 +233,8 @@ export function publish<A>(a: A, stream: Stream<A>): void {
   stream.push(a);
 }
 
-export function merge<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)> {
-  return a.merge(b);
+export function combine<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)> {
+  return a.combine(b);
 }
 
 export function isStream(obj: any): boolean {
