@@ -89,8 +89,8 @@ class FilterStream<A> extends Stream<A> {
  * @returns Stream that only contains the occurences from `stream`
  * for which `fn` returns true.
  */
-export function filter<A>(fn: (a: A) => boolean, stream: Stream<A>): Stream<A> {
-  return stream.filter(fn);
+export function filter<A>(predicate: (a: A) => boolean, s: Stream<A>): Stream<A> {
+  return s.filter(predicate);
 }
 
 class ScanStream<A, B> extends Stream<B> {
@@ -124,8 +124,8 @@ class SnapshotStream<B> extends Stream<B> {
   }
 }
 
-export function snapshot<B>(behavior: Behavior<B>, stream: Stream<any>): Stream<B> {
-  return new SnapshotStream(behavior, stream);
+export function snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B> {
+  return new SnapshotStream(b, s);
 }
 
 class SnapshotWithStream<A, B, C> extends Stream<C> {
@@ -143,11 +143,9 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
 }
 
 export function snapshotWith<A, B, C>(
-  fn: (a: A, b: B) => C,
-  behavior: Behavior<B>,
-  stream: Stream<A>
+  f: (a: A, b: B) => C, b: Behavior<B>, s: Stream<A>
 ): Stream<C> {
-  return new SnapshotWithStream(fn, behavior, stream);
+  return new SnapshotWithStream(f, b, s);
 }
 
 /** @private */
@@ -184,11 +182,6 @@ class SwitchBehaviorStream<A> extends Stream<A> {
   }
 }
 
-/**
- * Takes a stream valued behavior and returns at stream that emits
- * values from the current stream at the behavior. I.e. the returned
- * stream always "switches" to the current stream at the behavior.
- */
 export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
   return new SwitchBehaviorStream(b);
 }

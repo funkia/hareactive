@@ -382,11 +382,6 @@ class WhenBehavior extends Behavior<Future<{}>> {
   }
 }
 
-/**
- * Take a behavior `b` of booleans and return a behavior that for time
- * `t` contains a future that occurs when `b` is true after `t`.
- * @param b - A boolean valued behavior.
- */
 export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
 }
@@ -427,17 +422,10 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
   }
 }
 
-/**
- * Creates a future than on occurence samples the current value of the
- * behavior and occurs with that value. That is, the original value of
- * the future is overwritten with the behavior value at the time when
- * the future occurs.
- */
 export function snapshot<A>(
-  behavior: Behavior<A>,
-  future: Future<any>
+  b: Behavior<A>, f: Future<any>
 ): Behavior<Future<A>> {
-  return new SnapshotBehavior(behavior, future);
+  return new SnapshotBehavior(b, f);
 }
 
 /** @private */
@@ -474,11 +462,6 @@ class SwitcherBehavior<A> extends Behavior<A> {
   }
 }
 
-/**
- * From an initial behavior and a future of a behavior `switcher`
- * creates a new behavior that acts exactly like `initial` until
- * `next` occurs after which it acts like the behavior it contains.
- */
 export function switcher<A>(
   init: Behavior<A>,
   next: Future<Behavior<A>>
@@ -505,11 +488,6 @@ class StepperBehavior<B> extends Behavior<B> {
   }
 }
 
-/**
- * Creates a Behavior whose value is the last occurrence in the stream.
- * @param initial the initial value that the behavior has
- * @param steps the stream that will change the value of the behavior
- */
 export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
   return new StepperBehavior(initial, steps);
 }
@@ -533,21 +511,10 @@ class ScanBehavior<A, B> extends Behavior<B> {
   }
 }
 
-/**
- * The returned behavior initially has the initial value, on each
- * occurence in `source` the function is applied to the current value
- * of the behaviour and the value of the occurence, the returned value
- * becomes the next value of the behavior.
- */
 export function scan<A, B>(fn: (a: A, b: B) => B, init: B, source: Stream<A>): Behavior<Behavior<B>> {
   return fromFunction(() => new ScanBehavior(init, fn, source));
 }
 
-/**
- * This takes an impure function that varies over time and returns a
- * pull-driven behavior. This is particulairly useful if the function
- * is contionusly changing, like `Date.now`.
- */
 export function fromFunction<B>(fn: () => B): Behavior<B> {
   return new FunctionBehavior(fn);
 }
@@ -628,19 +595,8 @@ class TimeFromBehavior extends Behavior<Time> {
   }
 }
 
-/**
- * A behavior whose value is the number of milliseconds elapsed win
- * UNIX epoch. I.e. its current value is equal to the value got by
- * calling `Date.now`.
- */
 export const time: Behavior<Time> = fromFunction(Date.now);
 
-/**
- * A behavior giving access to continous time. When sampled the outer
- * behavior gives a behavior with values that contain the difference
- * between the current sample time and the time at which the outer
- * behavior was sampled.
- */
 export const timeFrom: Behavior<Behavior<Time>>
   = fromFunction(() => new TimeFromBehavior());
 
