@@ -2,21 +2,22 @@
 
 # Hareactive
 
-A pure FRP library for JavaScript with the following features/goals:
+A pure FRP library for JavaScript and TypeScript with the following
+features/goals:
 
-* Precise semantics similar to classic FRP (the semantics is WIP
-  see [here](./semantics.md))
+* Simple and precise semantics similar to classic FRP. This makes the
+  library simpler. (the semantics are WIP see [here](./semantics.md))
 * Support for continuous time for performant and expressive
   declaration of time-dependent behavior and motions.
-* Splendid performance
-* Monadic IO integrated with FRP for expressing side-effects in an
-  expressive and testable way that utilizes FRP for powerful handling
-  of asynchronous operations.
+* Splendid performance.
+* Support for declarative of side-effects in a way that is pure,
+  testable and utilizes FRP for powerful handling of asynchronous
+  operations.
 
 [![Build Status](https://travis-ci.org/Funkia/hareactive.svg?branch=master)](https://travis-ci.org/Funkia/hareactive)
 [![codecov](https://codecov.io/gh/Funkia/hareactive/branch/master/graph/badge.svg)](https://codecov.io/gh/Funkia/hareactive)
 
-# Contributing
+## Contributing
 
 Install dependencies.
 ```
@@ -57,6 +58,106 @@ To run all benchmarks:
 ```
 npm run bench
 ```
+
+## Documentation
+
+Hareactive contains four key concepts: Future, stream, behavior and
+now. These are explained below.
+
+### Future
+
+A future is a value belonging to a certain point in time. For
+instance, the result of a http request could be a future since it
+occurs at a specific time (when the response is received) and contains
+a value (the response itself).
+
+Future has much in common with JavaScript's Promises. However, they
+are simpler, because a future has no notion of resolution or
+rejection. That is a specific future can be understood simply as a
+time and a value. Something like this:
+
+```js
+{time: 22, value: "Foo"}
+```
+
+A promise however contains a third value:
+
+```js
+{resolvedOrRejected: "resolved", time: 22, value: "foo"}
+```
+
+### Stream
+
+A `Stream` is a list of futures. That is, a list of values where the
+values are each associated with a point in time.
+
+An example could be a stream of keypresses that a user makes. Each
+keypress happens at a specific moment in time and has an associated
+with the specific key that was pressed.
+
+The relationship between `Future` and `Stream` is the same as the
+relationship between having a variable that is a string and a variable
+that is a list of strings. You wouldn't store a username as `["foo"]`
+because there is always exactly one username.
+
+Similarly in Hareactive we don't use `Stream` to express the result of
+a http request since a http request only delivers a response exactly
+once. Use a `Future` for things where there is exactly one occurrence
+and `Stream` where there may be zero or more.
+
+### Behavior
+
+A behavior represents a value that changes over time. For instance,
+the current position of the mouse or the value of an input field is a
+behavior.
+
+The difference between a stream and a behavior is that a behavior has
+a value at all points in time where a stream is a series of events
+that happens at specific moments in time.
+
+### Future, stream or behavior?
+
+At first the difference between the three things may be tricky to
+understand. Especially if you're used to other libraries where all the
+three are represented as a single structure called "stream" or
+"observable". The key is to understand that the three types represent
+things that are fundamentally different. And that expressing
+expressing different things with different structures is beneficial.
+
+You could forget about future and use a stream where you'd otherwise
+use a future. Because stream is more powerful than future. In the same
+way you could always use arrays of values instead of just single
+values. But you don't do that because `username = "foo"` expresses
+that only one username exists whereas `username = ["foo"]` gives the
+impression that a user can have more than one username. Similarly one
+could forget about numbers and just use strings instead. But saying
+`amount = 22` is obviously better than `amount = "22"`.
+
+This is how to figure out if a certain thing is a future, a stream or
+a behavior:
+
+1. Ask the question: "does the thing always have a current value?". If
+   yes, you're done, the thing should be represented as a behavior.
+2. Ask the question: "does the thing always happen once?". If yes, the
+   thing should be represented as a future. If no, you should use a
+   stream.
+
+Below are some examples:
+
+* The time remaining before an alarm goes off: The remaining time
+  always have a current value, therefore it is a behavior.
+* The moment where the alarm goes off: This has no current value. And
+  since the alarm only goes off a single time this is a future.
+* User clicking on a specific button: This has no notion of a current
+  value. And the user may press the button more than once. This is a
+  stream.
+* Whether or not a button is currently pressed: This always has a
+  current value. The button is always pressed or not pressed. This
+  should be represented as a behavior.
+* The tenth time a button is pressed: This happens once at a specific
+  moment in time. Use a future.
+
+### Now
 
 ## API
 
