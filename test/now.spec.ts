@@ -39,8 +39,8 @@ describe("Now", () => {
   });
   describe("sample", () => {
     it("samples constant behavior", () => {
-      const b = B.of(6);
-      const comp = sample(b).chain((n) => Now.of(F.of(n)));
+      const b = Behavior.of(6);
+      const comp = sample(b).chain((n) => Now.of(Future.of(n)));
       return runNow(comp).then((result: number) => {
         assert.strictEqual(result, 6);
       });
@@ -99,7 +99,7 @@ describe("Now", () => {
       const comp =
         async(mutateRef(2, ref1)).chain(
           (_: any) => async(mutateRef("World", ref2)).chain(
-            (__: any) => Now.of(F.of(true))
+            (__: any) => Now.of(Future.of(true))
           )
         );
       return runNow(comp).then((result: boolean) => {

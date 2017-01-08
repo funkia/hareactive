@@ -2,11 +2,15 @@ import "mocha";
 import {assert} from "chai";
 import {spy} from "sinon";
 
+import {lift} from "jabz/applicative";
+
+import {map} from "../src/index";
 import * as B from "../src/behavior";
 import * as S from "../src/stream";
+import {Future} from "../src/future";
 import * as F from "../src/future";
 import {
-  Behavior, at, switcher, scan, timeFrom, observe, time, lift, ap
+  Behavior, at, switcher, scan, timeFrom, observe, time, ap
 } from "../src/behavior";
 import {switchStream, changes} from "../src/stream";
 
@@ -67,7 +71,7 @@ describe("Behavior", () => {
   it("allows listening on discrete changes", () => {
     const b = B.sink(0);
     const result: number[] = [];
-    B.subscribe((v) => { result.push(v); }, b);
+    b.subscribe((v) => { result.push(v); });
     b.push(1);
     b.push(2);
     b.push(3);
@@ -80,14 +84,14 @@ describe("Behavior", () => {
     });
 
     it("should be true when Behavior object", () => {
-      assert.isTrue(B.isBehavior(B.of(2)));
+      assert.isTrue(B.isBehavior(Behavior.of(2)));
     });
 
     it("should be false when not Behavior object", () => {
       assert.isFalse(B.isBehavior([]));
       assert.isFalse(B.isBehavior({}));
       assert.isFalse(B.isBehavior("test"));
-      assert.isFalse(B.isBehavior([B.of(42)]));
+      assert.isFalse(B.isBehavior([Behavior.of(42)]));
       assert.isFalse(B.isBehavior(1234));
       assert.isFalse(B.isBehavior(B.isBehavior));
       assert.isFalse(B.isBehavior(S.empty()));
@@ -134,13 +138,13 @@ describe("Behavior", () => {
   });
   describe("map", () => {
     it("maps over initial value from parent", () => {
-      const b = B.of(3);
-      const mapped = B.map(double, b);
+      const b = Behavior.of(3);
+      const mapped = map(double, b);
       assert.strictEqual(at(mapped), 6);
     });
     it("maps constant function", () => {
       const b = B.sink(0);
-      const mapped = B.map(double, b);
+      const mapped = map(double, b);
       assert.equal(B.at(b), 0);
       B.publish(1, b);
       assert.equal(B.at(mapped), 2);
@@ -164,7 +168,7 @@ describe("Behavior", () => {
       const b = B.fromFunction(() => {
         return time;
       });
-      const mapped = B.map(double, b);
+      const mapped = map(double, b);
       assert.equal(B.at(mapped), 0);
       time = 1;
       assert.equal(B.at(mapped), 2);
@@ -223,7 +227,7 @@ describe("Behavior", () => {
     });
     it("works on placeholder", () => {
       const b = B.placeholder();
-      const applied = ap(b, B.of(12));
+      const applied = ap(b, Behavior.of(12));
     });
   });
   describe("lift", () => {
@@ -243,13 +247,13 @@ describe("Behavior", () => {
   });
   describe("chain", () => {
     it("handles a constant behavior", () => {
-      const b1 = B.of(12);
-      const b2 = b1.chain(x => B.of(x * x));
+      const b1 = Behavior.of(12);
+      const b2 = b1.chain(x => Behavior.of(x * x));
       assert.strictEqual(at(b2), 144);
     });
     it("handles changing outer behavior", () => {
       const b1 = B.sink(0);
-      const b2 = b1.chain(x => B.of(x * x));
+      const b2 = b1.chain(x => Behavior.of(x * x));
       assert.strictEqual(at(b2), 0);
       b1.push(2);
       assert.strictEqual(at(b2), 4);
@@ -258,7 +262,7 @@ describe("Behavior", () => {
     });
     it("handles changing inner behavior", () => {
       const inner = B.sink(0);
-      const b = B.of(1).chain(_ => inner);
+      const b = Behavior.of(1).chain(_ => inner);
       assert.strictEqual(at(b), 0);
       inner.push(2);
       assert.strictEqual(at(b), 2);
@@ -268,7 +272,7 @@ describe("Behavior", () => {
     it("stops subscribing to past inner behavior", () => {
       const inner = B.sink(0);
       const outer = B.sink(1);
-      const b = outer.chain(n => n === 1 ? inner : B.of(6));
+      const b = outer.chain(n => n === 1 ? inner : Behavior.of(6));
       assert.strictEqual(at(b), 0);
       inner.push(2);
       assert.strictEqual(at(b), 2);
@@ -283,7 +287,7 @@ describe("Behavior", () => {
       const inner2 = B.sink(3);
       const b = outer.chain(n => {
         if (n === 0) {
-          return B.of(0);
+          return Behavior.of(0);
         } else if (n === 1) {
           return inner1;
         } else if (n === 2) {
@@ -314,7 +318,7 @@ describe("Behavior", () => {
       let result: number;
       const p = B.placeholder();
       const mapped = p.map((s: string) => s.length);
-      B.subscribe((n: number) => result = n, mapped);
+      mapped.subscribe((n: number) => result = n);
       p.replaceWith(B.sink("Hello"));
       assert.strictEqual(result, 5);
     });
@@ -340,7 +344,7 @@ describe("Behavior and Future", () => {
   describe("when", () => {
     it("gives occured future when behavior is true", () => {
       let occurred = false;
-      const b = B.of(true);
+      const b = Behavior.of(true);
       const w = B.when(b);
       const fut = at(w);
       fut.subscribe((_) => occurred = true);
@@ -361,8 +365,8 @@ describe("Behavior and Future", () => {
     it("snapshots behavior at future occuring in future", () => {
       let result: number;
       const bSink = B.sink(1);
-      const futureSink = F.sink();
-      const mySnapshot = at(B.snapshot(bSink, futureSink));
+      const futureSink = F.sinkFuture();
+      const mySnapshot = at(B.snapshotAt(bSink, futureSink));
       mySnapshot.subscribe(res => result = res);
       bSink.push(2);
       bSink.push(3);
@@ -373,9 +377,9 @@ describe("Behavior and Future", () => {
     it("uses current value when future occured in the past", () => {
       let result: number;
       const bSink = B.sink(1);
-      const occurredFuture = F.of({});
+      const occurredFuture = Future.of({});
       bSink.push(2);
-      const mySnapshot = at(B.snapshot(bSink, occurredFuture));
+      const mySnapshot = at(B.snapshotAt(bSink, occurredFuture));
       mySnapshot.subscribe(res => result = res);
       bSink.push(3);
       assert.strictEqual(result, 2);
@@ -385,7 +389,7 @@ describe("Behavior and Future", () => {
     it("switches between behavior", () => {
       const b1 = B.sink(1);
       const b2 = B.sink(8);
-      const futureSink = F.sink<Behavior<number>>();
+      const futureSink = F.sinkFuture<Behavior<number>>();
       const switching = switcher(b1, futureSink);
       assert.strictEqual(at(switching), 1);
       b2.push(9);
@@ -402,7 +406,7 @@ describe("Behavior and Future", () => {
     it("works when initial behavior is pulling", () => {
       let x = 0;
       const b1 = B.fromFunction(() => x);
-      const futureSink = F.sink<Behavior<number>>();
+      const futureSink = F.sinkFuture<Behavior<number>>();
       const switching = switcher(b1, futureSink);
       assert.strictEqual(at(switching), 0);
       x = 1;
@@ -415,7 +419,7 @@ describe("Behavior and Future", () => {
       let x = 0;
       const b1 = B.fromFunction(() => x);
       const b2 = B.sink(2);
-      const futureSink = F.sink<Behavior<number>>();
+      const futureSink = F.sinkFuture<Behavior<number>>();
       const switching = switcher(b1, futureSink);
       observe(
         (n: number) => pushed.push(n),

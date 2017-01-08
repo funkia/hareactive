@@ -37,9 +37,9 @@ class OnlyPushObserver<A> implements Observer<A> {
  */
 @monad
 export abstract class Behavior<A> implements Observer<A>, Monad<A> {
-  // Behaviors that a pushing caches their last value in `last`. For
-  // behaviors that pull `last` is unused.
   pushing: boolean;
+  // Behaviors that are pushing caches their last value in `last`. For
+  // behaviors that pull `last` is unused.
   last: A;
   nrOfListeners: number;
   child: Observer<any>;
@@ -57,14 +57,14 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
     return newB;
   }
   mapTo<A>(v: A): Behavior<A> {
-    return of(v);
-  }
-  of<A>(v: A): Behavior<A> {
-    return of(v);
+    return new ConstantBehavior(v);
   }
   static of<A>(v: A): Behavior<A> {
-    return of(v);
+    return new ConstantBehavior(v);
   };
+  of<A>(v: A): Behavior<A> {
+    return new ConstantBehavior(v);
+  }
   ap<B>(f: Behavior<(a: A) => B>): Behavior<B> {
     const newB = new ApBehavior<A, B>(f, this);
     f.addListener(newB);
@@ -88,6 +88,8 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
       )));
     }
   }
+  static multi = false;
+  multi = false;
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new ChainBehavior<A, B>(this, fn);
   }
@@ -136,12 +138,6 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
       }
     }
   }
-  static multi = false;
-  multi = false;
-}
-
-export function of<B>(val: B): Behavior<B> {
-  return new ConstantBehavior(val);
 }
 
 /*
@@ -185,15 +181,6 @@ class MapBehavior<A, B> extends Behavior<B> {
   pull(): B {
     return this.fn(at(this.parent));
   }
-}
-
-/**
- * Map a function over a behavior. This means that if at some point in
- * time the value of `b` is `bVal` then the value of the returned
- * behavior is `fn(bVal)`.
- */
-export function map<A, B>(fn: (a: A) => B , b: Behavior<A>): Behavior<B> {
-  return b.map(fn);
 }
 
 /** @private */
@@ -407,7 +394,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
     } else {
       this.afterFuture = false;
       this.pushing = true;
-      this.last = F.sink<A>();
+      this.last = F.sinkFuture<A>();
       future.listen(this);
     }
   }
@@ -428,7 +415,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
   }
 }
 
-export function snapshot<A>(
+export function snapshotAt<A>(
   b: Behavior<A>, f: Future<any>
 ): Behavior<Future<A>> {
   return new SnapshotBehavior(b, f);
@@ -525,14 +512,6 @@ export function fromFunction<B>(fn: () => B): Behavior<B> {
   return new FunctionBehavior(fn);
 }
 
-/**
- * Subscribe to a behavior in order to run imperative actions when the
- * value in the behavior changes.
- */
-export function subscribe<A>(fn: (a: A) => void, b: Behavior<A>): void {
-  b.subscribe(fn);
-}
-
 export class CbObserver<A> implements Observer<A> {
   constructor(
     private _push: (a: A) => void,
@@ -605,10 +584,3 @@ export const time: Behavior<Time> = fromFunction(Date.now);
 
 export const timeFrom: Behavior<Behavior<Time>>
   = fromFunction(() => new TimeFromBehavior());
-
-export function lift<T1, R>(f: (t: T1) => R, m: Behavior<T1>): Behavior<R>;
-export function lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Behavior<T1>, m2: Behavior<T2>): Behavior<R>;
-export function lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Behavior<T1>, m2: Behavior<T2>, m3: Behavior<T3>): Behavior<R>;
-export function lift(/* arguments */): any {
-  return arguments[1].lift.apply(undefined, arguments);
-}

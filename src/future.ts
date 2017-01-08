@@ -1,3 +1,4 @@
+import {monad, Monad} from "jabz/monad";
 import {Consumer, Observer} from "./frp-common";
 import {Behavior} from "./behavior";
 
@@ -7,7 +8,8 @@ import {Behavior} from "./behavior";
  * occurs and its associated value. It is quite like a JavaScript
  * promise.
  */
-export abstract class Future<A> implements Consumer<any> {
+@monad
+export abstract class Future<A> implements Monad<A>, Consumer<any> {
   // Flag indicating whether or not this future has occured.
   occured: boolean;
   // The value of the future. Often `undefined` until occurence.
@@ -55,19 +57,23 @@ export abstract class Future<A> implements Consumer<any> {
   of<B>(b: B): Future<B> {
     return new PureFuture(b);
   }
-  static lift<T1, R>(f: (t: T1) => R, m: Future<T1>): Future<R>;
-  static lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Future<T1>, m2: Future<T2>): Future<R>;
-  static lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Future<T1>, m2: Future<T2>, m3: Future<T3>): Future<R>;
-  static lift(f: any, ...args: Future<any>[]): any {
+  ap: <B>(f: Future<(a: A) => B>) => Future<B>;
+  lift<T1, R>(f: (t: T1) => R, m: Future<T1>): Future<R>;
+  lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Future<T1>, m2: Future<T2>): Future<R>;
+  lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Future<T1>, m2: Future<T2>, m3: Future<T3>): Future<R>;
+  lift(f: any, ...args: Future<any>[]): any {
     return f.length === 1 ? new MapFuture(f, args[0])
                           : new LiftFuture(f, args);
   }
+  static multi: false;
+  multi = false;
   // A future is a monad. Once the first future occurs `chain` passes
   // its value through the chain function and the future it returns is
   // the one returned by `chain`.
   chain<B>(f: (a: A) => Future<B>): Future<B> {
     return new ChainFuture(f, this);
   }
+  flatten: <B>() => Future<B>;
 }
 
 class MapFuture<A, B> extends Future<B> {
@@ -148,7 +154,7 @@ class Sink<A> extends Future<A> {
   }
 }
 
-export function sink<A>(): Future<A> {
+export function sinkFuture<A>(): Future<A> {
   return new Sink<A>();
 }
 
@@ -163,7 +169,7 @@ class Subscription<A> implements Consumer<A> {
 }
 
 export function fromPromise<A>(p: Promise<A>): Future<A> {
-  const future = sink<A>();
+  const future = sinkFuture<A>();
   p.then(future.resolve.bind(future));
   return future;
 }
@@ -190,7 +196,3 @@ export class BehaviorFuture<A> extends Future<A> implements Observer<A> {
     this.resolve(a);
   }
 }
-
-export const of = Future.of;
-
-export const lift = Future.lift;

@@ -1,12 +1,18 @@
+import {assert} from "chai";
+import {spy} from "sinon";
+
+import {map} from "../src/index";
 import * as S from "../src/stream";
 import {Stream} from "../src/stream";
 import * as B from "../src/behavior";
 import {Behavior, at} from "../src/behavior";
-import {assert} from "chai";
-import {spy} from "sinon";
 
 const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
+
+function publish<A>(a: A, stream: Stream<A>): void {
+  stream.push(a);
+}
 
 describe("Stream", () => {
   describe("isStream", () => {
@@ -31,8 +37,8 @@ describe("Stream", () => {
       const cb2 = spy();
       s.subscribe(cb1);
       s.subscribe(cb2);
-      S.publish(2, s);
-      S.publish(3, s);
+      publish(2, s);
+      publish(3, s);
       assert.strictEqual(cb1.callCount, 2);
       assert.strictEqual(cb2.callCount, 2);
     });
@@ -43,8 +49,8 @@ describe("Stream", () => {
       s.subscribe(cb1);
       const listener = s.subscribe(cb2);
       s.removeListener(listener);
-      S.publish(2, s);
-      S.publish(3, s);
+      publish(2, s);
+      publish(3, s);
       assert.strictEqual(cb1.callCount, 2);
       assert.strictEqual(cb2.callCount, 0);
     });
@@ -52,7 +58,7 @@ describe("Stream", () => {
 
   describe("publish", () => {
     it("should be a function", () => {
-      assert.isFunction(S.publish);
+      assert.isFunction(publish);
     });
 
     it("should call the subscribers", () => {
@@ -62,10 +68,10 @@ describe("Stream", () => {
 
       assert.equal(callback.callCount, 0);
 
-      S.publish("value", obs);
+      publish("value", obs);
       assert.equal(callback.callCount, 1);
 
-      S.publish("value", obs);
+      publish("value", obs);
       assert.equal(callback.callCount, 2);
     });
 
@@ -78,12 +84,12 @@ describe("Stream", () => {
       S.subscribe(callback2, obs);
 
       const err1 = "Wrong or no value was recieved after publish.";
-      S.publish("random value", obs);
+      publish("random value", obs);
       assert(callback1.calledWith("random value"), err1);
       assert(callback2.calledWith("random value"), err1);
 
       const err2 = "Wrong or no value was recieved after a second publish.";
-      S.publish("another random value", obs);
+      publish("another random value", obs);
       assert(callback1.calledWith("another random value"), err2);
       assert(callback2.calledWith("another random value"), err2);
     });
@@ -101,25 +107,21 @@ describe("Stream", () => {
 
       const combinedS = S.combine(stream1, stream2);
       S.subscribe(callback, combinedS);
-      S.publish(1, stream1);
-      S.publish("2", stream2);
+      publish(1, stream1);
+      publish("2", stream2);
 
       assert.deepEqual(callback.args, [[1], ["2"]]);
     });
   });
 
   describe("map", () => {
-    it("should be a function", () => {
-      assert.isFunction(S.map);
-    });
-
     it("should map the published values", () => {
       const obs = S.empty();
       const callback = spy();
-      const mappedObs = S.map(addTwo, obs);
+      const mappedObs = map(addTwo, obs);
       S.subscribe(callback, mappedObs);
       for (let i = 0; i < 5; i++) {
-        S.publish(i, obs);
+        publish(i, obs);
       }
       assert.deepEqual(callback.args, [[2], [3], [4], [5], [6]]);
     });
@@ -129,9 +131,9 @@ describe("Stream", () => {
       const callback = spy();
       const mapped = stream.mapTo(7);
       S.subscribe(callback, mapped);
-      S.publish(1, stream);
-      S.publish(2, stream);
-      S.publish(3, stream);
+      publish(1, stream);
+      publish(2, stream);
+      publish(3, stream);
       assert.deepEqual(callback.args, [[7], [7], [7]]);
     });
   });
@@ -152,7 +154,7 @@ describe("Stream", () => {
       S.subscribe(callback, filteredObs);
 
       for (let i = 0; i < 10; i++) {
-        S.publish(i, obs);
+        publish(i, obs);
       }
       assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]], "Wrong or no value was recieved");
     });
@@ -166,7 +168,7 @@ describe("Stream", () => {
       const currentSumE = at(S.scanS(sumF, 0, eventS));
       S.subscribe(callback, currentSumE);
       for (let i = 0; i < 10; i++) {
-        S.publish(i, eventS);
+        publish(i, eventS);
       }
       assert.deepEqual(callback.args, [[0], [1], [3], [6], [10], [15], [21], [28], [36], [45]]);
     });
@@ -180,13 +182,13 @@ describe("Stream", () => {
       const shot = S.snapshot<number>(b, e);
       const callback = spy();
       S.subscribe(callback, shot);
-      S.publish(0, e);
-      S.publish(1, e);
+      publish(0, e);
+      publish(1, e);
       n = 1;
-      S.publish(2, e);
+      publish(2, e);
       n = 2;
-      S.publish(3, e);
-      S.publish(4, e);
+      publish(3, e);
+      publish(4, e);
       assert.deepEqual(callback.args, [
         [0], [0], [1], [2], [2]
       ]);
@@ -198,13 +200,13 @@ describe("Stream", () => {
       const shot = S.snapshotWith<number, number, number>(sum, b, e);
       const callback = spy();
       S.subscribe(callback, shot);
-      S.publish(0, e);
-      S.publish(1, e);
+      publish(0, e);
+      publish(1, e);
       n = 1;
-      S.publish(2, e);
+      publish(2, e);
       n = 2;
-      S.publish(3, e);
-      S.publish(4, e);
+      publish(3, e);
+      publish(4, e);
       assert.deepEqual(callback.args, [
         [0], [1], [3], [5], [6]
       ]);

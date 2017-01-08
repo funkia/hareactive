@@ -1,13 +1,14 @@
 import {assert} from "chai";
 
-import * as Future from "../src/future";
-import {sink, lift} from "../src/future";
+import {lift} from "jabz/applicative";
+
+import {Future, sinkFuture, fromPromise} from "../src/future";
 
 describe("Future", () => {
   describe("sink", () => {
     it("notifies subscriber", () => {
       let result: number;
-      const s = sink<number>();
+      const s = sinkFuture<number>();
       s.subscribe((x: number) => {
         result = x;
       });
@@ -19,7 +20,7 @@ describe("Future", () => {
   describe("Functor", () => {
     it("maps over value", () => {
       let result: number;
-      const s = sink<number>();
+      const s = sinkFuture<number>();
       const mapped = s.map(x => x * x);
       mapped.subscribe((x: number) => {
         result = x;
@@ -30,7 +31,7 @@ describe("Future", () => {
     });
     it("maps to constant", () => {
       let result: string;
-      const s = sink<number>();
+      const s = sinkFuture<number>();
       const mapped = s.mapTo("horse");
       mapped.subscribe((x: string) => {
         result = x;
@@ -51,7 +52,7 @@ describe("Future", () => {
     });
     it("lifts a function of one argument", () => {
       let result: string;
-      const fut = sink<string>();
+      const fut = sinkFuture<string>();
       const lifted = lift((s: string) => s + "!", fut);
       lifted.subscribe((s: string) => result = s);
       assert.strictEqual(result, undefined);
@@ -60,9 +61,9 @@ describe("Future", () => {
     });
     it("lifts a function of three arguments", () => {
       let result: string;
-      const fut1 = sink<string>();
-      const fut2 = sink<string>();
-      const fut3 = sink<string>();
+      const fut1 = sinkFuture<string>();
+      const fut2 = sinkFuture<string>();
+      const fut3 = sinkFuture<string>();
       const lifted = lift((s1: string, s2: string, s3: string) => {
         return s1 + "-" + s2 + "+" + s3;
       }, fut1, fut2, fut3);
@@ -79,8 +80,8 @@ describe("Future", () => {
   describe("Monad", () => {
     it("chains value", () => {
       let result: number[] = [];
-      const fut1 = sink<number>();
-      const fut2 = sink<number>();
+      const fut1 = sinkFuture<number>();
+      const fut2 = sinkFuture<number>();
       const chained = fut1.chain((n: number) => {
         result.push(n);
         return fut2;
@@ -98,7 +99,7 @@ describe("Future", () => {
     let result: number;
     let resolve: (n: number) => void;
     const promise = new Promise((res) => resolve = res);
-    const future = Future.fromPromise(promise);
+    const future = fromPromise(promise);
     future.subscribe((res: number) => result = res);
     assert.strictEqual(result, undefined);
     resolve(12);

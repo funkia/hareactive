@@ -61,10 +61,6 @@ class MapStream<A, B> extends Stream<B> {
   }
 }
 
-export function map<A, B>(fn: (a: A) => B , stream: Stream<A>): Stream<B> {
-  return stream.map(fn);
-}
-
 class MapToStream<A> extends Stream<A> {
   constructor(private val: A) { super(); }
   push(a: any): void {
@@ -220,10 +216,6 @@ export function empty<A>(): Stream<A> {
 
 export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
   stream.subscribe(fn);
-}
-
-export function publish<A>(a: A, stream: Stream<A>): void {
-  stream.push(a);
 }
 
 export function combine<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)> {
