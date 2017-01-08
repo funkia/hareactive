@@ -6,7 +6,7 @@ import * as B from "../src/behavior";
 import * as S from "../src/stream";
 import * as F from "../src/future";
 import {
-  Behavior, at, switcher, scan, timeFrom, observe, time, lift
+  Behavior, at, switcher, scan, timeFrom, observe, time, lift, ap
 } from "../src/behavior";
 import {switchStream, changes} from "../src/stream";
 
@@ -221,6 +221,10 @@ describe("Behavior", () => {
       n = 8;
       assert.equal(B.at(applied), 16);
     });
+    it("works on placeholder", () => {
+      const b = B.placeholder();
+      const applied = ap(b, B.of(12));
+    });
   });
   describe("lift", () => {
     it("lifts function of three arguments", () => {
@@ -297,6 +301,12 @@ describe("Behavior", () => {
       assert.strictEqual(at(b), 3);
       inner2.push(4);
       assert.strictEqual(at(b), 4);
+    });
+    it("works on placeholder", () => {
+      const b = B.placeholder();
+      const chained = b.chain((n) => Behavior.of(n));
+      b.replaceWith(Behavior.of(3));
+      assert.strictEqual(chained.last, 3);
     });
   });
   describe("Placeholder behavior", () => {

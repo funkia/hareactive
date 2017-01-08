@@ -211,20 +211,21 @@ class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
   private outerConsumer: Observer<A>;
-  // private innerConsumer: Consumer<B>;
   constructor(
     private outer: Behavior<A>,
     private fn: (a: A) => Behavior<B>
   ) {
     super();
-    // Create the outer consumers
+    // Create the outer consumer
     this.outerConsumer = new ChainOuter(this);
-    this.innerB = this.fn(at(this.outer));
-    this.pushing = this.innerB.pushing;
     // Make the consumers listen to inner and outer behavior
     outer.addListener(this.outerConsumer);
-    this.innerB.addListener(this);
-    this.last = at(this.innerB);
+    if (outer.pushing === true) {
+      this.innerB = this.fn(at(this.outer));
+      this.pushing = this.innerB.pushing;
+      this.innerB.addListener(this);
+      this.last = at(this.innerB);
+    }
   }
 
   pushOuter(a: A): void {
@@ -232,8 +233,11 @@ class ChainBehavior<A, B> extends Behavior<B> {
     // call our function, which will result in a new inner behavior.
     // We therefore stop listening to the old inner behavior and begin
     // listening to the new one.
-    this.innerB.removeListener(this);
+    if (this.innerB !== undefined) {
+      this.innerB.removeListener(this);
+    }
     const newInner = this.innerB = this.fn(a);
+    this.pushing = newInner.pushing;
     newInner.addListener(this);
     this.push(at(newInner));
   }
@@ -274,7 +278,9 @@ class ApBehavior<A, B> extends Behavior<B> {
   ) {
     super();
     this.pushing = fn.pushing && val.pushing;
-    this.last = at(fn)(at(val));
+    if (this.pushing) {
+      this.last = at(fn)(at(val));
+    }
   }
 
   push(): void {
