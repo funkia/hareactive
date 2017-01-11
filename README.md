@@ -121,8 +121,7 @@ At first the difference between the three things may be tricky to
 understand. Especially if you're used to other libraries where all the
 three are represented as a single structure called "stream" or
 "observable". The key is to understand that the three types represent
-things that are fundamentally different. And that expressing
-expressing different things with different structures is beneficial.
+things that are fundamentally different. And that expressing different things with different structures is beneficial.
 
 You could forget about future and use a stream where you'd otherwise
 use a future. Because stream is more powerful than future. In the same
