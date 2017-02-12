@@ -10,7 +10,7 @@ import * as S from "../src/stream";
 import {Future} from "../src/future";
 import * as F from "../src/future";
 import {
-  Behavior, at, switcher, scan, timeFrom, observe, time, ap
+  Behavior, at, switcher, scan, timeFrom, observe, time, ap, stepper
 } from "../src/behavior";
 import {switchStream, changes} from "../src/stream";
 
@@ -337,6 +337,14 @@ describe("Behavior", () => {
       assert.strictEqual(beginPulling, true);
       assert.strictEqual(at(p), 12);
     });
+    it("pushes if replaced with pushing behavior", () => {
+      const stream = S.empty();
+      const b = stepper(0, stream);
+      const placeholder = B.placeholder();
+      // We replace with a behavior that does not support pulling
+      placeholder.replaceWith(b);
+      assert.strictEqual(at(placeholder), 0);
+    });
   });
 });
 
@@ -444,7 +452,7 @@ describe("Behavior and Stream", () => {
   describe("stepper", () => {
     it("steps to the last event value", () => {
       const e = S.empty();
-      const b = B.stepper(0, e);
+      const b = stepper(0, e);
       assert.equal(B.at(b), 0);
       e.push(1);
       assert.equal(B.at(b), 1);

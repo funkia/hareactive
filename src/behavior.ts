@@ -343,7 +343,6 @@ export class PlaceholderBehavior<B> extends Behavior<B> {
     b.addListener(this);
     this.pushing = b.pushing;
     if (b.pushing === true) {
-      this.pushing = false;
       this.push(at(b));
     } else {
       this.beginPulling();
@@ -470,12 +469,10 @@ class StepperBehavior<B> extends Behavior<B> {
     this.last = initial;
     steps.addListener(this);
   }
-
   push(val: B): void {
     this.last = val;
     this.child.push(val);
   }
-
   pull(): B {
     throw new Error("Cannot pull from StepperBehavior");
   }
