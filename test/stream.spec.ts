@@ -3,7 +3,7 @@ import {spy} from "sinon";
 
 import {map} from "../src/index";
 import * as S from "../src/stream";
-import {Stream} from "../src/stream";
+import {Stream, keepWhen} from "../src/stream";
 import * as B from "../src/behavior";
 import {Behavior, at} from "../src/behavior";
 
@@ -171,6 +171,31 @@ describe("Stream", () => {
         publish(i, eventS);
       }
       assert.deepEqual(callback.args, [[0], [1], [3], [6], [10], [15], [21], [28], [36], [45]]);
+    });
+  });
+
+  describe("keepWhen", () => {
+    it("removes occurences when behavior is false", () => {
+      let flag = true;
+      const bool: Behavior<boolean> = B.fromFunction(() => flag);
+      const origin = S.empty<number>();
+      const filtered = keepWhen(origin, bool);
+      const callback = spy();
+      S.subscribe(callback, filtered);
+      publish(0, origin);
+      publish(1, origin);
+      flag = false;
+      publish(2, origin);
+      publish(3, origin);
+      flag = true;
+      publish(4, origin);
+      flag = false;
+      publish(5, origin);
+      flag = true;
+      publish(6, origin);
+      assert.deepEqual(callback.args, [
+        [0], [1], [4], [6]
+      ]);
     });
   });
 

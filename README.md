@@ -178,6 +178,13 @@ Converts a promise to a future.
 Returns a stream with all the occurrences from `s` for which
 `predicate` returns `true`.
 
+#### `keepWhen<A>(stream: Stream<A>, behavior: Behavior<boolean>): Stream<A>`
+
+Whenever `stream` has an occurrence the current value of `behavior` is
+considered. If it is `true` then the returned stream also has the
+occurrence—otherwise it doesn't. The behavior works as a filter that
+decides whether or not values are let through.
+
 #### `scanS<A, B>(fn: (a: A, b: B) => B, startingValue: B, stream: Stream<A>): Behavior<Stream<B>>`
 
 A stateful scan.

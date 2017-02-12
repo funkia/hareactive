@@ -89,6 +89,10 @@ export function filter<A>(predicate: (a: A) => boolean, s: Stream<A>): Stream<A>
   return s.filter(predicate);
 }
 
+export function keepWhen<A>(stream: Stream<A>, behavior: Behavior<boolean>): Stream<A> {
+  return stream.filter((_) => at(behavior));
+}
+
 class ScanStream<A, B> extends Stream<B> {
   constructor(private fn: (a: A, b: B) => B, private last: B, source: Stream<A>) {
     super();
