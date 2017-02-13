@@ -184,6 +184,11 @@ the behavior.
 Returns a stream with all the occurrences from `s` for which
 `predicate` returns `true`.
 
+#### `filterApply<A>(predicate: Behavior<(a: A) => boolean>, stream: Stream<A>): Stream<A>`
+
+Filters a stream by applying the predicate-valued behavior to all
+occurrences.
+
 #### `keepWhen<A>(stream: Stream<A>, behavior: Behavior<boolean>): Stream<A>`
 
 Whenever `stream` has an occurrence the current value of `behavior` is

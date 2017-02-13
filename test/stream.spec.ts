@@ -3,7 +3,7 @@ import {spy} from "sinon";
 
 import {map} from "../src/index";
 import * as S from "../src/stream";
-import {Stream, keepWhen, apply} from "../src/stream";
+import {Stream, keepWhen, apply, filterApply} from "../src/stream";
 import * as B from "../src/behavior";
 import {Behavior, at} from "../src/behavior";
 
@@ -180,6 +180,27 @@ describe("Stream", () => {
         publish(i, obs);
       }
       assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]], "Wrong or no value was recieved");
+    });
+  });
+
+  describe("filterApply", () => {
+    it("at applies filter from behavior", () => {
+      const predB = B.sink((n: number) => n % 2 === 0);
+      const origin = S.empty<number>();
+      const filtered = filterApply(predB, origin);
+      const callback = spy();
+      S.subscribe(callback, filtered);
+      publish(2, origin);
+      publish(3, origin);
+      predB.push((n: number) => n % 3 === 0);
+      publish(4, origin);
+      publish(6, origin);
+      predB.push((n: number) => n % 4 === 0);
+      publish(6, origin);
+      publish(12, origin);
+      assert.deepEqual(callback.args, [
+        [2], [6], [12]
+      ]);
     });
   });
 

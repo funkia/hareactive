@@ -93,6 +93,10 @@ export function filter<A>(predicate: (a: A) => boolean, s: Stream<A>): Stream<A>
   return s.filter(predicate);
 }
 
+export function filterApply<A>(predicate: Behavior<(a: A) => boolean>, stream: Stream<A>): Stream<A> {
+  return stream.filter((a: A) => at(predicate)(a));
+}
+
 export function keepWhen<A>(stream: Stream<A>, behavior: Behavior<boolean>): Stream<A> {
   return stream.filter((_) => at(behavior));
 }
