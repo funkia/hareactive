@@ -173,6 +173,12 @@ Converts a promise to a future.
 
 ### Stream
 
+#### `apply<A, B>(behavior: Behavior<(a: A) => B>, stream: Stream<A>): Stream<B>`
+
+Applies a function-valued behavior to a stream. Whenever the stream
+has an occurrence the value is passed through the current function of
+the behavior.
+
 #### `filter<A>(predicate: (a: A) => boolean, s: Stream<A>): Stream<A>`
 
 Returns a stream with all the occurrences from `s` for which

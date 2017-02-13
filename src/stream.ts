@@ -79,6 +79,10 @@ class FilterStream<A> extends Stream<A> {
   }
 }
 
+export function apply<A, B>(behavior: Behavior<(a: A) => B>, stream: Stream<A>): Stream<B> {
+  return stream.map((a: A) => at(behavior)(a));
+}
+
 /**
  * @param fn A predicate function that returns a boolean for `A`.
  * @param stream The stream to filter.

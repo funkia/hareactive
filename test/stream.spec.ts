@@ -3,7 +3,7 @@ import {spy} from "sinon";
 
 import {map} from "../src/index";
 import * as S from "../src/stream";
-import {Stream, keepWhen} from "../src/stream";
+import {Stream, keepWhen, apply} from "../src/stream";
 import * as B from "../src/behavior";
 import {Behavior, at} from "../src/behavior";
 
@@ -135,6 +135,29 @@ describe("Stream", () => {
       publish(2, stream);
       publish(3, stream);
       assert.deepEqual(callback.args, [[7], [7], [7]]);
+    });
+  });
+
+  describe("apply", () => {
+    it("at applies function in behavior", () => {
+      const fnB = B.sink((n: number) => n * n);
+      const origin = S.empty<number>();
+      const applied = apply(fnB, origin);
+      const callback = spy();
+      S.subscribe(callback, applied);
+      publish(2, origin);
+      publish(3, origin);
+      fnB.push((n: number) => 2 * n)
+      publish(4, origin);
+      publish(5, origin);
+      fnB.push((n: number) => n / 2);
+      publish(4, origin);
+      fnB.push(Math.sqrt);
+      publish(25, origin);
+      publish(36, origin);
+      assert.deepEqual(callback.args, [
+        [4], [9], [8], [10], [2], [5], [6]
+      ]);
     });
   });
 
