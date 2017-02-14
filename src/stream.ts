@@ -214,6 +214,23 @@ export function changes<A>(b: Behavior<A>): Stream<A> {
   return new ChangesStream(b);
 }
 
+export class PlaceholderStream<B> extends Stream<B> {
+  private source: Stream<B>;
+
+  push(a: B): void {
+    this.child.push(a);
+  }
+
+  replaceWith(s: Stream<B>): void {
+    this.source = s;
+    s.addListener(this);
+  }
+}
+
+export function placeholderStream<A>(): PlaceholderStream<A> {
+  return new PlaceholderStream<A>();
+}
+
 export function combineList<A>(ss: Stream<A>[]): Stream<A> {
   // FIXME: More performant implementation with benchmark
   return ss.reduce((s1, s2) => s1.combine(s2), empty());

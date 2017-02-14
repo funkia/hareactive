@@ -136,6 +136,17 @@ describe("Stream", () => {
       publish(3, stream);
       assert.deepEqual(callback.args, [[7], [7], [7]]);
     });
+    it("works on placeholder", () => {
+      let result = 0;
+      const p = S.placeholderStream();
+      const mapped = p.map((s: number) => s + 1);
+      mapped.subscribe((n) => result = n);
+      const s = S.empty();
+      p.replaceWith(s);
+      assert.strictEqual(result, 0);
+      s.push(1)
+      assert.strictEqual(result, 2);
+    });
   });
 
   describe("apply", () => {
