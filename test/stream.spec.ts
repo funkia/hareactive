@@ -21,6 +21,10 @@ describe("Stream", () => {
       assert.isTrue(S.isStream(S.empty()));
     });
 
+    it("should be true on placeholder", () => {
+      assert.isTrue(S.isStream(placeholder()));
+    });
+
     it("should be false when not Stream object", () => {
       assert.isFalse(S.isStream([]));
       assert.isFalse(S.isStream({}));

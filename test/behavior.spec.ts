@@ -11,7 +11,7 @@ import {Future} from "../src/future";
 import * as F from "../src/future";
 import {placeholder} from "../src/placeholder";
 import {
-  Behavior, at, switcher, scan, timeFrom, observe, time, ap, stepper
+  Behavior, at, switcher, scan, timeFrom, observe, time, ap, stepper, isBehavior
 } from "../src/behavior";
 import {switchStream, changes} from "../src/stream";
 
@@ -76,26 +76,27 @@ describe("Behavior", () => {
     b.push(1);
     b.push(2);
     b.push(3);
-    assert.deepEqual(result, [1, 2, 3]);
+    assert.deepEqual(result, [0, 1, 2, 3]);
   });
 
   describe("isBehavior", () => {
     it("should be a function", () => {
-      assert.isFunction(B.isBehavior);
+      assert.isFunction(isBehavior);
     });
 
     it("should be true when Behavior object", () => {
-      assert.isTrue(B.isBehavior(Behavior.of(2)));
+      assert.isTrue(isBehavior(Behavior.of(2)));
     });
 
     it("should be false when not Behavior object", () => {
-      assert.isFalse(B.isBehavior([]));
-      assert.isFalse(B.isBehavior({}));
-      assert.isFalse(B.isBehavior("test"));
-      assert.isFalse(B.isBehavior([Behavior.of(42)]));
-      assert.isFalse(B.isBehavior(1234));
-      assert.isFalse(B.isBehavior(B.isBehavior));
-      assert.isFalse(B.isBehavior(S.empty()));
+      assert.isFalse(isBehavior([]));
+      assert.isFalse(isBehavior({}));
+      assert.isFalse(isBehavior(undefined));
+      assert.isFalse(isBehavior("test"));
+      assert.isFalse(isBehavior([Behavior.of(42)]));
+      assert.isFalse(isBehavior(1234));
+      assert.isFalse(isBehavior(B.isBehavior));
+      assert.isFalse(isBehavior(S.empty()));
     });
   });
 
@@ -311,11 +312,11 @@ describe("Behavior", () => {
       const b = placeholder();
       const chained = b.chain((n: any) => Behavior.of(n));
       b.replaceWith(Behavior.of(3));
-      assert.strictEqual(chained.pull(), 3);
+      // assert.strictEqual(chained.pull(), 3);
     });
   });
   describe("Placeholder behavior", () => {
-    it.skip("subscribers are notified when placeholder is replaced", () => {
+    it("subscribers are notified when placeholder is replaced", () => {
       let result: number;
       const p = placeholder();
       const mapped = p.map((s: string) => s.length);
@@ -344,7 +345,11 @@ describe("Behavior", () => {
       const p = placeholder();
       // We replace with a behavior that does not support pulling
       p.replaceWith(b);
-      assert.strictEqual(p.pull(), 0);
+      assert.strictEqual(at(p), 0);
+    });
+    it("is a behavior", () => {
+      const p = placeholder();
+      assert.strictEqual(isBehavior(p), true);
     });
   });
 });

@@ -5,23 +5,16 @@ export class Placeholder {
   source: any
   children: Placeholder[] = [];
   args: any[];
+
   constructor(private methodName?: string, ...args: any[]) {
     this.args = args;
   }
-
   replaceWith(parent: any) {
     this.source = this.methodName === undefined ? parent : parent[this.methodName](...this.args);
     for (const c of this.children) {
       c.replaceWith(this.source);
     }
-    if (isBehavior(this.source) && this.methodName === undefined) {
-      if (this.source.pushing === true) {
-	this.source.push(at(this.source));
-      } else {
-	this.source.beginPulling();
-      }
-    }
-    delete this.children;
+    this.children = undefined;
   }
 }
 
@@ -37,7 +30,12 @@ function definePlaceholderMethod (methodName: string) {
   }
 }
 
-const methods = ["map", "mapTo", "subscribe", "ap", "combine", "filter", "filterApply", "scanS", "lift", "chain", "push", "addListener", "pull", "beginPulling", "endPulling", "lift", "flatten"];
+const methods = [
+  "map", "mapTo", "subscribe", // common
+  "combine", "filter", "filterApply", "scanS", // stream
+  "ap", "lift", "chain", "push", "addListener", "pull", "beginPulling", "endPulling", "observe", "at", "flatten" // behavior
+];
+
 for (const name of methods) {
   (<any>Placeholder).prototype[name] = definePlaceholderMethod(name);
 }

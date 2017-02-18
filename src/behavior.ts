@@ -105,6 +105,7 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
   subscribe(cb: (a: A) => void): Observer<A> {
     const listener = new OnlyPushObserver(cb);
     this.addListener(listener);
+    cb(at(this));
     return listener;
   }
   addListener(c: Observer<A>): void {
@@ -138,6 +139,16 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
       }
     }
   }
+  observe(
+    push: (a: A) => void,
+    beginPulling: () => void,
+    endPulling: () => void,
+  ): CbObserver<A> {
+    return new CbObserver(push, beginPulling, endPulling, this);
+  }
+  at(): A {
+    return this.pushing === true ? this.last : this.pull();
+  }
 }
 
 /*
@@ -145,7 +156,7 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
  * pure variant see `sample`.
  */
 export function at<B>(b: Behavior<B>): B {
-  return b.pushing === true ? b.last : b.pull();
+  return b.at();
 }
 
 /** @private */
@@ -546,7 +557,7 @@ export function observe<A>(
   endPulling: () => void,
   b: Behavior<A>
 ): CbObserver<A> {
-  return new CbObserver(push, beginPulling, endPulling, b);
+  return b.observe(push, beginPulling, endPulling);
 }
 
 /**
@@ -557,7 +568,7 @@ export function publish<A>(a: A, b: Behavior<A>): void {
 }
 
 export function isBehavior(b: any): b is Behavior<any> {
-  return b instanceof Behavior;
+  return typeof b === "object" && ("observe" in b) && ("at" in b);
 }
 
 export type Time = number;
