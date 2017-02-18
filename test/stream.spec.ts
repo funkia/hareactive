@@ -2,6 +2,7 @@ import {assert} from "chai";
 import {spy} from "sinon";
 
 import {map} from "../src/index";
+import {placeholder} from "../src/placeholder";
 import * as S from "../src/stream";
 import {Stream, keepWhen, apply, filterApply} from "../src/stream";
 import * as B from "../src/behavior";
@@ -138,9 +139,9 @@ describe("Stream", () => {
     });
     it("works on placeholder", () => {
       let result = 0;
-      const p = S.placeholderStream();
+      const p = placeholder();
       const mapped = p.map((s: number) => s + 1);
-      mapped.subscribe((n) => result = n);
+      mapped.subscribe((n: number) => result = n);
       const s = S.empty();
       p.replaceWith(s);
       assert.strictEqual(result, 0);
