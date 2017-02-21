@@ -1,5 +1,5 @@
-import {Behavior, isBehavior, at} from "./behavior";
-import {Stream, isStream} from "./stream";
+import {Behavior, isBehavior, at, placeholder as bPlaceholder} from "./behavior";
+import {Stream, isStream, placeholderStream} from "./stream";
 
 export class Placeholder {
   source: any
@@ -30,14 +30,44 @@ function definePlaceholderMethod (methodName: string) {
   }
 }
 
-const methods = [
-  "map", "mapTo", "subscribe", // common
-  "combine", "filter", "filterApply", "scanS", // stream
-  "ap", "lift", "chain", "push", "addListener", "pull", "beginPulling", "endPulling", "observe", "at", "flatten" // behavior
-];
+function defineBehaviorMethod (methodName: string) {
+  return function (...args: any[]) {
+    if (this.source !== undefined) {
+      return this.source[methodName](...args);
+    } else {
+      const p = <any> bPlaceholder();
+      this.children.push(p);
+      return p[methodName](...args);
+    }
+  }
+}
 
-for (const name of methods) {
+function defineStreamMethod (methodName: string) {
+  return function (...args: any[]) {
+    if (this.source !== undefined) {
+      return this.source[methodName](...args);
+    } else {
+      const p = <any> placeholderStream();
+      this.children.push(p);
+      return p[methodName](...args);
+    }
+  }
+}
+
+const commonMethods   = ["map", "mapTo", "subscribe"];
+const streamMethods   = ["combine", "filter", "filterApply", "scanS"];
+const behaviorMethods = ["ap", "lift", "chain", "push", "addListener",
+			 "pull", "beginPulling", "endPulling", "observe",
+			 "at", "flatten"];
+
+for (const name of commonMethods) {
   (<any>Placeholder).prototype[name] = definePlaceholderMethod(name);
+}
+for (const name of streamMethods) {
+  (<any>Placeholder).prototype[name] = defineStreamMethod(name);
+}
+for (const name of behaviorMethods) {
+  (<any>Placeholder).prototype[name] = defineBehaviorMethod(name);
 }
 
 export function placeholder(): any {
