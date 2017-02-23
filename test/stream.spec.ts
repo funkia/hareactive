@@ -301,7 +301,7 @@ describe("Stream", () => {
     it("should delay every push", (done) => {
       let n = 0;
       const s = S.empty<number>();
-      const delayedS = s.delay(1000);
+      const delayedS = s.delay(50);
       delayedS.subscribe(() => n = 2);
       s.subscribe(() => n = 1);
       s.push(0);
@@ -310,7 +310,34 @@ describe("Stream", () => {
       setTimeout(() => {
 	assert.strictEqual(n, 2)
 	done();
-      }, 1500);
+      }, 100);
+    });
+  });
+  describe("throttle", () => {
+    it("after an occuring it should ignore the next second", (done) => {
+      let n = 0;
+      const s = S.empty<number>();
+      const throttleS = s.throttle(100);
+      throttleS.subscribe((v) => n = v);
+
+      assert.strictEqual(n, 0);
+      s.push(1);
+      s.push(2);
+      s.push(3);
+      assert.strictEqual(n, 1);
+
+      setTimeout(() => {
+	s.push(4);
+	assert.strictEqual(n, 1);
+
+	setTimeout(() => {
+	  s.push(5);
+	  assert.strictEqual(n, 5)
+	  done();
+	}, 100);
+	
+      }, 50);
+
     });
   });
 });

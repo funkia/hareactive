@@ -235,6 +235,11 @@ Returns `true` if `obj` is a stream and `false` otherwise.
 
 Returns a stream that occurs `ms` milliseconds after `s` occurs.
 
+#### `throttle<A>(ms: number, s: Stream<A>): Stream<A>`
+
+Returns a stream that after occuring, ignores the next occurences in `ms` milliseconds.
+
+
 ### Behavior
 
 #### `when(b: Behavior<boolean>): Behavior<Future<{}>>`

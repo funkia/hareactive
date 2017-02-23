@@ -48,6 +48,11 @@ export abstract class Stream<A> extends Reactive<A> {
     this.addListener(s);
     return s;
   }
+  throttle(ms: number): Stream<A> {
+    const s = new ThrottleStream<A>(ms);
+    this.addListener(s);
+    return s;
+  }
 }
 
 /** @private */
@@ -91,6 +96,26 @@ class DelayStream<A> extends Stream<A> {
   push(a: A): void {
     setTimeout(() => this.child.push(a), this.ms);
   }
+}
+
+class ThrottleStream<A> extends Stream<A> {
+  constructor(private ms: number) {
+    super();
+  }
+  private isSilenced: boolean = false;
+  push(a: A): void {
+    if (!this.isSilenced) {
+      this.child.push(a);
+      this.isSilenced = true;
+      setTimeout(() => {
+	this.isSilenced = false;
+      }, this.ms)
+    }
+  }
+}
+
+export function throttle<A>(ms: number, stream: Stream<A>) {
+  return stream.throttle(ms);
 }
 
 export function delay<A>(ms: number, stream: Stream<A>) {
