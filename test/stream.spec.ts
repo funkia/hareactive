@@ -297,4 +297,20 @@ describe("Stream", () => {
       ]);
     });
   });
+  describe("delay", () => {
+    it("should delay every push", (done) => {
+      let n = 0;
+      const s = S.empty<number>();
+      const delayedS = s.delay(1000);
+      delayedS.subscribe(() => n = 2);
+      s.subscribe(() => n = 1);
+      s.push(0);
+      
+      assert.strictEqual(n, 1);
+      setTimeout(() => {
+	assert.strictEqual(n, 2)
+	done();
+      }, 1500);
+    });
+  });
 });

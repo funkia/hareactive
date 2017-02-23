@@ -43,6 +43,11 @@ export abstract class Stream<A> extends Reactive<A> {
   scan<B>(fn: (a: A, b: B) => B, init: B): Behavior<Behavior<B>> {
     return scan(fn, init, this);
   }
+  delay(ms: number): Stream<A> {
+    const s = new DelayStream<A>(ms);
+    this.addListener(s);
+    return s;
+  }
 }
 
 /** @private */
@@ -77,6 +82,19 @@ class FilterStream<A> extends Stream<A> {
       this.child.push(a);
     }
   }
+}
+
+class DelayStream<A> extends Stream<A> {
+  constructor(private ms: number) {
+    super();
+  }
+  push(a: A): void {
+    setTimeout(() => this.child.push(a), this.ms);
+  }
+}
+
+export function delay<A>(ms: number, stream: Stream<A>) {
+  return stream.delay(ms);
 }
 
 export function apply<A, B>(behavior: Behavior<(a: A) => B>, stream: Stream<A>): Stream<B> {

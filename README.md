@@ -231,6 +231,10 @@ of both `a` and `b`.
 
 Returns `true` if `obj` is a stream and `false` otherwise.
 
+#### `delay<A>(ms: number, s: Stream<A>): Stream<A>`
+
+Returns a stream that occurs `ms` milliseconds after `s` occurs.
+
 ### Behavior
 
 #### `when(b: Behavior<boolean>): Behavior<Future<{}>>`
