@@ -312,6 +312,24 @@ describe("Stream", () => {
 	done();
       }, 100);
     });
+
+    it("should work with placeholder", (done) => {
+      let n = 0;
+      const p = placeholder();
+      const delayedP = p.delay(50);
+      delayedP.subscribe(() => n = 2);
+      p.subscribe(() => n = 1);
+      
+      const s = S.empty<number>();
+      p.replaceWith(s);
+      s.push(0);
+      
+      assert.strictEqual(n, 1);
+      setTimeout(() => {
+	assert.strictEqual(n, 2)
+	done();
+      }, 100);
+    });
   });
   describe("throttle", () => {
     it("after an occuring it should ignore the next second", (done) => {
@@ -321,6 +339,34 @@ describe("Stream", () => {
       throttleS.subscribe((v) => n = v);
 
       assert.strictEqual(n, 0);
+      s.push(1);
+      s.push(2);
+      s.push(3);
+      assert.strictEqual(n, 1);
+
+      setTimeout(() => {
+	s.push(4);
+	assert.strictEqual(n, 1);
+
+	setTimeout(() => {
+	  s.push(5);
+	  assert.strictEqual(n, 5)
+	  done();
+	}, 100);
+	
+      }, 50);
+
+    });
+
+    it("should work with placeholder", (done) => {
+      let n = 0;
+      const p = placeholder();
+      const throttleP = p.throttle(100);
+      throttleP.subscribe((v: number) => n = v);
+      assert.strictEqual(n, 0);
+      const s = S.empty<number>();
+      p.replaceWith(s);
+      
       s.push(1);
       s.push(2);
       s.push(3);

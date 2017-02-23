@@ -55,7 +55,7 @@ function defineStreamMethod (methodName: string) {
 }
 
 const commonMethods   = ["map", "mapTo", "subscribe"];
-const streamMethods   = ["combine", "filter", "filterApply", "scanS"];
+const streamMethods   = ["combine", "filter", "filterApply", "scanS", "delay", "throttle"];
 const behaviorMethods = ["ap", "lift", "chain", "push", "addListener",
 			 "pull", "beginPulling", "endPulling", "observe",
 			 "at", "flatten"];
