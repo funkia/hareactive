@@ -12,7 +12,7 @@ import * as S from "../src/stream";
 import * as F from "../src/future";
 import {Future} from "../src/future";
 import {
-  Now, runNow, async, sample, plan, performStream
+  Now, runNow, async, sample, plan, performStream, performStreamLatest, performStreamOrdered
 } from "../src/now";
 
 // A reference that can be mutated
@@ -169,6 +169,54 @@ describe("Now", () => {
           });
         });
       });
+    });
+  });
+
+  describe("performStreamLatest", () => {
+    it("runs io actions and ignores outdated results", (done: Function) => {
+      let results: any[] = [];
+      const impure = withEffects((n: number) => {
+	return new Promise((resolve, reject) => {
+	  setTimeout(() => {
+	    resolve(n);
+	  }, n);
+	});
+      });
+      const s = S.empty();
+      const mappedS = s.map(impure);
+      performStreamLatest(mappedS).run().subscribe((n) => results.push(n));
+      s.push(60);
+      s.push(20);
+      s.push(30);
+      setTimeout(() => {
+	assert.deepEqual(results, [20, 30])
+	done();
+      }, 100);
+    });
+  });
+
+  describe("performStreamOrdered", () => {
+    it("runs io actions and makes sure to keep the results in the same order", (done: Function) => {
+      let results: any[] = [];
+      const impure = withEffects((n: number) => {
+	return new Promise((resolve, reject) => {
+	  setTimeout(() => {
+	    resolve(n);
+	  }, n);
+	});
+      });
+      const s = S.empty();
+      const mappedS = s.map(impure);
+      performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
+      s.push(60);
+      s.push(20);
+      s.push(30);
+      s.push(50);
+      s.push(40);
+      setTimeout(() => {
+	assert.deepEqual(results, [60, 20, 30, 50, 40])
+	done();
+      }, 100);
     });
   });
 });

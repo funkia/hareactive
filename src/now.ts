@@ -95,6 +95,75 @@ export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNow(s);
 }
 
+class PerformIOStreamLatest<A> extends Stream<A> {
+  constructor(s: Stream<IO<A>>) {
+    super();
+    s.addListener(this);
+  }
+  id: number = 0;
+  latest: number = 0;
+  push(io: IO<A>): void {
+    const id = this.id++;
+    runIO(io).then((a: A) => {
+      if (id > this.latest) {
+	this.latest = id;
+	this.child.push(a);
+      }
+    });
+  }
+}
+
+class PerformStreamNowLatest<A> extends Now<Stream<A>> {
+  constructor(private s: Stream<IO<A>>) {
+    super();
+  }
+  run(): Stream<A> {
+    return new PerformIOStreamLatest(this.s);
+  }
+}
+
+export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
+  return new PerformStreamNowLatest(s);
+}
+
+class PerformIOStreamOrdered<A> extends Stream<A> {
+  constructor(s: Stream<IO<A>>) {
+    super();
+    s.addListener(this);
+  }
+  id: number = 0;
+  next: number = 0;
+  storedResults: A[] = [];
+  push(io: IO<A>): void {
+    const id = this.id++;
+    runIO(io).then((a: A) => {
+      if (id === this.next) {
+	this.next++;
+	this.child.push(a);
+	while (this.storedResults[this.next] !== undefined) {
+	  this.child.push(this.storedResults[this.next]);
+	  this.next++;
+	}
+      } else {
+	this.storedResults[id] = a;
+      }
+    });
+  }
+}
+
+class PerformStreamNowOrdered<A> extends Now<Stream<A>> {
+  constructor(private s: Stream<IO<A>>) {
+    super();
+  }
+  run(): Stream<A> {
+    return new PerformIOStreamOrdered(this.s);
+  }
+}
+
+export function performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>> {
+  return new PerformStreamNowOrdered(s);
+}
+
 function run<A>(now: Now<A>): A {
   return now.run();
 }

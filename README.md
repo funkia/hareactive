@@ -320,6 +320,14 @@ Takes a stream of `IO` actions and return a stream in a now
 computation. When run the now computation executes each `IO` action
 and delivers their result into the created stream.
 
+#### `performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>>`
+
+A variant of `performStream` where outdated `IO` results are ignored.
+
+#### `performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>>`
+
+A variant of `performStream` where `IO` results occur in the same order.
+
 #### `plan<A>(future: Future<Now<A>>): Now<Future<A>>`
 
 Convert a future now computation into a now computation of a future.
