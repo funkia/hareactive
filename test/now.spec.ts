@@ -200,9 +200,7 @@ describe("Now", () => {
       let results: any[] = [];
       const impure = withEffects((n: number) => {
 	return new Promise((resolve, reject) => {
-	  setTimeout(() => {
-	    resolve(n);
-	  }, n);
+	  setTimeout(() => resolve(n), n);
 	});
       });
       const s = S.empty();

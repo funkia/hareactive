@@ -131,23 +131,26 @@ class PerformIOStreamOrdered<A> extends Stream<A> {
     super();
     s.addListener(this);
   }
-  id: number = 0;
+  nextId: number = 0;
   next: number = 0;
-  storedResults: A[] = [];
+  buffer: A[] = [];
   push(io: IO<A>): void {
-    const id = this.id++;
+    const id = this.nextId++;
     runIO(io).then((a: A) => {
       if (id === this.next) {
-	this.next++;
-	this.child.push(a);
-	while (this.storedResults[this.next] !== undefined) {
-	  this.child.push(this.storedResults[this.next]);
-	  this.next++;
-	}
+        this.buffer[0] = a;
+        this.pushFromBuffer();
       } else {
-	this.storedResults[id] = a;
+	this.buffer[id - this.next] = a;
       }
     });
+  }
+  pushFromBuffer(): void {
+    while (this.buffer[0] !== undefined) {
+      const element = this.buffer.shift();
+      this.child.push(element);
+      this.next++;
+    }
   }
 }
 
