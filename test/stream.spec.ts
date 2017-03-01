@@ -4,7 +4,9 @@ import {spy} from "sinon";
 import {map} from "../src/index";
 import {placeholder} from "../src/placeholder";
 import * as S from "../src/stream";
-import {Stream, keepWhen, apply, filterApply} from "../src/stream";
+import {
+  Stream, keepWhen, apply, filterApply, snapshot, snapshotWith
+} from "../src/stream";
 import * as B from "../src/behavior";
 import {Behavior, at} from "../src/behavior";
 
@@ -260,11 +262,11 @@ describe("Stream", () => {
   });
 
   describe("snapshot", () => {
-    it("it snapshots pull based Behavior", () => {
+    it("snapshots pull based Behavior", () => {
       let n = 0;
       const b: Behavior<number> = B.fromFunction(() => n);
       const e: Stream<number> = S.empty<number>();
-      const shot = S.snapshot<number>(b, e);
+      const shot = snapshot<number>(b, e);
       const callback = spy();
       S.subscribe(callback, shot);
       publish(0, e);
@@ -278,11 +280,11 @@ describe("Stream", () => {
         [0], [0], [1], [2], [2]
       ]);
     });
-    it("it applies function in snapshotWith to pull based Behavior", () => {
+    it("applies function in snapshotWith to pull based Behavior", () => {
       let n = 0;
       const b: Behavior<number> = B.fromFunction(() => n);
       const e: Stream<number> = S.empty<number>();
-      const shot = S.snapshotWith<number, number, number>(sum, b, e);
+      const shot = snapshotWith<number, number, number>(sum, b, e);
       const callback = spy();
       S.subscribe(callback, shot);
       publish(0, e);
@@ -295,6 +297,18 @@ describe("Stream", () => {
       assert.deepEqual(callback.args, [
         [0], [1], [3], [5], [6]
       ]);
+    });
+    it("works with placeholder", () => {
+      let result = 0;
+      const b = Behavior.of(7);
+      const p = placeholder();
+      const snap = snapshot(b, p);
+      snap.subscribe((n: number) => result = n);
+      const s = S.empty();
+      p.replaceWith(s);
+      assert.strictEqual(result, 0);
+      s.push(1);
+      assert.strictEqual(result, 7);
     });
   });
   describe("delay", () => {
@@ -337,27 +351,21 @@ describe("Stream", () => {
       const s = S.empty<number>();
       const throttleS = s.throttle(100);
       throttleS.subscribe((v) => n = v);
-
       assert.strictEqual(n, 0);
       s.push(1);
       s.push(2);
       s.push(3);
       assert.strictEqual(n, 1);
-
       setTimeout(() => {
 	s.push(4);
 	assert.strictEqual(n, 1);
-
 	setTimeout(() => {
 	  s.push(5);
 	  assert.strictEqual(n, 5)
 	  done();
 	}, 100);
-	
       }, 50);
-
     });
-
     it("should work with placeholder", (done) => {
       let n = 0;
       const p = placeholder();
@@ -366,24 +374,19 @@ describe("Stream", () => {
       assert.strictEqual(n, 0);
       const s = S.empty<number>();
       p.replaceWith(s);
-      
       s.push(1);
       s.push(2);
       s.push(3);
       assert.strictEqual(n, 1);
-
       setTimeout(() => {
 	s.push(4);
 	assert.strictEqual(n, 1);
-
 	setTimeout(() => {
 	  s.push(5);
 	  assert.strictEqual(n, 5)
 	  done();
 	}, 100);
-	
       }, 50);
-
     });
   });
 });

@@ -54,11 +54,16 @@ function defineStreamMethod (methodName: string) {
   }
 }
 
-const commonMethods   = ["map", "mapTo", "subscribe"];
-const streamMethods   = ["combine", "filter", "filterApply", "scanS", "delay", "throttle"];
-const behaviorMethods = ["ap", "lift", "chain", "push", "addListener",
-			 "pull", "beginPulling", "endPulling", "observe",
-			 "at", "flatten"];
+const commonMethods = [
+  "map", "mapTo", "subscribe", "addListener"
+];
+const streamMethods = [
+  "combine", "filter", "filterApply", "scanS", "delay", "throttle"
+];
+const behaviorMethods = [
+  "ap", "lift", "chain", "push", "pull", "beginPulling", "endPulling",
+  "observe", "at", "flatten"
+];
 
 for (const name of commonMethods) {
   (<any>Placeholder).prototype[name] = definePlaceholderMethod(name);
