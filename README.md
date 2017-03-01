@@ -5,85 +5,44 @@
 A pure FRP library for JavaScript and TypeScript with the following
 features/goals:
 
-* Simple and precise semantics similar to classic FRP. This makes the
-  library simpler. (the semantics are WIP see [here](./semantics.md))
-* Support for continuous time for performant and expressive
-  declaration of time-dependent behavior and motions.
-* Splendid performance.
-* Support for declarative of side-effects in a way that is pure,
-  testable and utilizes FRP for powerful handling of asynchronous
+* Simple and precise semantics similar to classic FRP. This makes the library
+  simpler to use. (the semantics are WIP see [here](./semantics.md))
+* Supports _continuous time_ for performant and expressive
+  declaration of time-dependent behavior.
+* Great performance.
+* Support for declarative side-effects in a way that is pure,
+  testable and integrates with FRP for powerful handling of asynchronous
   operations.
 
 [![Build Status](https://travis-ci.org/Funkia/hareactive.svg?branch=master)](https://travis-ci.org/Funkia/hareactive)
 [![codecov](https://codecov.io/gh/Funkia/hareactive/branch/master/graph/badge.svg)](https://codecov.io/gh/Funkia/hareactive)
 
-## Contributing
+## Table of contents
 
-Install dependencies.
-```
-npm install
-```
+* [Tutorial](#tutorial)
+* [API documentation](#api-documentation)
+* [Contributing](#contributing)
+* [Benchmark](#benchmark)
 
-Run tests.
-```
-npm test
-```
-Running the tests will generate an HTML coverage report in `./coverage/`.
+## Introduction
 
-Continuously run the tests with
-```
-npm run test-watch
-```
-
-## Benchmark
-
-Get set up to running the benchmarks:
-
-```
-npm run build
-./benchmark/prepare-benchmarks.sh
-```
-
-Run a single benchmark with:
-```
-node benchmark/<name-of-benchmark>
-```
-
-Example
-```
-node benchmark/scan.suite
-```
-
-To run all benchmarks:
-```
-npm run bench
-```
-
-## Documentation
-
-Hareactive contains four key concepts: Future, stream, behavior and
+Hareactive contains four key type of things: Future, stream, behavior and
 now. These are explained below.
 
 ### Future
 
-A future is a value belonging to a certain point in time. For
-instance, the result of a http request could be a future since it
+A future is a _value_ associated with a certain point in _time_. For
+instance, the result of a HTTP-request is a future since it
 occurs at a specific time (when the response is received) and contains
 a value (the response itself).
 
 Future has much in common with JavaScript's Promises. However, they
-are simpler, because a future has no notion of resolution or
-rejection. That is a specific future can be understood simply as a
-time and a value. Something like this:
+are simpler. A future has no notion of resolution or
+rejection. That is, a specific future can be understood simply as a
+time and a value. Conceptually one can think of them as being implemented simply like this.
 
 ```js
 {time: 22, value: "Foo"}
-```
-
-A promise however contains a third value:
-
-```js
-{resolvedOrRejected: "resolved", time: 22, value: "foo"}
 ```
 
 ### Stream
@@ -92,16 +51,16 @@ A `Stream` is a list of futures. That is, a list of values where the
 values are each associated with a point in time.
 
 An example could be a stream of keypresses that a user makes. Each
-keypress happens at a specific moment in time and has an associated
-with the specific key that was pressed.
+keypress happens at a specific moment in time and with a value indicating
+which key was pressed.
 
 The relationship between `Future` and `Stream` is the same as the
 relationship between having a variable that is a string and a variable
-that is a list of strings. You wouldn't store a username as `["foo"]`
+that is a list of strings. You wouldn't store a username as `["username"]`
 because there is always exactly one username.
 
 Similarly in Hareactive we don't use `Stream` to express the result of
-a http request since a http request only delivers a response exactly
+a HTTP-request since a HTTP-request only delivers a response exactly
 once. Use a `Future` for things where there is exactly one occurrence
 and `Stream` where there may be zero or more.
 
@@ -111,16 +70,17 @@ A behavior represents a value that changes over time. For instance,
 the current position of the mouse or the value of an input field is a
 behavior.
 
-The difference between a stream and a behavior is that a behavior has
-a value at all points in time where a stream is a series of events
+Conceptually a behavior can be thought of as a function from a point in time to a value.
+A behavior always has a value at any given time. This is the difference between a stream and a behavior.
+A behavior has a value at all points in time where a stream is a series of events
 that happens at specific moments in time.
 
 ### Future, stream or behavior?
 
-At first the difference between the three things may be tricky to
-understand. Especially if you're used to other libraries where all the
-three are represented as a single structure called "stream" or
-"observable". The key is to understand that the three types represent
+At first, the difference between the three things may be tricky to
+understand. Especially if you're used to other libraries where all
+three are represented as a single structure (maybe called "stream" or
+"observable"). The key is to understand that the three types represent
 things that are fundamentally different. And that expressing different things with different structures is beneficial.
 
 You could forget about future and use a stream where you'd otherwise
@@ -157,6 +117,15 @@ Below are some examples:
   moment in time. Use a future.
 
 ### Now
+
+The `Now` structure represents a computation at a moment in time.
+The computation will always be run in the present—hence the name "now".
+`Now` is perhaps the most difficult concept in Hareactive.
+
+Now is used for two things
+
+* Creating stateful behaviors
+* Running side-effects
 
 ## API
 
@@ -340,3 +309,49 @@ Run the given Now-computation. The returned promise resolves once the
 future that is the result of running the now computation occurs. This
 is an impure function and should not be used in normal application
 code.
+
+## Contributing
+
+Contributions are very welcome. Development happens as follows:
+
+Install dependencies.
+```
+npm install
+```
+
+Run tests.
+```
+npm test
+```
+Running the tests will generate an HTML coverage report in `./coverage/`.
+
+Continuously run the tests with
+```
+npm run test-watch
+```
+
+We also use `tslint` for ensuring a coherent code-style.
+
+## Benchmark
+
+Get set up to running the benchmarks:
+
+```
+npm run build
+./benchmark/prepare-benchmarks.sh
+```
+
+Run all benchmarks with:
+```
+npm run bench
+```
+
+Run a single benchmark with:
+```
+node benchmark/<name-of-benchmark>
+```
+
+For example
+```
+node benchmark/scan.suite
+```
