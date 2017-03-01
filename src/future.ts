@@ -148,14 +148,14 @@ class ChainFuture<A, B> extends Future<B> {
 }
 
 // A Sink is a producer that one can imperatively resolve.
-class Sink<A> extends Future<A> {
+class FutureSink<A> extends Future<A> {
   push(val: any): void {
     throw new Error("A sink should never be pushed to.");
   }
 }
 
 export function sinkFuture<A>(): Future<A> {
-  return new Sink<A>();
+  return new FutureSink<A>();
 }
 
 // A subscription is a consumer that performs a side-effect

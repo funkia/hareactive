@@ -33,7 +33,7 @@ describe("Now", () => {
       );
       setTimeout(() => { resolve(12); });
       return promise.then((result: Either<any, number>) => {
-        assert.deepEqual(result, right(12));
+        assert.deepEqual(result, 12);
       });
     });
   });
@@ -59,9 +59,9 @@ describe("Now", () => {
         return Now.of(n * 2);
       }
       const prog = go(function*(): Iterator<Now<any>> {
-        const e: Future<Either<any, number>> = yield async(fn(1));
-        const e2 = yield plan(e.map((r) => comp(fromEither(r))));
-        return Now.of(e2);
+        const e: Future<number> = yield async(fn(1));
+        const e2 = yield plan(e.map((r) => comp(r)));
+        return e2;
       });
       setTimeout(() => {
         assert.strictEqual(done, false);
@@ -123,7 +123,7 @@ describe("Now", () => {
       return go(function*(): Iterator<Now<any>> {
         const e = yield async(getNextNr(1));
         const e1 = yield plan(e.map(loop));
-        return Now.of(switcher(Behavior.of(n), e1));
+        return switcher(Behavior.of(n), e1);
       });
     }
     function main(): Now<Future<number>> {
@@ -132,7 +132,7 @@ describe("Now", () => {
         const e = yield sample(when(b.map((n: number) => {
           return n === 3;
         })));
-        return Now.of(e);
+        return e;
       });
     }
     setTimeout(() => {
