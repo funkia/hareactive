@@ -1,3 +1,4 @@
+import {toggle} from "../src";
 import "mocha";
 import {assert} from "chai";
 import {spy} from "sinon";
@@ -542,6 +543,27 @@ describe("Behavior and Stream", () => {
       b.push(2);
       b.push(3);
       assert.deepEqual(cb.args, [[1], [2], [3]]);
+    });
+  });
+  describe("toggle", () => {
+    it("has correct initial value", () => {
+      const s1 = S.empty();
+      const s2 = S.empty();
+      const flipper1 = toggle(true, s1, s2);
+      assert.strictEqual(at(flipper1), true);
+      const flipper2 = toggle(false, s1, s2);
+      assert.strictEqual(at(flipper2), false);
+    });
+    it("flips properly", () => {
+      const s1 = S.empty();
+      const s2 = S.empty();
+      const flipper = toggle(false, s1, s2);
+      s1.push(1);
+      assert.strictEqual(at(flipper), true);
+      s2.push(2);
+      assert.strictEqual(at(flipper), false);
+      s1.push(3);
+      assert.strictEqual(at(flipper), true);
     });
   });
 });

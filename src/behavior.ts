@@ -1,8 +1,6 @@
-/** @module hareactive/behavior */
-
 import {Monad, monad} from "jabz/monad";
 import {
-  Consumer, Reactive, Observer, MultiObserver, noopObserver
+  Observer, MultiObserver, noopObserver
 } from "./frp-common";
 
 import {Future, BehaviorFuture} from "./future";
@@ -88,8 +86,8 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
       )));
     }
   }
-  static multi = false;
-  multi = false;
+  static multi: boolean = false;
+  multi: boolean = false;
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new ChainBehavior<A, B>(this, fn);
   }
@@ -514,6 +512,12 @@ class ScanBehavior<A, B> extends Behavior<B> {
 
 export function scan<A, B>(fn: (a: A, b: B) => B, init: B, source: Stream<A>): Behavior<Behavior<B>> {
   return fromFunction(() => new ScanBehavior(init, fn, source));
+}
+
+export function toggle(
+  initial: boolean, turnOn: Stream<any>, turnOff: Stream<any>
+): Behavior<boolean> {
+  return stepper(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
 }
 
 export function fromFunction<B>(fn: () => B): Behavior<B> {
