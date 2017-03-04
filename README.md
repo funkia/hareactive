@@ -153,6 +153,12 @@ the behavior.
 Returns a stream with all the occurrences from `s` for which
 `predicate` returns `true`.
 
+#### `split<A>(predicate: (a: A) => boolean, stream: Stream<A>): [Stream<A>, Stream<A>]`
+
+Returns a pair of streams. The first contains all occurrences from
+`stream` for which `predicate` returns `true` and the other the
+occurrences for which `predicate` returns `false`.
+
 #### `filterApply<A>(predicate: Behavior<(a: A) => boolean>, stream: Stream<A>): Stream<A>`
 
 Filters a stream by applying the predicate-valued behavior to all

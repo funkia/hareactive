@@ -5,7 +5,7 @@ import {map} from "../src/index";
 import {placeholder} from "../src/placeholder";
 import * as S from "../src/stream";
 import {
-  Stream, keepWhen, apply, filterApply, snapshot, snapshotWith
+  Stream, keepWhen, apply, filterApply, snapshot, snapshotWith, split
 } from "../src/stream";
 import * as B from "../src/behavior";
 import {Behavior, at} from "../src/behavior";
@@ -178,7 +178,6 @@ describe("Stream", () => {
       ]);
     });
   });
-
   describe("filter", () => {
     it("should be a function", () => {
       assert.isFunction(S.filter);
@@ -200,7 +199,22 @@ describe("Stream", () => {
       assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]], "Wrong or no value was recieved");
     });
   });
-
+  describe("split", () => {
+    it("splits based on predicate", () => {
+      const sink = S.empty<number>();
+      const callbackA = spy();
+      const callbackB = spy();
+      const [a, b] = split((n) => n % 2 === 0, sink);
+      a.subscribe(callbackA);
+      b.subscribe(callbackB);
+      sink.push(1);
+      sink.push(4);
+      sink.push(7);
+      sink.push(10);
+      assert.deepEqual(callbackA.args, [[4], [10]]);
+      assert.deepEqual(callbackB.args, [[1], [7]]);
+    });
+  });
   describe("filterApply", () => {
     it("at applies filter from behavior", () => {
       const predB = B.sink((n: number) => n % 2 === 0);

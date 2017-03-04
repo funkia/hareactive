@@ -136,6 +136,12 @@ export function filter<A>(predicate: (a: A) => boolean, s: Stream<A>): Stream<A>
   return s.filter(predicate);
 }
 
+export function split<A>(predicate: (a: A) => boolean, stream: Stream<A>): [Stream<A>, Stream<A>] {
+  // It should be possible to implement this in a faster way where
+  // `predicate` is only called once for each occurrence
+  return [stream.filter(predicate), stream.filter((a) => !predicate(a))];
+}
+
 export function filterApply<A>(predicate: Behavior<(a: A) => boolean>, stream: Stream<A>): Stream<A> {
   return stream.filter((a: A) => at(predicate)(a));
 }
