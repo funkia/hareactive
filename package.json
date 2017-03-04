@@ -11,7 +11,7 @@
     "prebench": "tsc -P ./tsconfig-release.json",
     "bench": "node benchmark",
     "test": "nyc mocha --compilers ts:ts-node/register test/**/*.ts && nyc report",
-    "test-watch": "mocha --watch --compilers ts:ts-node/register test/**/*.ts",
+    "test-watch": "mocha -R progress --watch --compilers ts:ts-node/register test/**/*.ts",
     "test-browser": "karma start karma.conf.js",
     "codecov": "codecov -f coverage/coverage-final.json",
     "release-major": "xyz --repo git@github.com:funkia/hareactive.git --increment major",
