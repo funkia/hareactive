@@ -1,5 +1,5 @@
 import {assert} from "chai";
-import {spy} from "sinon";
+import {spy, useFakeTimers} from "sinon";
 
 import {map} from "../src/index";
 import {placeholder} from "../src/placeholder";
@@ -311,82 +311,79 @@ describe("Stream", () => {
       assert.strictEqual(result, 7);
     });
   });
-  describe("delay", () => {
-    it("should delay every push", (done) => {
-      let n = 0;
-      const s = S.empty<number>();
-      const delayedS = s.delay(50);
-      delayedS.subscribe(() => n = 2);
-      s.subscribe(() => n = 1);
-      s.push(0);
-      
-      assert.strictEqual(n, 1);
-      setTimeout(() => {
-	assert.strictEqual(n, 2)
-	done();
-      }, 100);
+  describe("timing operators", () => {
+    let clock: any;
+    beforeEach(() => {
+      clock = useFakeTimers();
     });
-
-    it("should work with placeholder", (done) => {
-      let n = 0;
-      const p = placeholder();
-      const delayedP = p.delay(50);
-      delayedP.subscribe(() => n = 2);
-      p.subscribe(() => n = 1);
-      
-      const s = S.empty<number>();
-      p.replaceWith(s);
-      s.push(0);
-      
-      assert.strictEqual(n, 1);
-      setTimeout(() => {
-	assert.strictEqual(n, 2)
-	done();
-      }, 100);
+    afterEach(() => {
+      clock.restore();
     });
-  });
-  describe("throttle", () => {
-    it("after an occuring it should ignore the next second", (done) => {
-      let n = 0;
-      const s = S.empty<number>();
-      const throttleS = s.throttle(100);
-      throttleS.subscribe((v) => n = v);
-      assert.strictEqual(n, 0);
-      s.push(1);
-      s.push(2);
-      s.push(3);
-      assert.strictEqual(n, 1);
-      setTimeout(() => {
+    describe("delay", () => {
+      it("should delay every push", () => {
+        let n = 0;
+        const s = S.empty<number>();
+        const delayedS = s.delay(50);
+        delayedS.subscribe(() => n = 2);
+        s.subscribe(() => n = 1);
+        s.push(0);
+        assert.strictEqual(n, 1);
+        clock.tick(49);
+        assert.strictEqual(n, 1);
+        clock.tick(1);
+        assert.strictEqual(n, 2)
+      });
+      it("should work with placeholder", () => {
+        let n = 0;
+        const p = placeholder();
+        const delayedP = p.delay(50);
+        delayedP.subscribe(() => n = 2);
+        p.subscribe(() => n = 1);
+        const s = S.empty<number>();
+        p.replaceWith(s);
+        s.push(0);
+        assert.strictEqual(n, 1);
+        clock.tick(49);
+        assert.strictEqual(n, 1);
+        clock.tick(1);
+        assert.strictEqual(n, 2)
+      });
+    });
+    describe("throttle", () => {
+      it("after an occurrence it should ignore", () => {
+        let n = 0;
+        const s = S.empty<number>();
+        const throttleS = s.throttle(100);
+        throttleS.subscribe((v) => n = v);
+        assert.strictEqual(n, 0);
+        s.push(1);
+        assert.strictEqual(n, 1);
+        clock.tick(80);
+        s.push(2);
+        assert.strictEqual(n, 1);
+        clock.tick(19);
+        s.push(3);
+        assert.strictEqual(n, 1);
+        clock.tick(1);
 	s.push(4);
-	assert.strictEqual(n, 1);
-	setTimeout(() => {
-	  s.push(5);
-	  assert.strictEqual(n, 5)
-	  done();
-	}, 100);
-      }, 50);
-    });
-    it("should work with placeholder", (done) => {
-      let n = 0;
-      const p = placeholder();
-      const throttleP = p.throttle(100);
-      throttleP.subscribe((v: number) => n = v);
-      assert.strictEqual(n, 0);
-      const s = S.empty<number>();
-      p.replaceWith(s);
-      s.push(1);
-      s.push(2);
-      s.push(3);
-      assert.strictEqual(n, 1);
-      setTimeout(() => {
-	s.push(4);
-	assert.strictEqual(n, 1);
-	setTimeout(() => {
-	  s.push(5);
-	  assert.strictEqual(n, 5)
-	  done();
-	}, 100);
-      }, 50);
+        assert.strictEqual(n, 4);
+      });
+      it("should work with placeholder", () => {
+        let n = 0;
+        const p = placeholder();
+        const throttleP = p.throttle(100);
+        throttleP.subscribe((v: number) => n = v);
+        assert.strictEqual(n, 0);
+        const s = S.empty<number>();
+        p.replaceWith(s);
+        s.push(1);
+        clock.tick(99);
+        s.push(2);
+        assert.strictEqual(n, 1);
+        clock.tick(1);
+        s.push(3);
+        assert.strictEqual(n, 3);
+      });
     });
   });
 });
