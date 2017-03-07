@@ -337,7 +337,7 @@ describe("Stream", () => {
       it("should delay every push", () => {
         let n = 0;
         const s = S.empty<number>();
-        const delayedS = s.delay(50);
+        const delayedS = S.delay(50, s);
         delayedS.subscribe(() => n = 2);
         s.subscribe(() => n = 1);
         s.push(0);
@@ -350,7 +350,7 @@ describe("Stream", () => {
       it("should work with placeholder", () => {
         let n = 0;
         const p = placeholder();
-        const delayedP = p.delay(50);
+        const delayedP = S.delay(50, p);
         delayedP.subscribe(() => n = 2);
         p.subscribe(() => n = 1);
         const s = S.empty<number>();
@@ -367,7 +367,7 @@ describe("Stream", () => {
       it("after an occurrence it should ignore", () => {
         let n = 0;
         const s = S.empty<number>();
-        const throttleS = s.throttle(100);
+        const throttleS = S.throttle(100, s);
         throttleS.subscribe((v) => n = v);
         assert.strictEqual(n, 0);
         s.push(1);
@@ -385,7 +385,7 @@ describe("Stream", () => {
       it("should work with placeholder", () => {
         let n = 0;
         const p = placeholder();
-        const throttleP = p.throttle(100);
+        const throttleP = S.throttle(100, p);
         throttleP.subscribe((v: number) => n = v);
         assert.strictEqual(n, 0);
         const s = S.empty<number>();
@@ -397,6 +397,47 @@ describe("Stream", () => {
         clock.tick(1);
         s.push(3);
         assert.strictEqual(n, 3);
+      });
+    });
+
+    describe("debounce", () => {
+      it("holding the latest occurens until an amount of time has passed", () => {
+        let n = 0;
+        const s = S.empty<number>();
+        const debouncedS = S.debounce(100, s);
+        debouncedS.subscribe((v) => n = v);
+        assert.strictEqual(n, 0);
+        s.push(1);
+        clock.tick(80);
+        assert.strictEqual(n, 0);
+        clock.tick(30);
+        assert.strictEqual(n, 1);
+        s.push(2);
+        assert.strictEqual(n, 1);
+        clock.tick(99);
+        assert.strictEqual(n, 1);
+        clock.tick(2);
+        assert.strictEqual(n, 2);
+      });
+      it("should work with placeholder", () => {
+        let n = 0;
+        const p = placeholder();
+        const debouncedP = S.debounce(100, p);
+        debouncedP.subscribe((v: number) => n = v);
+        const s = S.empty<number>();
+        p.replaceWith(s);
+        assert.strictEqual(n, 0);
+        s.push(1);
+        clock.tick(80);
+        assert.strictEqual(n, 0);
+        clock.tick(30);
+        assert.strictEqual(n, 1);
+        s.push(2);
+        assert.strictEqual(n, 1);
+        clock.tick(99);
+        assert.strictEqual(n, 1);
+        clock.tick(2);
+        assert.strictEqual(n, 2);
       });
     });
   });

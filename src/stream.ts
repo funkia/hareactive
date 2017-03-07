@@ -53,6 +53,11 @@ export abstract class Stream<A> extends Reactive<A> {
     this.addListener(s);
     return s;
   }
+  debounce(ms: number): Stream<A> {
+    const s = new DebounceStream<A>(ms);
+    this.addListener(s);
+    return s;
+  }
 }
 
 /** @private */
@@ -112,6 +117,23 @@ class ThrottleStream<A> extends Stream<A> {
       }, this.ms)
     }
   }
+}
+
+class DebounceStream<A> extends Stream<A> {
+  constructor(private ms: number) {
+    super();
+  }
+  private timer: number = undefined;
+  push(a: A): void {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      this.child.push(a);
+    }, this.ms);
+  }
+}
+
+export function debounce<A>(ms: number, stream: Stream<A>) {
+  return stream.debounce(ms);
 }
 
 export function throttle<A>(ms: number, stream: Stream<A>) {

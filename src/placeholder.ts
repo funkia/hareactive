@@ -58,7 +58,7 @@ const commonMethods = [
   "map", "mapTo", "subscribe", "addListener"
 ];
 const streamMethods = [
-  "combine", "filter", "filterApply", "scanS", "delay", "throttle"
+  "combine", "filter", "filterApply", "scanS", "delay", "throttle", "debounce"
 ];
 const behaviorMethods = [
   "ap", "lift", "chain", "push", "pull", "beginPulling", "endPulling",
