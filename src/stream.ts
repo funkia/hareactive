@@ -190,7 +190,7 @@ class ScanStream<A, B> extends Stream<B> {
  * becomes the next value of the behavior.
  */
 export function scanS<A, B>(fn: (a: A, b: B) => B, startingValue: B, stream: Stream<A>): Behavior<Stream<B>> {
-  return fromFunction(() => new ScanStream(fn, startingValue, stream));
+  return stream.scanS(fn, startingValue);
 }
 
 class SnapshotStream<B> extends Stream<B> {

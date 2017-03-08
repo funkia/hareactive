@@ -5,7 +5,8 @@ import {map} from "../src/index";
 import {placeholder} from "../src/placeholder";
 import * as S from "../src/stream";
 import {
-  Stream, keepWhen, apply, filterApply, snapshot, snapshotWith, split
+  Stream, keepWhen, apply, filterApply, snapshot, snapshotWith, split,
+  throttle, delay
 } from "../src/stream";
 import * as B from "../src/behavior";
 import {Behavior, at} from "../src/behavior";
@@ -337,7 +338,7 @@ describe("Stream", () => {
       it("should delay every push", () => {
         let n = 0;
         const s = S.empty<number>();
-        const delayedS = S.delay(50, s);
+        const delayedS = delay(50, s);
         delayedS.subscribe(() => n = 2);
         s.subscribe(() => n = 1);
         s.push(0);
@@ -350,7 +351,7 @@ describe("Stream", () => {
       it("should work with placeholder", () => {
         let n = 0;
         const p = placeholder();
-        const delayedP = S.delay(50, p);
+        const delayedP = delay(50,p );
         delayedP.subscribe(() => n = 2);
         p.subscribe(() => n = 1);
         const s = S.empty<number>();
@@ -367,7 +368,7 @@ describe("Stream", () => {
       it("after an occurrence it should ignore", () => {
         let n = 0;
         const s = S.empty<number>();
-        const throttleS = S.throttle(100, s);
+        const throttleS = throttle(100, s);
         throttleS.subscribe((v) => n = v);
         assert.strictEqual(n, 0);
         s.push(1);
@@ -385,7 +386,7 @@ describe("Stream", () => {
       it("should work with placeholder", () => {
         let n = 0;
         const p = placeholder();
-        const throttleP = S.throttle(100, p);
+        const throttleP = throttle(100, p);
         throttleP.subscribe((v: number) => n = v);
         assert.strictEqual(n, 0);
         const s = S.empty<number>();
