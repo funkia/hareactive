@@ -173,6 +173,19 @@ describe("Now", () => {
   });
 
   describe("performStreamLatest", () => {
+    it("work with one occurence", (done: Function) => {
+      let results: any[] = [];
+      const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
+      const s = S.empty();
+      const mappedS = s.map(impure);
+      performStreamLatest(mappedS).run().subscribe((n) => results.push(n));
+      s.push(60);
+      setTimeout(() => {
+        assert.deepEqual(results, [60])
+        done();
+      });
+    });
+
     it("runs io actions and ignores outdated results", (done: Function) => {
       let results: any[] = [];
       const impure = withEffects((n: number) => {
@@ -194,11 +207,24 @@ describe("Now", () => {
       }, 100);
     });
   });
-
+  
   describe("performStreamOrdered", () => {
+    it("work with one occurence", (done: Function) => {
+      let results: any[] = [];
+      const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
+      const s = S.empty();
+      const mappedS = s.map(impure);
+      performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
+      s.push(60);
+      setTimeout(() => {
+	assert.deepEqual(results, [60])
+	done();
+      });
+    });
+    
     it("runs io actions and makes sure to keep the results in the same order", (done: Function) => {
       let results: any[] = [];
-      const impure = withEffects((n: number) => {
+      const impure = withEffectsP((n: number) => {
 	return new Promise((resolve, reject) => {
 	  setTimeout(() => resolve(n), n);
 	});
@@ -209,12 +235,28 @@ describe("Now", () => {
       s.push(60);
       s.push(20);
       s.push(30);
+      s.push(undefined);
       s.push(50);
       s.push(40);
       setTimeout(() => {
-	assert.deepEqual(results, [60, 20, 30, 50, 40])
+	assert.deepEqual(results, [60, 20, 30, undefined, 50, 40])
 	done();
       }, 100);
+    });
+
+    it("should support `undefined` as result", (done) => {
+      let results: any[] = [];
+      const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
+      const s = S.empty();
+      const mappedS = s.map(impure);
+      performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
+      s.push(60);
+      s.push(undefined);
+      s.push(20);
+      setTimeout(() => {
+	assert.deepEqual(results, [60, undefined, 20]);
+	done();
+      });
     });
   });
 });

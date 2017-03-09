@@ -100,13 +100,21 @@ class PerformIOStreamLatest<A> extends Stream<A> {
     super();
     s.addListener(this);
   }
-  id: number = 0;
-  latest: number = 0;
+  next: number = 0;
+  newest: number = 0;
+  running: number = 0;
   push(io: IO<A>): void {
-    const id = this.id++;
+    const time = ++this.next;
+    this.running++;
     runIO(io).then((a: A) => {
-      if (id > this.latest) {
-	this.latest = id;
+      this.running--;
+      if (time > this.newest) {
+        if (this.running === 0) {
+          this.next = 0;
+          this.newest = 0;
+        } else {
+          this.newest = time;
+        }
 	this.child.push(a);
       }
     });
@@ -133,22 +141,22 @@ class PerformIOStreamOrdered<A> extends Stream<A> {
   }
   nextId: number = 0;
   next: number = 0;
-  buffer: A[] = [];
+  buffer: {value:A}[] = []; // Object-wrapper to support a result as undefined
   push(io: IO<A>): void {
     const id = this.nextId++;
     runIO(io).then((a: A) => {
       if (id === this.next) {
-        this.buffer[0] = a;
+        this.buffer[0] = {value: a}
         this.pushFromBuffer();
       } else {
-	this.buffer[id - this.next] = a;
+	this.buffer[id - this.next] = {value: a};
       }
     });
   }
   pushFromBuffer(): void {
     while (this.buffer[0] !== undefined) {
-      const element = this.buffer.shift();
-      this.child.push(element);
+      const {value} = this.buffer.shift();
+      this.child.push(value);
       this.next++;
     }
   }
