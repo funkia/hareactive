@@ -322,6 +322,6 @@ export function combine<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)> {
   return a.combine(b);
 }
 
-export function isStream(obj: any): boolean {
-  return typeof obj === "object" && ("scanS" in obj);
+export function isStream(s: any): s is Stream<any> {
+  return typeof s === "object" && ("scanS" in s);
 }
