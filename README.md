@@ -1,4 +1,4 @@
-<img style="float: right; width: 15em" src="https://rawgithub.com/Funkia/hareactive/master/logo.svg">
+<img align="right" width="220px" src="https://rawgithub.com/Funkia/hareactive/master/logo.svg">
 
 [![Build Status](https://img.shields.io/travis/Funkia/hareactive.svg?colorB=c100b6)](https://travis-ci.org/Funkia/hareactive)
 [![codecov](https://img.shields.io/codecov/c/github/Funkia/hareactive.svg?colorB=c100b6)](https://codecov.io/gh/Funkia/hareactive)
