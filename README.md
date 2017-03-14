@@ -2,6 +2,7 @@
 
 [![Build Status](https://img.shields.io/travis/Funkia/hareactive.svg?colorB=c100b6)](https://travis-ci.org/Funkia/hareactive)
 [![codecov](https://img.shields.io/codecov/c/github/Funkia/hareactive.svg?colorB=c100b6)](https://codecov.io/gh/Funkia/hareactive)
+[![Gitter](https://img.shields.io/gitter/room/funkia/General.svg?colorB=c100b6)](https://gitter.im/funkia/General)
 
 # Hareactive
 
