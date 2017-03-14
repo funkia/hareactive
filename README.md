@@ -1,4 +1,7 @@
-<img align="right" src="https://avatars0.githubusercontent.com/u/21360882?v=3&s=200">
+<img style="float: right; width: 15em" src="https://rawgithub.com/Funkia/hareactive/master/logo.svg">
+
+[![Build Status](https://img.shields.io/travis/Funkia/hareactive.svg?colorB=c100b6)](https://travis-ci.org/Funkia/hareactive)
+[![codecov](https://img.shields.io/codecov/c/github/Funkia/hareactive.svg?colorB=c100b6)](https://codecov.io/gh/Funkia/hareactive)
 
 # Hareactive
 
@@ -13,9 +16,6 @@ features/goals:
 * Support for declarative side-effects in a way that is pure,
   testable and integrates with FRP for powerful handling of asynchronous
   operations.
-
-[![Build Status](https://travis-ci.org/Funkia/hareactive.svg?branch=master)](https://travis-ci.org/Funkia/hareactive)
-[![codecov](https://codecov.io/gh/Funkia/hareactive/branch/master/graph/badge.svg)](https://codecov.io/gh/Funkia/hareactive)
 
 ## Table of contents
 
