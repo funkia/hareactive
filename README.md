@@ -231,11 +231,14 @@ behavior and occurs with that value. That is, the original value of
 the future is overwritten with the behavior value at the time when the
 future occurs.
 
-#### `switcher<A>(init: Behavior<A>, next: Future<Behavior<A>>): Behavior<A>`
+#### `switchTo<A>(init: Behavior<A>, next: Future<Behavior<A>>): Behavior<A>`
 
-From an initial behavior and a future of a behavior `switcher` creates
-a new behavior that acts exactly like `initial` until `next` occurs
-after which it acts like the behavior it contains.
+Creates a new behavior that acts exactly like `initial` until `next`
+occurs after which it acts like the behavior it contains.
+
+#### `switcher<A>(init: Behavior<A>, s: Stream<Behavior<A>>): Behavior<Behavior<A>>`
+
+A behavior of a behavior that switches to the latest behavior from `s`.
 
 #### `stepper<B>(initial: B, steps: Stream<B>): Behavior<B>`
 

@@ -12,9 +12,9 @@ import {Future} from "../src/future";
 import * as F from "../src/future";
 import {placeholder} from "../src/placeholder";
 import {
-  Behavior, at, switcher, scan, timeFrom, observe, time, ap, stepper, isBehavior
+  Behavior, at, switchTo, switcher, scan, timeFrom, observe, time, ap, stepper, isBehavior
 } from "../src/behavior";
-import {switchStream, changes} from "../src/stream";
+import {Stream, switchStream, changes} from "../src/stream";
 
 function id<A>(v: A): A {
   return v;
@@ -400,12 +400,12 @@ describe("Behavior and Future", () => {
       assert.strictEqual(result, 2);
     });
   });
-  describe("switcher", () => {
-    it("switches between behavior", () => {
+  describe("switchTo", () => {
+    it("switches to new behavior", () => {
       const b1 = B.sink(1);
       const b2 = B.sink(8);
       const futureSink = F.sinkFuture<Behavior<number>>();
-      const switching = switcher(b1, futureSink);
+      const switching = switchTo(b1, futureSink);
       assert.strictEqual(at(switching), 1);
       b2.push(9);
       assert.strictEqual(at(switching), 1);
@@ -422,7 +422,7 @@ describe("Behavior and Future", () => {
       let x = 0;
       const b1 = B.fromFunction(() => x);
       const futureSink = F.sinkFuture<Behavior<number>>();
-      const switching = switcher(b1, futureSink);
+      const switching = switchTo(b1, futureSink);
       assert.strictEqual(at(switching), 0);
       x = 1;
       assert.strictEqual(at(switching), 1);
@@ -435,7 +435,7 @@ describe("Behavior and Future", () => {
       const b1 = B.fromFunction(() => x);
       const b2 = B.sink(2);
       const futureSink = F.sinkFuture<Behavior<number>>();
-      const switching = switcher(b1, futureSink);
+      const switching = switchTo(b1, futureSink);
       observe(
         (n: number) => pushed.push(n),
         () => beginPull = true,
@@ -456,6 +456,21 @@ describe("Behavior and Future", () => {
 });
 
 describe("Behavior and Stream", () => {
+  describe("switcher", () => {
+    it("switches to behavior", () => {
+      const result: number[] = [];
+      const stream: Stream<Behavior<number>> = S.empty();
+      const initB = Behavior.of(1);
+      const outerSwitcher = switcher(initB, stream);
+      const switchingB = at(outerSwitcher);
+      switchingB.subscribe((n) => result.push(n));
+      const sinkB = B.sink(2);
+      stream.push(sinkB);
+      sinkB.push(3);
+      assert.deepEqual(result, [1, 2, 3]);
+      assert.deepEqual(at(at(outerSwitcher)), 1);
+    });
+  });
   describe("stepper", () => {
     it("steps to the last event value", () => {
       const e = S.empty();

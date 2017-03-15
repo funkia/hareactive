@@ -7,7 +7,7 @@ import {go, Monad} from "jabz/monad";
 import {Either, right, fromEither} from "jabz/either";
 
 import * as B from "../src/behavior";
-import {Behavior, switcher, when} from "../src/behavior";
+import {Behavior, switchTo, when} from "../src/behavior";
 import * as S from "../src/stream";
 import * as F from "../src/future";
 import {Future} from "../src/future";
@@ -123,7 +123,7 @@ describe("Now", () => {
       return go(function*(): Iterator<Now<any>> {
         const e = yield async(getNextNr(1));
         const e1 = yield plan(e.map(loop));
-        return switcher(Behavior.of(n), e1);
+        return switchTo(Behavior.of(n), e1);
       });
     }
     function main(): Now<Future<number>> {

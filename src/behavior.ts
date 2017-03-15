@@ -431,7 +431,9 @@ export function snapshotAt<A>(
 
 /** @private */
 class SwitcherBehavior<A> extends Behavior<A> {
-  constructor(private b: Behavior<A>, next: Future<Behavior<A>>) {
+  constructor(
+    private b: Behavior<A>,
+    next: Future<Behavior<A>> | Stream<Behavior<A>>) {
     super();
     this.pushing = b.pushing;
     if (this.pushing === true) {
@@ -463,11 +465,17 @@ class SwitcherBehavior<A> extends Behavior<A> {
   }
 }
 
-export function switcher<A>(
+export function switchTo<A>(
   init: Behavior<A>,
   next: Future<Behavior<A>>
 ): Behavior<A> {
   return new SwitcherBehavior(init, next);
+}
+
+export function switcher<A>(
+  init: Behavior<A>, stream: Stream<Behavior<A>>
+): Behavior<Behavior<A>> {
+  return fromFunction(() => new SwitcherBehavior(init, stream));
 }
 
 /** @private */
