@@ -274,6 +274,10 @@ behavior gives a behavior with values that contain the difference
 between the current sample time and the time at which the outer
 behavior was sampled.
 
+#### `integrate(behavior: Behavior<number>): Behavior<Behavior<number>>`
+
+Integrate behavior with respect to time.
+
 ### Now
 
 The Now monad represents a computation that takes place in a given

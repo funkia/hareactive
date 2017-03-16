@@ -1,7 +1,7 @@
 import {toggle} from "../src";
 import "mocha";
 import {assert} from "chai";
-import {spy} from "sinon";
+import {spy, useFakeTimers} from "sinon";
 
 import {lift} from "jabz/applicative";
 
@@ -12,7 +12,8 @@ import {Future} from "../src/future";
 import * as F from "../src/future";
 import {placeholder} from "../src/placeholder";
 import {
-  Behavior, at, switchTo, switcher, scan, timeFrom, observe, time, ap, stepper, isBehavior
+  Behavior, at, switchTo, switcher, scan, timeFrom, observe,
+  time, integrate, ap, stepper, isBehavior
 } from "../src/behavior";
 import {Stream, switchStream, changes} from "../src/stream";
 
@@ -351,6 +352,22 @@ describe("Behavior", () => {
     it("is a behavior", () => {
       const p = placeholder();
       assert.strictEqual(isBehavior(p), true);
+    });
+  });
+  describe("integrate", () => {
+    it("can integrate", () => {
+      const clock = useFakeTimers();
+      const acceleration = B.sink(1);
+      const integration = at(integrate(acceleration));
+      assert.strictEqual(at(integration), 0);
+      clock.tick(2000);
+      assert.strictEqual(at(integration), 2);
+      clock.tick(1000);
+      assert.strictEqual(at(integration), 3);
+      clock.tick(500);
+      acceleration.push(2);
+      assert.strictEqual(at(integration), 4);
+      clock.restore();
     });
   });
 });

@@ -604,3 +604,28 @@ export const time: Behavior<Time> = fromFunction(Date.now);
 
 export const timeFrom: Behavior<Behavior<Time>>
   = fromFunction(() => new TimeFromBehavior());
+
+class IntegrateBehavior extends Behavior<number> {
+  private lastPullTime: Time;
+  private value: number;
+  constructor(private parent: Behavior<number>) {
+    super();
+    this.lastPullTime = Date.now();
+    this.pushing = false;
+    this.value = 0;
+  }
+  push(): void {
+    throw new Error("Cannot push to TimeFromBehavior");
+  }
+  pull(): Time {
+    const currentPullTime = Date.now();
+    const deltaSeconds = (currentPullTime - this.lastPullTime) / 1000;
+    this.value += deltaSeconds * at(this.parent);
+    this.lastPullTime = currentPullTime;
+    return this.value;
+  }
+}
+
+export function integrate(behavior: Behavior<number>): Behavior<Behavior<number>> {
+  return fromFunction(() => new IntegrateBehavior(behavior));
+}
