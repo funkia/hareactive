@@ -1,6 +1,6 @@
 /** @module hareactive/stream */
 
-import {Consumer, Reactive, Observer} from "./frp-common";
+import {Reactive, Observer} from "./frp-common";
 
 import {Behavior, at, scan, fromFunction} from "./behavior";
 
@@ -113,8 +113,8 @@ class ThrottleStream<A> extends Stream<A> {
       this.child.push(a);
       this.isSilenced = true;
       setTimeout(() => {
-	this.isSilenced = false;
-      }, this.ms)
+        this.isSilenced = false;
+      }, this.ms);
     }
   }
 }
@@ -214,7 +214,7 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
     stream: Stream<A>
   ) {
     super();
-    stream.child = this;
+    stream.addListener(this);
   }
   push(a: A): void {
     this.child.push(this.fn(a, at(this.behavior)));
