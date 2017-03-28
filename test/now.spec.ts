@@ -1,25 +1,18 @@
-import {assert} from "chai";
-
-import {IO, callP, withEffects, withEffectsP} from "jabz/io";
-import {map} from "jabz/functor";
-import {lift} from "jabz/applicative";
-import {go, Monad} from "jabz/monad";
-import {Either, right, fromEither} from "jabz/either";
-
-import * as B from "../src/behavior";
-import {Behavior, switchTo, when} from "../src/behavior";
+import { Behavior, switchTo, when } from "../src/behavior";
+import { Future } from "../src/future";
+import { async, Now, performStream, performStreamLatest, performStreamOrdered, plan, runNow, sample } from "../src/now";
 import * as S from "../src/stream";
-import * as F from "../src/future";
-import {Future} from "../src/future";
-import {
-  Now, runNow, async, sample, plan, performStream, performStreamLatest, performStreamOrdered
-} from "../src/now";
+import { assert } from "chai";
+import { lift } from "jabz/applicative";
+import { Either } from "jabz/either";
+import { callP, IO, withEffects, withEffectsP } from "jabz/io";
+import { go } from "jabz/monad";
 
 // A reference that can be mutated
-type Ref<A> = {ref: A};
+type Ref<A> = { ref: A };
 
 function createRef<A>(a: A): Ref<A> {
-  return {ref: a};
+  return { ref: a };
 }
 
 const mutateRef: <A>(a: A, r: Ref<A>) => IO<{}> = withEffects((a: any, r: Ref<any>) => r.ref = a);
@@ -58,7 +51,7 @@ describe("Now", () => {
       function comp(n: number): Now<number> {
         return Now.of(n * 2);
       }
-      const prog = go(function*(): Iterator<Now<any>> {
+      const prog = go(function* (): Iterator<Now<any>> {
         const e: Future<number> = yield async(fn(1));
         const e2 = yield plan(e.map((r) => comp(r)));
         return e2;
@@ -120,14 +113,14 @@ describe("Now", () => {
       });
     });
     function loop(n: number): Now<Behavior<number>> {
-      return go(function*(): Iterator<Now<any>> {
+      return go(function* (): Iterator<Now<any>> {
         const e = yield async(getNextNr(1));
         const e1 = yield plan(e.map(loop));
         return switchTo(Behavior.of(n), e1);
       });
     }
     function main(): Now<Future<number>> {
-      return go(function*(): Iterator<Now<any>> {
+      return go(function* (): Iterator<Now<any>> {
         const b: Behavior<number> = yield loop(0);
         const e = yield sample(when(b.map((n: number) => {
           return n === 3;
@@ -173,7 +166,7 @@ describe("Now", () => {
   });
 
   describe("performStreamLatest", () => {
-    it("work with one occurence", (done: Function) => {
+    it("work with one occurrence", (done: Function) => {
       let results: any[] = [];
       const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
       const s = S.empty();
@@ -181,7 +174,7 @@ describe("Now", () => {
       performStreamLatest(mappedS).run().subscribe((n) => results.push(n));
       s.push(60);
       setTimeout(() => {
-        assert.deepEqual(results, [60])
+        assert.deepEqual(results, [60]);
         done();
       });
     });
@@ -189,11 +182,11 @@ describe("Now", () => {
     it("runs io actions and ignores outdated results", (done: Function) => {
       let results: any[] = [];
       const impure = withEffects((n: number) => {
-	return new Promise((resolve, reject) => {
-	  setTimeout(() => {
-	    resolve(n);
-	  }, n);
-	});
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve(n);
+          }, n);
+        });
       });
       const s = S.empty();
       const mappedS = s.map(impure);
@@ -202,14 +195,14 @@ describe("Now", () => {
       s.push(20);
       s.push(30);
       setTimeout(() => {
-	assert.deepEqual(results, [20, 30])
-	done();
+        assert.deepEqual(results, [20, 30])
+        done();
       }, 100);
     });
   });
-  
+
   describe("performStreamOrdered", () => {
-    it("work with one occurence", (done: Function) => {
+    it("work with one occurrence", (done: Function) => {
       let results: any[] = [];
       const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
       const s = S.empty();
@@ -217,17 +210,17 @@ describe("Now", () => {
       performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
       s.push(60);
       setTimeout(() => {
-	assert.deepEqual(results, [60])
-	done();
+        assert.deepEqual(results, [60]);
+        done();
       });
     });
-    
+
     it("runs io actions and makes sure to keep the results in the same order", (done: Function) => {
       let results: any[] = [];
       const impure = withEffectsP((n: number) => {
-	return new Promise((resolve, reject) => {
-	  setTimeout(() => resolve(n), n);
-	});
+        return new Promise((resolve, reject) => {
+          setTimeout(() => resolve(n), n);
+        });
       });
       const s = S.empty();
       const mappedS = s.map(impure);
@@ -239,12 +232,12 @@ describe("Now", () => {
       s.push(50);
       s.push(40);
       setTimeout(() => {
-	assert.deepEqual(results, [60, 20, 30, undefined, 50, 40])
-	done();
+        assert.deepEqual(results, [60, 20, 30, undefined, 50, 40])
+        done();
       }, 100);
     });
 
-    it("should support `undefined` as result", (done) => {
+    it("should support `undefined` as result", (done: MochaDone) => {
       let results: any[] = [];
       const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
       const s = S.empty();
@@ -254,8 +247,8 @@ describe("Now", () => {
       s.push(undefined);
       s.push(20);
       setTimeout(() => {
-	assert.deepEqual(results, [60, undefined, 20]);
-	done();
+        assert.deepEqual(results, [60, undefined, 20]);
+        done();
       });
     });
   });
