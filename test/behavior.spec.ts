@@ -374,7 +374,7 @@ describe("Behavior", () => {
 
 describe("Behavior and Future", () => {
   describe("when", () => {
-    it("gives occured future when behavior is true", () => {
+    it("gives occurred future when behavior is true", () => {
       let occurred = false;
       const b = Behavior.of(true);
       const w = B.when(b);
@@ -394,7 +394,7 @@ describe("Behavior and Future", () => {
     });
   });
   describe("snapshot", () => {
-    it("snapshots behavior at future occuring in future", () => {
+    it("snapshots behavior at future occurring in future", () => {
       let result: number;
       const bSink = B.sink(1);
       const futureSink = F.sinkFuture();
@@ -406,7 +406,7 @@ describe("Behavior and Future", () => {
       bSink.push(4);
       assert.strictEqual(result, 3);
     });
-    it("uses current value when future occured in the past", () => {
+    it("uses current value when future occurred in the past", () => {
       let result: number;
       const bSink = B.sink(1);
       const occurredFuture = Future.of({});
@@ -534,7 +534,7 @@ describe("Behavior and Stream", () => {
       assert.deepEqual(cb.args, [[1], [2], [3], [5], [6]]);
     });
   });
-  describe("continous time", () => {
+  describe("continuous time", () => {
     it("gives time from sample point", () => {
       const [setTime, restore] = mockNow();
       setTime(3);
