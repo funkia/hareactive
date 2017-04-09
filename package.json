@@ -1,6 +1,6 @@
 {
   "name": "@funkia/hareactive",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "Experimental FRP library for building web applications.",
   "main": "index.js",
   "module": "dist/es/index.js",
