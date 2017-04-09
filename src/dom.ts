@@ -1,4 +1,4 @@
-import { empty, Stream } from "../Stream";
+import { empty, Stream } from "./stream";
 
 export type EventName = keyof HTMLElementEventMap;
 
