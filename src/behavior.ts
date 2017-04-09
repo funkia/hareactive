@@ -1,4 +1,4 @@
-import {Monad, monad} from "jabz/monad";
+import {Monad, monad} from "@funkia/jabz";
 import {
   Observer, MultiObserver, noopObserver
 } from "./frp-common";

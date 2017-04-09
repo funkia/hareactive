@@ -3,10 +3,9 @@ import { Future } from "../src/future";
 import { async, Now, performStream, performStreamLatest, performStreamOrdered, plan, runNow, sample } from "../src/now";
 import * as S from "../src/stream";
 import { assert } from "chai";
-import { lift } from "jabz/applicative";
-import { Either } from "jabz/either";
-import { callP, IO, withEffects, withEffectsP } from "jabz/io";
-import { go } from "jabz/monad";
+import {
+  lift, Either, callP, IO, withEffects, withEffectsP, go
+} from "@funkia/jabz";
 
 // A reference that can be mutated
 type Ref<A> = { ref: A };

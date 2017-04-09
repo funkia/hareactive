@@ -1,6 +1,6 @@
 import {assert} from "chai";
 
-import {lift} from "jabz/applicative";
+import {lift} from "@funkia/jabz";
 
 import {Future, sinkFuture, fromPromise} from "../src/future";
 

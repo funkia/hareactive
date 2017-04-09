@@ -1,5 +1,4 @@
-import {IO, runIO} from "jabz/io";
-import {Monad, monad} from "jabz/monad";
+import {IO, runIO, Monad, monad} from "@funkia/jabz";
 
 import {Future, fromPromise, sinkFuture} from "./future";
 import {Behavior, at} from "./behavior";

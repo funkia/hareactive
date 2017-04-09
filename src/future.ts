@@ -1,4 +1,4 @@
-import {monad, Monad} from "jabz/monad";
+import {monad, Monad} from "@funkia/jabz";
 import {Consumer, Observer} from "./frp-common";
 import {Behavior} from "./behavior";
 
