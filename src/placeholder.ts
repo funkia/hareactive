@@ -1,4 +1,4 @@
-import {Behavior, isBehavior, at, placeholder as bPlaceholder} from "./behavior";
+import {Behavior, isBehavior, at, behaviorPlaceholder} from "./behavior";
 import {Stream, isStream, placeholderStream} from "./stream";
 
 export class Placeholder {
@@ -35,7 +35,7 @@ function defineBehaviorMethod (methodName: string) {
     if (this.source !== undefined) {
       return this.source[methodName](...args);
     } else {
-      const p = <any> bPlaceholder();
+      const p = <any> behaviorPlaceholder();
       this.children.push(p);
       return p[methodName](...args);
     }

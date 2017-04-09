@@ -230,7 +230,7 @@ describe("Behavior", () => {
       assert.equal(B.at(applied), 16);
     });
     it("works on placeholder", () => {
-      const b = B.placeholder();
+      const b = B.behaviorPlaceholder();
       const applied = ap(b, Behavior.of(12));
     });
   });

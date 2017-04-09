@@ -359,7 +359,7 @@ export class PlaceholderBehavior<B> extends Behavior<B> {
   }
 }
 
-export function placeholder(): PlaceholderBehavior<any> {
+export function behaviorPlaceholder(): PlaceholderBehavior<any> {
   return new PlaceholderBehavior();
 }
 
