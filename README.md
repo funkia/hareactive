@@ -1,7 +1,7 @@
-<img align="right" width="220px" src="https://rawgithub.com/Funkia/hareactive/master/logo.svg">
+<img align="right" width="220px" src="https://rawgithub.com/funkia/hareactive/master/logo.svg">
 
-[![Build Status](https://img.shields.io/travis/Funkia/hareactive.svg?colorB=c100b6)](https://travis-ci.org/Funkia/hareactive)
-[![codecov](https://img.shields.io/codecov/c/github/Funkia/hareactive.svg?colorB=c100b6)](https://codecov.io/gh/Funkia/hareactive)
+[![Build Status](https://img.shields.io/travis/funkia/hareactive.svg?colorB=c100b6)](https://travis-ci.org/funkia/hareactive)
+[![codecov](https://img.shields.io/codecov/c/github/funkia/hareactive.svg?colorB=c100b6)](https://codecov.io/gh/funkia/hareactive)
 [![Gitter](https://img.shields.io/gitter/room/funkia/General.svg?colorB=c100b6)](https://gitter.im/funkia/General)
 
 # Hareactive
@@ -20,12 +20,19 @@ features/goals:
 
 ## Table of contents
 
+* [Installation](#installation)
 * [Tutorial](#tutorial)
-* [API documentation](#api-documentation)
+* [API documentation](#api)
 * [Contributing](#contributing)
 * [Benchmark](#benchmark)
 
-## Introduction
+# Installation
+
+```
+npm install @funkia/hareactive
+```
+
+## Tutorial
 
 Hareactive contains four key type of things: Future, stream, behavior and
 now. These are explained below.

@@ -1,5 +1,5 @@
 {
-  "name": "hareactive",
+  "name": "@funkia/hareactive",
   "version": "0.0.16",
   "description": "Experimental FRP library for building web applications.",
   "main": "index.js",
