@@ -7,18 +7,6 @@ import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import { Stream } from "./stream";
 
-class IncompleteObserver<A> implements Observer<A> {
-  beginPulling(): void {
-    throw new Error("beginPulling not implemented");
-  }
-  endPulling(): void {
-    throw new Error("beginPushing not implemented");
-  }
-  push(a: A): void {
-    throw new Error("push not implemented");
-  }
-}
-
 class OnlyPushObserver<A> implements Observer<A> {
   constructor(private cb: (a: A) => void) { };
   beginPulling(): void { }
@@ -42,12 +30,9 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
   nrOfListeners: number;
   child: Observer<any>;
 
-  abstract push(a: any): void;
-  abstract pull(): A;
-
   constructor() {
     this.child = noopObserver;
-    this.nrOfListeners = 0; 
+    this.nrOfListeners = 0;
   }
   map<B>(fn: (a: A) => B): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
@@ -147,6 +132,12 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
   at(): A {
     return this.pushing === true ? this.last : this.pull();
   }
+  push(a: any): void {
+    throw new Error("The behavior does not support pushing.");
+  }
+  pull(): A {
+    throw new Error("The behavior does not support pulling.");
+  }
 }
 
 /*
@@ -162,12 +153,6 @@ class ConstantBehavior<A> extends Behavior<A> {
   constructor(public last: A) {
     super();
     this.pushing = true;
-  }
-  push(): void {
-    throw new Error("Cannot push a value to a constant behavior");
-  }
-  pull(): A {
-    return this.last;
   }
 }
 
@@ -193,7 +178,7 @@ class MapBehavior<A, B> extends Behavior<B> {
 }
 
 /** @private */
-class ChainOuter<A> extends IncompleteObserver<A> {
+class ChainOuter<A> extends Behavior<A> {
   constructor(private chainB: ChainBehavior<A, any>) {
     super();
   };
@@ -264,11 +249,6 @@ class FunctionBehavior<A> extends Behavior<A> {
     super();
     this.pushing = false;
   }
-
-  push(v: A): void {
-    throw new Error("Cannot push to a FunctionBehavior");
-  }
-
   pull(): A {
     return this.fn();
   }
@@ -323,9 +303,6 @@ class SinkBehavior<B> extends Behavior<B> {
       this.last = v;
       this.child.push(v);
     }
-  }
-  pull(): B {
-    return this.last;
   }
 }
 
@@ -500,9 +477,6 @@ class StepperBehavior<B> extends Behavior<B> {
     this.last = val;
     this.child.push(val);
   }
-  pull(): B {
-    throw new Error("Cannot pull from StepperBehavior");
-  }
 }
 
 export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
@@ -522,9 +496,6 @@ class ScanBehavior<A, B> extends Behavior<B> {
   push(val: A): void {
     this.last = this.fn(val, this.last);
     this.child.push(this.last);
-  }
-  pull(): B {
-    throw new Error("Cannot pull from Scan");
   }
 }
 
@@ -602,9 +573,6 @@ class TimeFromBehavior extends Behavior<Time> {
     this.startTime = Date.now();
     this.pushing = false;
   }
-  push(): void {
-    throw new Error("Cannot push to TimeFromBehavior");
-  }
   pull(): Time {
     return Date.now() - this.startTime;
   }
@@ -623,9 +591,6 @@ class IntegrateBehavior extends Behavior<number> {
     this.lastPullTime = Date.now();
     this.pushing = false;
     this.value = 0;
-  }
-  push(): void {
-    throw new Error("Cannot push to TimeFromBehavior");
   }
   pull(): Time {
     const currentPullTime = Date.now();

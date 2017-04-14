@@ -1,9 +1,9 @@
-import { toggle } from "../src";
+import {sink, toggle} from "../src";
 import "mocha";
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
 
-import { lift } from "@funkia/jabz";
+import { lift, mapTo } from "@funkia/jabz";
 
 import { map } from "../src/index";
 import * as B from "../src/behavior";
@@ -126,7 +126,7 @@ describe("Behavior", () => {
     //   assert.equal(B.at(nmB).n, 4);
     // });
   });
-  describe("map", () => {
+  describe("functor", () => {
     it("maps over initial value from parent", () => {
       const b = Behavior.of(3);
       const mapped = map(double, b);
@@ -167,72 +167,85 @@ describe("Behavior", () => {
       time = 3;
       assert.equal(B.at(mapped), 6);
     });
+    it("maps to constant", () => {
+      const b = Behavior.of(1);
+      const b2 = mapTo(2, b);
+      assert.strictEqual(at(b2), 2);
+    });
   });
-  describe("ap", () => {
-    it("applies event of functions to event of numbers with publish", () => {
-      const fnB = B.sink(add(1));
-      const numE = B.sink(3);
-      const applied = B.ap(fnB, numE);
-      assert.equal(B.at(applied), 4);
-      fnB.push(add(2));
-      assert.equal(B.at(applied), 5);
-      numE.push(4);
-      assert.equal(B.at(applied), 6);
-      fnB.push(double);
-      assert.equal(B.at(applied), 8);
+  describe("applicative", () => {
+    it("returns a constant behavior from of", () => {
+      const b1 = Behavior.of(1);
+      const b2 = b1.of(2);
+      assert.strictEqual(at(b1), 1);
+      assert.strictEqual(at(b2), 2);
     });
-    it("applies event of functions to event of numbers with pull", () => {
-      let n = 1;
-      let fn = add(5);
-      const fnB = B.fromFunction(() => fn);
-      const numB = B.fromFunction(() => n);
-      const applied = B.ap(fnB, numB);
-
-      assert.equal(B.at(applied), 6);
-      fn = add(2);
-      assert.equal(B.at(applied), 3);
-      n = 4;
-      assert.equal(B.at(applied), 6);
-      fn = double;
-      assert.equal(B.at(applied), 8);
-      n = 8;
-      assert.equal(B.at(applied), 16);
-    });
-    it("applies pushed event of functions to pulled event of numbers", () => {
-      let n = 1;
-      const fnB = B.sink(add(5));
-      const numE = B.fromFunction(() => {
-        return n;
+    describe("ap", () => {
+      it("applies event of functions to event of numbers with publish", () => {
+        const fnB = B.sink(add(1));
+        const numE = B.sink(3);
+        const applied = B.ap(fnB, numE);
+        assert.equal(B.at(applied), 4);
+        fnB.push(add(2));
+        assert.equal(B.at(applied), 5);
+        numE.push(4);
+        assert.equal(B.at(applied), 6);
+        fnB.push(double);
+        assert.equal(B.at(applied), 8);
       });
-      const applied = B.ap(fnB, numE);
-      assert.equal(B.at(applied), 6);
-      fnB.push(add(2));
-      assert.equal(B.at(applied), 3);
-      n = 4;
-      assert.equal(B.at(applied), 6);
-      fnB.push(double);
-      assert.equal(B.at(applied), 8);
-      n = 8;
-      assert.equal(B.at(applied), 16);
+      it("applies event of functions to event of numbers with pull", () => {
+        let n = 1;
+        let fn = add(5);
+        const fnB = B.fromFunction(() => fn);
+        const numB = B.fromFunction(() => n);
+        const applied = B.ap(fnB, numB);
+
+        assert.equal(B.at(applied), 6);
+        fn = add(2);
+        assert.equal(B.at(applied), 3);
+        n = 4;
+        assert.equal(B.at(applied), 6);
+        fn = double;
+        assert.equal(B.at(applied), 8);
+        n = 8;
+        assert.equal(B.at(applied), 16);
+      });
+      it("applies pushed event of functions to pulled event of numbers", () => {
+        let n = 1;
+        const fnB = B.sink(add(5));
+        const numE = B.fromFunction(() => {
+          return n;
+        });
+        const applied = B.ap(fnB, numE);
+        assert.equal(B.at(applied), 6);
+        fnB.push(add(2));
+        assert.equal(B.at(applied), 3);
+        n = 4;
+        assert.equal(B.at(applied), 6);
+        fnB.push(double);
+        assert.equal(B.at(applied), 8);
+        n = 8;
+        assert.equal(B.at(applied), 16);
+      });
+      it("works on placeholder", () => {
+        const b = B.behaviorPlaceholder();
+        const applied = ap(b, Behavior.of(12));
+      });
     });
-    it("works on placeholder", () => {
-      const b = B.behaviorPlaceholder();
-      const applied = ap(b, Behavior.of(12));
-    });
-  });
-  describe("lift", () => {
-    it("lifts function of three arguments", () => {
-      const b1 = B.sink(1);
-      const b2 = B.sink(1);
-      const b3 = B.sink(1);
-      const lifted = lift((a, b, c) => a * b + c, b1, b2, b3);
-      assert.strictEqual(at(lifted), 2);
-      b2.push(2);
-      assert.strictEqual(at(lifted), 3);
-      b1.push(3);
-      assert.strictEqual(at(lifted), 7);
-      b3.push(3);
-      assert.strictEqual(at(lifted), 9);
+    describe("lift", () => {
+      it("lifts function of three arguments", () => {
+        const b1 = B.sink(1);
+        const b2 = B.sink(1);
+        const b3 = B.sink(1);
+        const lifted = lift((a, b, c) => a * b + c, b1, b2, b3);
+        assert.strictEqual(at(lifted), 2);
+        b2.push(2);
+        assert.strictEqual(at(lifted), 3);
+        b1.push(3);
+        assert.strictEqual(at(lifted), 7);
+        b3.push(3);
+        assert.strictEqual(at(lifted), 9);
+      });
     });
   });
   describe("chain", () => {
@@ -304,7 +317,8 @@ describe("Behavior", () => {
     });
     it("can switch between pulling and pushing", () => {
       const pushingB = B.sink(0);
-      const pullingB = fromFunction(() => 0);
+      let variable = 7;
+      const pullingB = fromFunction(() => variable);
       const outer = B.sink(true);
       const chained = outer.chain((b) => b ? pushingB : pullingB);
       const pushSpy = spy();
@@ -317,15 +331,21 @@ describe("Behavior", () => {
       pushingB.push(1);
       pushingB.push(2);
       outer.push(false);
+      assert.strictEqual(at(chained), 7);
+      variable = 8;
+      assert.strictEqual(at(chained), 8);
       pushingB.push(3);
       pushingB.push(4);
       outer.push(true);
       pushingB.push(5);
+      outer.push(false);
+      variable = 9;
+      assert.strictEqual(at(chained), 9);
       assert.deepEqual(
         pushSpy.args,
         [[0], [0], [0], [1], [1], [1], [2], [2], [2], [4], [4], [4], [5], [5], [5]]
       );
-      assert.equal(beginPullingSpy.callCount, 3);
+      assert.equal(beginPullingSpy.callCount, 6);
       assert.equal(endPullingSpy.callCount, 3);
     });
   });
@@ -447,14 +467,25 @@ describe("Behavior and Future", () => {
       b2.push(10);
       assert.strictEqual(at(switching), 10);
     });
-    it("works when initial behavior is pulling", () => {
-      let x = 0;
-      const b1 = B.fromFunction(() => x);
+    it("changes from push to pull", () => {
+      const pushSpy = spy();
+      const beginPullingSpy = spy();
+      const endPullingSpy = spy();
+      const pushingB = sink(0);
+      let x = 7;
+      const pullingB = fromFunction(() => x);
       const futureSink = F.sinkFuture<Behavior<number>>();
-      const switching = switchTo(b1, futureSink);
+      const switching = switchTo(pushingB, futureSink);
+      observe(pushSpy, beginPullingSpy, endPullingSpy, switching);
       assert.strictEqual(at(switching), 0);
-      x = 1;
+      pushingB.push(1);
       assert.strictEqual(at(switching), 1);
+      futureSink.resolve(pullingB);
+      assert.strictEqual(at(switching), 7);
+      x = 8;
+      assert.strictEqual(at(switching), 8);
+      assert.strictEqual(beginPullingSpy.callCount, 1);
+      assert.strictEqual(endPullingSpy.callCount, 0);
     });
     it("changes from pull to push", () => {
       let beginPull = false;
@@ -483,7 +514,6 @@ describe("Behavior and Future", () => {
     });
   });
 });
-
 describe("Behavior and Stream", () => {
   describe("switcher", () => {
     it("switches to behavior", () => {
