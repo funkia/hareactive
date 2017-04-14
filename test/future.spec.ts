@@ -42,7 +42,7 @@ describe("Future", () => {
     });
   });
   describe("Applicative", () => {
-    it("of gives future that has occured", () => {
+    it("of gives future that has occurred", () => {
       let result: number;
       const o = Future.of(12);
       o.subscribe((x: number) => {

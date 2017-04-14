@@ -380,7 +380,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
   private afterFuture: boolean;
   constructor(private parent: Behavior<A>, future: Future<any>) {
     super();
-    if (future.occured === true) {
+    if (future.occurred === true) {
       // Future has occurred at some point in the past
       this.afterFuture = true;
       this.pushing = parent.pushing;
@@ -495,9 +495,11 @@ export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
 
 /** @private */
 class ScanBehavior<A, B> extends Behavior<B> {
-  constructor(initial: B,
+  constructor(
+    initial: B,
     private fn: (a: A, b: B) => B,
-    private source: Stream<A>) {
+    private source: Stream<A>
+  ) {
     super();
     this.pushing = true;
     this.last = initial;

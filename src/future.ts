@@ -10,9 +10,9 @@ import {Behavior} from "./behavior";
  */
 @monad
 export abstract class Future<A> implements Monad<A>, Consumer<any> {
-  // Flag indicating whether or not this future has occured.
-  occured: boolean;
-  // The value of the future. Often `undefined` until occurence.
+  // Flag indicating whether or not this future has occurred.
+  occurred: boolean;
+  // The value of the future. Often `undefined` until occurrence.
   value: A;
   // The consumers that depends on this producer. These should be
   // notified when the producer has a value.
@@ -21,7 +21,7 @@ export abstract class Future<A> implements Monad<A>, Consumer<any> {
     this.listeners = [];
   }
   listen(o: Consumer<A>): void {
-    if (this.occured !== true) {
+    if (this.occurred !== true) {
       this.listeners.push(o);
     } else {
       o.push(this.value);
@@ -34,7 +34,7 @@ export abstract class Future<A> implements Monad<A>, Consumer<any> {
   // a value.
   abstract push(val: any): void;
   resolve(val: A): void {
-    this.occured = true;
+    this.occurred = true;
     this.value = val;
     const listeners = this.listeners;
     for (let i = 0, l = listeners.length; i < l; ++i) {
@@ -50,7 +50,7 @@ export abstract class Future<A> implements Monad<A>, Consumer<any> {
     return new MapToFuture<B>(b, this);
   }
   // A future is an applicative. `of` gives a future that has always
-  // occured at all points in time.
+  // occurred at all points in time.
   static of<B>(b: B): Future<B> {
     return new PureFuture(b);
   }
@@ -99,7 +99,7 @@ class MapToFuture<A> extends Future<A> {
 class PureFuture<A> extends Future<A> {
   constructor(public value: A) {
     super();
-    this.occured = true;
+    this.occurred = true;
   }
   push(_: any): void {
     throw new Error("A PureFuture should never be pushed to.");
@@ -136,7 +136,7 @@ class ChainFuture<A, B> extends Future<B> {
   }
   push(val: any): void {
     if (this.parentOccurred === false) {
-      // The first future occured. We can now call `f` with its value
+      // The first future occurred. We can now call `f` with its value
       // and listen to the future it returns.
       this.parentOccurred = true;
       const newFuture = this.f(val);
