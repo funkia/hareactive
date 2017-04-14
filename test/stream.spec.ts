@@ -1,15 +1,15 @@
-import {assert} from "chai";
-import {spy, useFakeTimers} from "sinon";
+import { assert } from "chai";
+import { spy, useFakeTimers } from "sinon";
 
-import {map} from "../src/index";
-import {placeholder} from "../src/placeholder";
+import { map } from "../src/index";
+import { placeholder } from "../src/placeholder";
 import * as S from "../src/stream";
 import {
   Stream, keepWhen, apply, filterApply, snapshot, snapshotWith, split,
   throttle, delay
 } from "../src/stream";
 import * as B from "../src/behavior";
-import {Behavior, at} from "../src/behavior";
+import { Behavior, at } from "../src/behavior";
 
 const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
@@ -61,6 +61,21 @@ describe("Stream", () => {
       publish(3, s);
       assert.strictEqual(cb1.callCount, 2);
       assert.strictEqual(cb2.callCount, 0);
+    });
+    it("supports removing listener when more than two", () => {
+      const s = S.empty();
+      const cb1 = spy();
+      const cb2 = spy();
+      const cb3 = spy();
+      s.subscribe(cb1);
+      const listener = s.subscribe(cb2);
+      s.subscribe(cb3);
+      s.removeListener(listener);
+      publish(2, s);
+      publish(3, s);
+      assert.strictEqual(cb1.callCount, 2);
+      assert.strictEqual(cb2.callCount, 0);
+      assert.strictEqual(cb3.callCount, 2);
     });
   });
 
@@ -351,7 +366,7 @@ describe("Stream", () => {
       it("should work with placeholder", () => {
         let n = 0;
         const p = placeholder();
-        const delayedP = delay(50,p );
+        const delayedP = delay(50, p);
         delayedP.subscribe(() => n = 2);
         p.subscribe(() => n = 1);
         const s = S.empty<number>();
@@ -380,7 +395,7 @@ describe("Stream", () => {
         s.push(3);
         assert.strictEqual(n, 1);
         clock.tick(1);
-	s.push(4);
+        s.push(4);
         assert.strictEqual(n, 4);
       });
       it("should work with placeholder", () => {
