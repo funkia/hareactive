@@ -1,11 +1,11 @@
-import {Monad, monad} from "@funkia/jabz";
+import { Monad, monad } from "@funkia/jabz";
 import {
   Observer, MultiObserver, noopObserver
 } from "./frp-common";
 
-import {Future, BehaviorFuture} from "./future";
+import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
-import {Stream} from "./stream";
+import { Stream } from "./stream";
 
 class IncompleteObserver<A> implements Observer<A> {
   beginPulling(): void {
@@ -20,9 +20,9 @@ class IncompleteObserver<A> implements Observer<A> {
 }
 
 class OnlyPushObserver<A> implements Observer<A> {
-  constructor(private cb: (a: A) => void) {};
-  beginPulling(): void {}
-  endPulling(): void {}
+  constructor(private cb: (a: A) => void) { };
+  beginPulling(): void { }
+  endPulling(): void { }
   push(a: A): void {
     this.cb(a);
   }
@@ -47,7 +47,7 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
 
   constructor() {
     this.child = noopObserver;
-    this.nrOfListeners = 0;
+    this.nrOfListeners = 0; 
   }
   map<B>(fn: (a: A) => B): Behavior<B> {
     const newB = new MapBehavior<A, B>(this, fn);
@@ -76,14 +76,14 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
     // TODO: Experiment with faster specialized `lift` implementation
     const f = arguments[0];
     switch (arguments.length - 1) {
-    case 1:
-      return arguments[1].map(f);
-    case 2:
-      return arguments[2].ap(arguments[1].map((a: any) => (b: any) => f(a, b)));
-    case 3:
-      return arguments[3].ap(arguments[2].ap(arguments[1].map(
-        (a: any) => (b: any) => (c: any) => f(a, b, c)
-      )));
+      case 1:
+        return arguments[1].map(f);
+      case 2:
+        return arguments[2].ap(arguments[1].map((a: any) => (b: any) => f(a, b)));
+      case 3:
+        return arguments[3].ap(arguments[2].ap(arguments[1].map(
+          (a: any) => (b: any) => (c: any) => f(a, b, c)
+        )));
     }
   }
   static multi: boolean = false;
@@ -232,10 +232,20 @@ class ChainBehavior<A, B> extends Behavior<B> {
     if (this.innerB !== undefined) {
       this.innerB.removeListener(this);
     }
+    const wasPushing = this.pushing;
     const newInner = this.innerB = this.fn(a);
     this.pushing = newInner.pushing;
     newInner.addListener(this);
-    this.push(at(newInner));
+    if (wasPushing !== this.pushing) {
+      if (wasPushing === true) {
+        this.beginPulling();
+      } else {
+        this.endPulling();
+      }
+    }
+    if (this.pushing === true) {
+      this.push(at(newInner));
+    }
   }
 
   push(b: B): void {
@@ -502,8 +512,8 @@ export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
 /** @private */
 class ScanBehavior<A, B> extends Behavior<B> {
   constructor(initial: B,
-              private fn: (a: A, b: B) => B,
-              private source: Stream<A>) {
+    private fn: (a: A, b: B) => B,
+    private source: Stream<A>) {
     super();
     this.pushing = true;
     this.last = initial;

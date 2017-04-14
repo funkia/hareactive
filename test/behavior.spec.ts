@@ -1,29 +1,21 @@
-import {toggle} from "../src";
+import { toggle } from "../src";
 import "mocha";
-import {assert} from "chai";
-import {spy, useFakeTimers} from "sinon";
+import { assert } from "chai";
+import { spy, useFakeTimers } from "sinon";
 
-import {lift} from "@funkia/jabz";
+import { lift } from "@funkia/jabz";
 
-import {map} from "../src/index";
+import { map } from "../src/index";
 import * as B from "../src/behavior";
 import * as S from "../src/stream";
-import {Future} from "../src/future";
+import { Future } from "../src/future";
 import * as F from "../src/future";
-import {placeholder} from "../src/placeholder";
+import { placeholder } from "../src/placeholder";
 import {
   Behavior, at, switchTo, switcher, scan, timeFrom, observe,
-  time, integrate, ap, stepper, isBehavior
+  time, integrate, ap, stepper, isBehavior, fromFunction
 } from "../src/behavior";
-import {Stream, switchStream, changes} from "../src/stream";
-
-function id<A>(v: A): A {
-  return v;
-}
-
-function isEven(n: number): boolean {
-  return n % 2 === 0;
-}
+import { Stream, switchStream, changes } from "../src/stream";
 
 function double(n: number): number {
   return n * 2;
@@ -56,7 +48,6 @@ describe("Behavior", () => {
     b.push(3);
     assert.equal(B.at(b), 3);
   });
-
   it("publishes from time varying functions", () => {
     let time = 0;
     const b = B.fromFunction(() => {
@@ -70,7 +61,6 @@ describe("Behavior", () => {
     time = 3;
     assert.equal(B.at(b), 3);
   });
-
   it("allows listening on discrete changes", () => {
     const b = B.sink(0);
     const result: number[] = [];
@@ -80,16 +70,13 @@ describe("Behavior", () => {
     b.push(3);
     assert.deepEqual(result, [0, 1, 2, 3]);
   });
-
   describe("isBehavior", () => {
     it("should be a function", () => {
       assert.isFunction(isBehavior);
     });
-
     it("should be true when Behavior object", () => {
       assert.isTrue(isBehavior(Behavior.of(2)));
     });
-
     it("should be false when not Behavior object", () => {
       assert.isFalse(isBehavior([]));
       assert.isFalse(isBehavior({}));
@@ -101,7 +88,6 @@ describe("Behavior", () => {
       assert.isFalse(isBehavior(S.empty()));
     });
   });
-
   describe("concat", () => {
     // let mNumber: (a: number);
     // const mAdd = (m) => {
@@ -315,6 +301,32 @@ describe("Behavior", () => {
       const chained = b.chain((n: any) => Behavior.of(n));
       b.replaceWith(Behavior.of(3));
       // assert.strictEqual(chained.pull(), 3);
+    });
+    it("can switch between pulling and pushing", () => {
+      const pushingB = B.sink(0);
+      const pullingB = fromFunction(() => 0);
+      const outer = B.sink(true);
+      const chained = outer.chain((b) => b ? pushingB : pullingB);
+      const pushSpy = spy();
+      const beginPullingSpy = spy();
+      const endPullingSpy = spy();
+      // Test that several observers are notified
+      chained.observe(pushSpy, beginPullingSpy, endPullingSpy);
+      chained.observe(pushSpy, beginPullingSpy, endPullingSpy);
+      chained.observe(pushSpy, beginPullingSpy, endPullingSpy);
+      pushingB.push(1);
+      pushingB.push(2);
+      outer.push(false);
+      pushingB.push(3);
+      pushingB.push(4);
+      outer.push(true);
+      pushingB.push(5);
+      assert.deepEqual(
+        pushSpy.args,
+        [[0], [0], [0], [1], [1], [1], [2], [2], [2], [4], [4], [4], [5], [5], [5]]
+      );
+      assert.equal(beginPullingSpy.callCount, 3);
+      assert.equal(endPullingSpy.callCount, 3);
     });
   });
   describe("Placeholder behavior", () => {
