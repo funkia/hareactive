@@ -18,14 +18,14 @@ class OnlyPushObserver<A> implements Observer<A> {
 
 /**
  * A behavior is a value that changes over time. Conceptually it can
- * be though of as a function from time to a value. I.e. `type
+ * be thought of as a function from time to a value. I.e. `type
  * Behavior<A> = (t: Time) => A`.
  */
 @monad
 export abstract class Behavior<A> implements Observer<A>, Monad<A> {
+  // Push behaviors cache their last value in `last`.
+  // Pull behaviors do not use `last`.
   pushing: boolean;
-  // Behaviors that are pushing caches their last value in `last`. For
-  // behaviors that pull `last` is unused.
   last: A;
   nrOfListeners: number;
   child: Observer<any>;
@@ -400,7 +400,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
       this.last.resolve(at(this.parent));
       this.parent.addListener(this);
     } else {
-      // We are recieving an update from `parent` after `future` has
+      // We are receiving an update from `parent` after `future` has
       // occurred.
       this.last = Future.of(val);
     }
@@ -452,6 +452,11 @@ class SwitcherBehavior<A> extends Behavior<A> {
   }
 }
 
+/**
+ * From an initial behavior and a future of a behavior, `switcher`
+ * creates a new behavior that acts exactly like `initial` until
+ * `next` occurs, after which it acts like the behavior it contains.
+ */
 export function switchTo<A>(
   init: Behavior<A>,
   next: Future<Behavior<A>>
@@ -479,6 +484,11 @@ class StepperBehavior<B> extends Behavior<B> {
   }
 }
 
+/**
+ * Creates a Behavior whose value is the last occurrence in the stream.
+ * @param initial - the initial value that the behavior has
+ * @param steps - the stream that will change the value of the behavior
+ */
 export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
   return new StepperBehavior(initial, steps);
 }
@@ -578,8 +588,20 @@ class TimeFromBehavior extends Behavior<Time> {
   }
 }
 
-export const time: Behavior<Time> = fromFunction(Date.now);
+/**
+ * A behavior whose value is the number of milliseconds elapsed in
+ * UNIX epoch. I.e. its current value is equal to the value got by
+ * calling `Date.now`.
+ */
+export const time: Behavior<Time>
+  = fromFunction(Date.now);
 
+/**
+ * A behavior giving access to continuous time. When sampled the outer
+ * behavior gives a behavior with values that contain the difference
+ * between the current sample time and the time at which the outer
+ * behavior was sampled.
+ */
 export const timeFrom: Behavior<Behavior<Time>>
   = fromFunction(() => new TimeFromBehavior());
 
