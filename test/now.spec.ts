@@ -24,7 +24,7 @@ describe("Now", () => {
         async(callP((n: number) => new Promise((res) => resolve = res), 0))
       );
       setTimeout(() => { resolve(12); });
-      return promise.then((result: Either<any, number>) => {
+      return promise.then((result: number) => {
         assert.deepEqual(result, 12);
       });
     });
@@ -194,7 +194,7 @@ describe("Now", () => {
       s.push(20);
       s.push(30);
       setTimeout(() => {
-        assert.deepEqual(results, [20, 30])
+        assert.deepEqual(results, [20, 30]);
         done();
       }, 100);
     });
@@ -231,7 +231,7 @@ describe("Now", () => {
       s.push(50);
       s.push(40);
       setTimeout(() => {
-        assert.deepEqual(results, [60, 20, 30, undefined, 50, 40])
+        assert.deepEqual(results, [60, 20, 30, undefined, 50, 40]);
         done();
       }, 100);
     });

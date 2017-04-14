@@ -62,14 +62,10 @@
     "tsify": "^3.0.1",
     "typescript": "^2.2.2",
     "watchify": "^3.9.0",
-    "webpack": "^2.3.2",
+    "webpack": "^2.4.0",
     "xyz": "2.1.0"
   },
   "nyc": {
-    "include": [
-      "src/*.ts",
-      "src/**/*.ts"
-    ],
     "extension": [
       ".ts"
     ],
