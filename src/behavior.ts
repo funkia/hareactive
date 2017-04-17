@@ -565,18 +565,11 @@ export function observe<A>(
   return b.observe(push, beginPulling, endPulling);
 }
 
-/**
- * Imperatively push a value into a behavior.
- */
-export function publish<A>(a: A, b: Behavior<A>): void {
-  b.push(a);
-}
-
 export function isBehavior(b: any): b is Behavior<any> {
   return typeof b === "object" && ("observe" in b) && ("at" in b);
 }
 
-export type Time = number;
+type Time = number;
 
 class TimeFromBehavior extends Behavior<Time> {
   private startTime: Time;
