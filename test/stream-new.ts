@@ -3,8 +3,13 @@ import { spy, useFakeTimers } from "sinon";
 
 import { map, publish } from "../src/index";
 import {
-  empty, isStream, testStreamFromArray, testStreamFromObject,
-  sinkStream, subscribe
+  empty,
+  isStream,
+  ProducerStream,
+  sinkStream,
+  subscribe,
+  testStreamFromArray,
+  testStreamFromObject
 } from "../src/stream";
 
 const addTwo = (v: number): number => v + 2;
@@ -92,19 +97,45 @@ describe("stream", () => {
       assert.strictEqual(cb3.callCount, 2);
     });
   });
+  describe("producer", () => {
+    it("activates and deactivates", () => {
+      const activate = spy();
+      const deactivate = spy();
+      class MyProducer<A> extends ProducerStream<A> {
+        activate(): void {
+          activate();
+        }
+        deactivate(): void {
+          deactivate();
+        }
+      }
+      const producer = new MyProducer();
+      const observer = producer.subscribe((a) => a);
+      observer.deactivate();
+      assert(activate.calledOnce);
+      assert(deactivate.calledOnce);
+    });
+    it("pushes to listener", () => {
+      const callback = spy();
+      let push: (n: number) => void;
+      class MyProducer<A> extends ProducerStream<A> {
+        activate(): void {
+          push = this.push.bind(this);
+        }
+        deactivate(): void {
+          push = undefined;
+        }
+      }
+      const producer = new MyProducer();
+      producer.subscribe(callback);
+      push(1); 
+      push(2);
+      assert.deepEqual(callback.args, [[1], [2]]);
+    });
+  });
   describe("empty", () => {
     it("is empty array semantically", () => {
       assert.deepEqual(empty.semantic(), []);
-    });
-  });
-  describe("map", () => {
-    it("maps values semantically", () => {
-      const s = testStreamFromArray([1, 2, 3]);
-      const mapped = s.map((n) => n * n);
-      assert.deepEqual(
-        mapped.semantic(),
-        testStreamFromArray([1, 4, 9]).semantic()
-      );
     });
   });
   describe("combine", () => {
@@ -138,6 +169,14 @@ describe("stream", () => {
     });
   });
   describe("map", () => {
+    it("maps values semantically", () => {
+      const s = testStreamFromArray([1, 2, 3]);
+      const mapped = s.map((n) => n * n);
+      assert.deepEqual(
+        mapped.semantic(),
+        testStreamFromArray([1, 4, 9]).semantic()
+      );
+    });
     it("should map the published values", () => {
       const obs = sinkStream();
       const callback = spy();
@@ -157,6 +196,14 @@ describe("stream", () => {
       publish(2, stream);
       publish(3, stream);
       assert.deepEqual(callback.args, [[7], [7], [7]]);
+    });
+    it("maps to constant semantically", () => {
+      const s = testStreamFromArray([1, 2, 3]);
+      const mapped = s.mapTo(7);
+      assert.deepEqual(
+        mapped.semantic(),
+        testStreamFromArray([7, 7, 7]).semantic()
+      );
     });
     /*
     it("works on placeholder", () => {

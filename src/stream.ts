@@ -1,11 +1,22 @@
 export type Time = number;
 
+export type Occurrence<A> = {
+  time: Time,
+  value: A
+}
+
+export type SemanticStream<A> = Occurrence<A>[];
+
 const enum PState {
   Push, Pull, Inactive
 }
 
 export interface Observer<A> {
   push(a: A): void;
+}
+
+export interface Subscriber<A> extends Observer<A> {
+  deactivate(): void;
 }
 
 class PushOnlyObserver<A> {
@@ -15,8 +26,9 @@ class PushOnlyObserver<A> {
   push(a: any): void {
     this.callback(a);
   }
-  /* istanbul ignore next */
-  deactivate(): void { }
+  deactivate(): void {
+    this.stream.removeListener(this);
+  }
 }
 
 export class MultiObserver<A> implements Observer<A> {
@@ -71,15 +83,10 @@ export abstract class Reactive<A> implements Observer<any> {
       }
     }
   }
-  subscribe(callback: (a: A) => void): Observer<A> {
+  subscribe(callback: (a: A) => void): Subscriber<A> {
     return new PushOnlyObserver(callback, this);
   }
   abstract push(a: any): void;
-  /*
-  push(a: any): void {
-    throw new Error("Push not supported");
-  }
-  */
   abstract deactivate(): void;
   abstract activate(): void;
   abstract map<B>(f: (a: A) => B): Reactive<B>;
@@ -152,13 +159,6 @@ export class MapToReactive<A, B> extends Stream<B> {
   }
 }
 
-export type Occurrence<A> = {
-  time: Time,
-  value: A
-}
-
-export type SemanticStream<A> = Occurrence<A>[];
-
 class TestStream<A> extends Stream<A> {
   constructor(private semanticStream: SemanticStream<A>) {
     super();
@@ -166,12 +166,12 @@ class TestStream<A> extends Stream<A> {
   semantic(): SemanticStream<A> {
     return this.semanticStream;
   }
+  /* istanbul ignore next */
   activate(): SemanticStream<A> {
-    /* istanbul ignore next */
     throw new Error("You cannot activate a TestStream");
   }
+  /* istanbul ignore next */
   deactivate(): SemanticStream<A> {
-    /* istanbul ignore next */
     throw new Error("You cannot deactivate a TestStream");
   }
   /* istanbul ignore next */
@@ -242,7 +242,17 @@ class CombineStream<A, B> extends Stream<A | B> {
   }
 }
 
-export class SinkStream<A> extends Stream<A> {
+export abstract class ProducerStream<A> extends Stream<A> {
+  /* istanbul ignore next */
+  semantic(): SemanticStream<A> {
+    throw new Error("A producer stream does not have a semantic representation");
+  }
+  push(a: A): void {
+    this.child.push(a);
+  }
+}
+
+export class SinkStream<A> extends ProducerStream<A> {
   private pushing: boolean;
   constructor() {
     super();
@@ -258,10 +268,6 @@ export class SinkStream<A> extends Stream<A> {
   }
   deactivate(): void {
     this.pushing = false;
-  }
-  /* istanbul ignore next */
-  semantic(): SemanticStream<A> {
-    throw new Error("A sink stream does not have a semantic representation");
   }
 }
 
