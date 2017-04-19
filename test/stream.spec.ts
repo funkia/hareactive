@@ -208,7 +208,7 @@ describe("Stream", () => {
         clock.tick(49);
         assert.strictEqual(n, 1);
         clock.tick(1);
-        assert.strictEqual(n, 2)
+        assert.strictEqual(n, 2);
       });
       it("should work with placeholder", () => {
         let n = 0;

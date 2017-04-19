@@ -70,24 +70,6 @@ describe("Behavior", () => {
     b.push(3);
     assert.deepEqual(result, [0, 1, 2, 3]);
   });
-  describe("isBehavior", () => {
-    it("should be a function", () => {
-      assert.isFunction(isBehavior);
-    });
-    it("should be true when Behavior object", () => {
-      assert.isTrue(isBehavior(Behavior.of(2)));
-    });
-    it("should be false when not Behavior object", () => {
-      assert.isFalse(isBehavior([]));
-      assert.isFalse(isBehavior({}));
-      assert.isFalse(isBehavior(undefined));
-      assert.isFalse(isBehavior("test"));
-      assert.isFalse(isBehavior([Behavior.of(42)]));
-      assert.isFalse(isBehavior(1234));
-      assert.isFalse(isBehavior(B.isBehavior));
-      assert.isFalse(isBehavior(S.empty()));
-    });
-  });
   describe("concat", () => {
     // let mNumber: (a: number);
     // const mAdd = (m) => {
@@ -125,53 +107,6 @@ describe("Behavior", () => {
     //   nB.publish(mNumber(0));
     //   assert.equal(B.at(nmB).n, 4);
     // });
-  });
-  describe("functor", () => {
-    it("maps over initial value from parent", () => {
-      const b = Behavior.of(3);
-      const mapped = map(double, b);
-      assert.strictEqual(at(mapped), 6);
-    });
-    it("maps constant function", () => {
-      const b = B.sink(0);
-      const mapped = map(double, b);
-      assert.equal(B.at(b), 0);
-      B.publish(1, b);
-      assert.equal(B.at(mapped), 2);
-      B.publish(2, b);
-      assert.equal(B.at(mapped), 4);
-      B.publish(3, b);
-      assert.equal(B.at(mapped), 6);
-    });
-    it("maps values method", () => {
-      const b = B.sink(0);
-      const mapped = b.map(double);
-      b.push(1);
-      assert.equal(B.at(mapped), 2);
-      b.push(2);
-      assert.equal(B.at(mapped), 4);
-      b.push(3);
-      assert.equal(B.at(mapped), 6);
-    });
-    it("maps time function", () => {
-      let time = 0;
-      const b = B.fromFunction(() => {
-        return time;
-      });
-      const mapped = map(double, b);
-      assert.equal(B.at(mapped), 0);
-      time = 1;
-      assert.equal(B.at(mapped), 2);
-      time = 2;
-      assert.equal(B.at(mapped), 4);
-      time = 3;
-      assert.equal(B.at(mapped), 6);
-    });
-    it("maps to constant", () => {
-      const b = Behavior.of(1);
-      const b2 = mapTo(2, b);
-      assert.strictEqual(at(b2), 2);
-    });
   });
   describe("applicative", () => {
     it("returns a constant behavior from of", () => {

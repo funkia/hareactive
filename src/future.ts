@@ -1,6 +1,7 @@
-import {monad, Monad} from "@funkia/jabz";
-import {Consumer, Observer} from "./frp-common";
-import {Behavior} from "./behavior";
+import { monad, Monad } from "@funkia/jabz";
+import { State } from "./common";
+import { Consumer, Observer } from "./frp-common";
+import { Behavior } from "./behavior";
 
 /**
  * A future is a thing that occurs at some point in time with a value.
@@ -63,7 +64,7 @@ export abstract class Future<A> implements Monad<A>, Consumer<any> {
   lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Future<T1>, m2: Future<T2>, m3: Future<T3>): Future<R>;
   lift(f: any, ...args: Future<any>[]): any {
     return f.length === 1 ? new MapFuture(f, args[0])
-                          : new LiftFuture(f, args);
+      : new LiftFuture(f, args);
   }
   static multi: false;
   multi = false;
@@ -177,7 +178,7 @@ export function fromPromise<A>(p: Promise<A>): Future<A> {
 /**
  * Create a future from a pushing behavior. The future occurs when the
  * behavior pushes its next value. Constructing a BehaviorFuture is
- * impure and should not be done direcly.
+ * impure and should not be done directly.
  * @private
  */
 export class BehaviorFuture<A> extends Future<A> implements Observer<A> {
@@ -189,6 +190,9 @@ export class BehaviorFuture<A> extends Future<A> implements Observer<A> {
     throw new Error("Behavior future should never switch to pushing");
   }
   beginPulling(): void {
+    throw new Error("Behavior future does not support pushing behavior");
+  }
+  changeStateDown(): void {
     throw new Error("Behavior future does not support pushing behavior");
   }
   push(a: A): void {

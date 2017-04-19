@@ -1,20 +1,9 @@
 import { Monad, monad } from "@funkia/jabz";
-import {
-  Observer, MultiObserver, noopObserver
-} from "./frp-common";
+import { Observer, State, Reactive, Time } from "./common";
 
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import { Stream } from "./stream";
-
-class OnlyPushObserver<A> implements Observer<A> {
-  constructor(private cb: (a: A) => void) { };
-  beginPulling(): void { }
-  endPulling(): void { }
-  push(a: A): void {
-    this.cb(a);
-  }
-}
 
 /**
  * A behavior is a value that changes over time. Conceptually it can
@@ -22,22 +11,24 @@ class OnlyPushObserver<A> implements Observer<A> {
  * Behavior<A> = (t: Time) => A`.
  */
 @monad
-export abstract class Behavior<A> implements Observer<A>, Monad<A> {
+export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Monad<A> {
   // Push behaviors cache their last value in `last`.
   // Pull behaviors do not use `last`.
-  pushing: boolean;
   last: A;
   nrOfListeners: number;
   child: Observer<any>;
+  // The streams and behaviors that this behavior depends upon
+  dependencies: Reactive<any>[];
+  // Amount of nodes that wants to pull the behavior without actively
+  // listening for updates
+  nrOfPullers: number;
 
   constructor() {
-    this.child = noopObserver;
-    this.nrOfListeners = 0;
+    super();
+    this.nrOfPullers = 0;
   }
   map<B>(fn: (a: A) => B): Behavior<B> {
-    const newB = new MapBehavior<A, B>(this, fn);
-    this.addListener(newB);
-    return newB;
+    return new MapBehavior<A, B>(this, fn);
   }
   mapTo<A>(v: A): Behavior<A> {
     return new ConstantBehavior(v);
@@ -49,10 +40,13 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
     return new ConstantBehavior(v);
   }
   ap<B>(f: Behavior<(a: A) => B>): Behavior<B> {
+    /*
     const newB = new ApBehavior<A, B>(f, this);
     f.addListener(newB);
     this.addListener(newB);
     return newB;
+    */
+    return new ApBehavior<A, B>(f, this);
   }
   lift<T1, R>(f: (t: T1) => R, m: Behavior<T1>): Behavior<R>;
   lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Behavior<T1>, m2: Behavior<T2>): Behavior<R>;
@@ -74,53 +68,17 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
   static multi: boolean = false;
   multi: boolean = false;
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
-    return new ChainBehavior<A, B>(this, fn);
+    // return new ChainBehavior<A, B>(this, fn);
+    return <any>0;
   }
   flatten: <B>() => Behavior<B>;
   endPulling(): void {
-    this.pushing = true;
-    this.child.endPulling();
+    this.state = State.Push;
+    (<any>this.child).endPulling();
   }
   beginPulling(): void {
-    this.pushing = false;
-    this.child.beginPulling();
-  }
-  subscribe(cb: (a: A) => void): Observer<A> {
-    const listener = new OnlyPushObserver(cb);
-    this.addListener(listener);
-    cb(at(this));
-    return listener;
-  }
-  addListener(c: Observer<A>): void {
-    const nr = ++this.nrOfListeners;
-    if (nr === 1) {
-      this.child = c;
-    } else if (nr === 2) {
-      this.child = new MultiObserver(this.child, c);
-    } else {
-      (<MultiObserver<A>>this.child).listeners.push(c);
-    }
-  }
-  removeListener(listener: Observer<any>): void {
-    const nr = --this.nrOfListeners;
-    if (nr === 0) {
-      this.child = noopObserver;
-    } else if (nr === 1) {
-      const l = (<MultiObserver<A>>this.child).listeners;
-      this.child = l[l[0] === listener ? 1 : 0];
-    } else {
-      const l = (<MultiObserver<A>>this.child).listeners;
-      // The indexOf here is O(n), where n is the number of listeners,
-      // if using a linked list it should be possible to perform the
-      // unsubscribe operation in constant time.
-      const idx = l.indexOf(listener);
-      if (idx !== -1) {
-        if (idx !== l.length - 1) {
-          l[idx] = l[l.length - 1];
-        }
-        l.length--; // remove the last element of the list
-      }
-    }
+    this.state = State.Push;
+    (<any>this.child).beginPulling();
   }
   observe(
     push: (a: A) => void,
@@ -130,14 +88,55 @@ export abstract class Behavior<A> implements Observer<A>, Monad<A> {
     return new CbObserver(push, beginPulling, endPulling, this);
   }
   at(): A {
-    return this.pushing === true ? this.last : this.pull();
+    return this.state === State.Push ? this.last : this.pull();
   }
   push(a: any): void {
-    throw new Error("The behavior does not support pushing.");
+    this.last = this.pull();
+    this.child.push(this.last);
   }
   pull(): A {
-    throw new Error("The behavior does not support pulling.");
+    return this.last;
   }
+  activate(): void {
+    throw new Error("The behavior can't activate");
+  }
+  deactivate(): void {
+    throw new Error("The behavior can't deactivate");
+  }
+}
+
+export abstract class ProducerBehavior<A> extends Behavior<A> {
+  push(a: A): void {
+    this.last = a;
+    if (this.state === State.Push) {
+      this.child.push(a);
+    }
+  }
+}
+
+export class SinkBehavior<A> extends ProducerBehavior<A> {
+  constructor(public last: A) {
+    super();
+  };
+  push(a: A): void {
+    this.last = a;
+    if (this.state === State.Push) {
+      this.child.push(a);
+    }
+  }
+  pull(): A {
+    return this.last;
+  }
+  activate(): void {
+    this.state = State.Push;
+  }
+}
+
+/**
+ * Creates a behavior for imperative impure pushing.
+ */
+export function sinkBehavior<A>(initial: A): SinkBehavior<A> {
+  return new SinkBehavior<A>(initial);
 }
 
 /*
@@ -148,36 +147,36 @@ export function at<B>(b: Behavior<B>): B {
   return b.at();
 }
 
-/** @private */
 class ConstantBehavior<A> extends Behavior<A> {
   constructor(public last: A) {
     super();
-    this.pushing = true;
+    this.state = State.Push;
+  }
+  pull(): A {
+    return this.last;
   }
 }
 
-/** @private */
 class MapBehavior<A, B> extends Behavior<B> {
   constructor(
     private parent: Behavior<any>,
     private fn: (a: A) => B
   ) {
     super();
-    this.pushing = parent.pushing;
-    if (this.pushing === true) {
-      this.last = fn(at(parent));
-    }
-  }
-  push(a: A): void {
-    this.last = this.fn(a);
-    this.child.push(this.last);
   }
   pull(): B {
-    return this.fn(at(this.parent));
+    return this.fn(this.parent.at());
+  }
+  activate(): void {
+    this.parent.addListener(this);
+    this.state = this.parent.state;
+    if (this.state === State.Push) {
+      this.last = this.pull();
+    }
   }
 }
 
-/** @private */
+/*
 class ChainOuter<A> extends Behavior<A> {
   constructor(private chainB: ChainBehavior<A, any>) {
     super();
@@ -187,7 +186,6 @@ class ChainOuter<A> extends Behavior<A> {
   }
 }
 
-/** @private */
 class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
@@ -201,9 +199,9 @@ class ChainBehavior<A, B> extends Behavior<B> {
     this.outerConsumer = new ChainOuter(this);
     // Make the consumers listen to inner and outer behavior
     outer.addListener(this.outerConsumer);
-    if (outer.pushing === true) {
+    if (outer.state === State.Push) {
       this.innerB = this.fn(at(this.outer));
-      this.pushing = this.innerB.pushing;
+      this.state = this.innerB.state;
       this.innerB.addListener(this);
       this.last = at(this.innerB);
     }
@@ -217,18 +215,18 @@ class ChainBehavior<A, B> extends Behavior<B> {
     if (this.innerB !== undefined) {
       this.innerB.removeListener(this);
     }
-    const wasPushing = this.pushing;
+    const wasPushing = this.state;
     const newInner = this.innerB = this.fn(a);
-    this.pushing = newInner.pushing;
+    this.state = newInner.state;
     newInner.addListener(this);
-    if (wasPushing !== this.pushing) {
-      if (wasPushing === true) {
+    if (wasPushing !== this.state) {
+      if (wasPushing === State.Push) {
         this.beginPulling();
       } else {
         this.endPulling();
       }
     }
-    if (this.pushing === true) {
+    if (this.state === State.Push) {
       this.push(at(newInner));
     }
   }
@@ -242,12 +240,13 @@ class ChainBehavior<A, B> extends Behavior<B> {
     return at(this.fn(at(this.outer)));
   }
 }
+*/
 
 /** @private */
 class FunctionBehavior<A> extends Behavior<A> {
   constructor(private fn: () => A) {
     super();
-    this.pushing = false;
+    this.state = State.Pull;
   }
   pull(): A {
     return this.fn();
@@ -263,8 +262,8 @@ class ApBehavior<A, B> extends Behavior<B> {
     private val: Behavior<A>
   ) {
     super();
-    this.pushing = fn.pushing && val.pushing;
-    if (this.pushing) {
+    this.state = fn.state && val.state;
+    if (this.state) {
       this.last = at(fn)(at(val));
     }
   }
@@ -292,11 +291,11 @@ export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavio
   return valB.ap(fnB);
 }
 
-/** @private */
+/*
 class SinkBehavior<B> extends Behavior<B> {
   constructor(public last: B) {
     super();
-    this.pushing = true;
+    this.state = PState.Push;
   }
   push(v: B): void {
     if (this.last !== v) {
@@ -305,13 +304,7 @@ class SinkBehavior<B> extends Behavior<B> {
     }
   }
 }
-
-/**
- * Creates a behavior for imperative impure pushing.
- */
-export function sink<A>(initialValue: A): Behavior<A> {
-  return new SinkBehavior<A>(initialValue);
-}
+*/
 
 /**
  * A placeholder behavior is a behavior without any value. It is used
@@ -325,7 +318,7 @@ export class PlaceholderBehavior<B> extends Behavior<B> {
     super();
     // `undefined` indicates that this behavior is neither pushing nor
     // pulling
-    this.pushing = undefined;
+    this.state = undefined;
   }
   push(v: B): void {
     this.last = v;
@@ -337,8 +330,8 @@ export class PlaceholderBehavior<B> extends Behavior<B> {
   replaceWith(b: Behavior<B>): void {
     this.source = b;
     b.addListener(this);
-    this.pushing = b.pushing;
-    if (b.pushing === true) {
+    this.state = b.state;
+    if (b.state === State.Push) {
       this.push(at(b));
     } else {
       this.beginPulling();
@@ -354,8 +347,6 @@ export function behaviorPlaceholder(): PlaceholderBehavior<any> {
 class WhenBehavior extends Behavior<Future<{}>> {
   constructor(private parent: Behavior<boolean>) {
     super();
-    this.pushing = true;
-    parent.addListener(this);
     this.push(at(parent));
   }
   push(val: boolean): void {
@@ -383,12 +374,12 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
     if (future.occurred === true) {
       // Future has occurred at some point in the past
       this.afterFuture = true;
-      this.pushing = parent.pushing;
+      this.state = parent.state;
       parent.addListener(this);
       this.last = Future.of(at(parent));
     } else {
       this.afterFuture = false;
-      this.pushing = true;
+      this.state = State.Push;
       this.last = F.sinkFuture<A>();
       future.listen(this);
     }
@@ -422,13 +413,15 @@ class SwitcherBehavior<A> extends Behavior<A> {
     private b: Behavior<A>,
     next: Future<Behavior<A>> | Stream<Behavior<A>>) {
     super();
-    this.pushing = b.pushing;
-    if (this.pushing === true) {
+    /*
+    this.state = b.state;
+    if (this.state === State.Push) {
       this.last = at(b);
     }
     b.addListener(this);
     // FIXME: Using `bind` is hardly optimal for performance.
     next.subscribe(this.doSwitch.bind(this));
+    */
   }
   push(val: A): void {
     this.last = val;
@@ -441,12 +434,12 @@ class SwitcherBehavior<A> extends Behavior<A> {
     this.b.removeListener(this);
     this.b = newB;
     newB.addListener(this);
-    if (newB.pushing === true) {
-      if (this.pushing === false) {
+    if (newB.state === State.Push) {
+      if (this.state === State.Pull) {
         this.endPulling();
       }
       this.push(at(newB));
-    } else if (this.pushing === true) {
+    } else if (this.state === State.Push) {
       this.beginPulling();
     }
   }
@@ -474,9 +467,11 @@ export function switcher<A>(
 class StepperBehavior<B> extends Behavior<B> {
   constructor(initial: B, private steps: Stream<B>) {
     super();
-    this.pushing = true;
+    /*
+    this.state = State.Push;
     this.last = initial;
     steps.addListener(this);
+    */
   }
   push(val: B): void {
     this.last = val;
@@ -501,9 +496,11 @@ class ScanBehavior<A, B> extends Behavior<B> {
     private source: Stream<A>
   ) {
     super();
-    this.pushing = true;
+    /*
+    this.state = State.Push;
     this.last = initial;
     source.addListener(this);
+    */
   }
   push(val: A): void {
     this.last = this.fn(val, this.last);
@@ -532,17 +529,24 @@ export class CbObserver<A> implements Observer<A> {
     private _endPulling: () => void,
     private source: Behavior<A>
   ) {
+    /*
     source.addListener(this);
-    // We explicitly checks for both `true` and `false` because
-    // placeholder behavior is `undefined`
-    if (source.pushing === false) {
+    if (source.state === State.Pull) {
       _beginPulling();
-    } else if (source.pushing === true) {
+    } else if (source.state === State.Push) {
       _push(source.last);
     }
+    */
   }
   push(a: A): void {
     this._push(a);
+  }
+  changeStateDown(state: State): void {
+    if (state === State.Pull) {
+      this._beginPulling();
+    } else {
+      this._endPulling();
+    }
   }
   beginPulling(): void {
     this._beginPulling();
@@ -569,14 +573,12 @@ export function isBehavior(b: any): b is Behavior<any> {
   return typeof b === "object" && ("observe" in b) && ("at" in b);
 }
 
-type Time = number;
-
 class TimeFromBehavior extends Behavior<Time> {
   private startTime: Time;
   constructor() {
     super();
     this.startTime = Date.now();
-    this.pushing = false;
+    this.state = State.Pull;
   }
   pull(): Time {
     return Date.now() - this.startTime;
@@ -606,7 +608,7 @@ class IntegrateBehavior extends Behavior<number> {
   constructor(private parent: Behavior<number>) {
     super();
     this.lastPullTime = Date.now();
-    this.pushing = false;
+    this.state = State.Pull;
     this.value = 0;
   }
   pull(): Time {

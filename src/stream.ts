@@ -1,4 +1,4 @@
-export type Time = number;
+import {Reactive, State, Time} from "./common";
 
 export type Occurrence<A> = {
   time: Time,
@@ -6,91 +6,6 @@ export type Occurrence<A> = {
 }
 
 export type SemanticStream<A> = Occurrence<A>[];
-
-const enum PState {
-  Push, Pull, Inactive
-}
-
-export interface Observer<A> {
-  push(a: A): void;
-}
-
-export interface Subscriber<A> extends Observer<A> {
-  deactivate(): void;
-}
-
-class PushOnlyObserver<A> {
-  constructor(private callback: (a: A) => void, private stream: Reactive<A>) {
-    stream.addListener(this);
-  }
-  push(a: any): void {
-    this.callback(a);
-  }
-  deactivate(): void {
-    this.stream.removeListener(this);
-  }
-}
-
-export class MultiObserver<A> implements Observer<A> {
-  listeners: Observer<A>[];
-  constructor(c1: Observer<A>, c2: Observer<A>) {
-    this.listeners = [c1, c2];
-  }
-  push(a: A): void {
-    for (let i = 0; i < this.listeners.length; ++i) {
-      this.listeners[i].push(a);
-    }
-  }
-}
-
-export abstract class Reactive<A> implements Observer<any> {
-  child: Observer<A>;
-  nrOfListeners: number;
-  state: PState;
-  constructor() {
-    this.nrOfListeners = 0;
-  }
-  addListener(c: Observer<A>): void {
-    const nr = ++this.nrOfListeners;
-    if (nr === 1) {
-      this.child = c;
-      this.activate();
-    } else if (nr === 2) {
-      this.child = new MultiObserver(this.child, c);
-    } else {
-      (<MultiObserver<A>>this.child).listeners.push(c);
-    }
-  }
-  removeListener(listener: Observer<any>): void {
-    const nr = --this.nrOfListeners;
-    if (nr === 0) {
-      this.child = undefined;
-      this.deactivate();
-    } else if (nr === 1) {
-      const l = (<MultiObserver<A>>this.child).listeners;
-      this.child = l[l[0] === listener ? 1 : 0];
-    } else {
-      const l = (<MultiObserver<A>>this.child).listeners;
-      // The indexOf here is O(n), where n is the number of listeners,
-      // if using a linked list it should be possible to perform the
-      // unsubscribe operation in constant time.
-      const idx = l.indexOf(listener);
-      if (idx !== -1) {
-        if (idx !== l.length - 1) {
-          l[idx] = l[l.length - 1];
-        }
-        l.length--; // remove the last element of the list
-      }
-    }
-  }
-  subscribe(callback: (a: A) => void): Subscriber<A> {
-    return new PushOnlyObserver(callback, this);
-  }
-  abstract push(a: any): void;
-  abstract deactivate(): void;
-  abstract activate(): void;
-  abstract map<B>(f: (a: A) => B): Reactive<B>;
-}
 
 /**
  * A stream is a list of occurrences over time. Each occurrence
@@ -126,8 +41,8 @@ export class MapReactive<A, B> extends Stream<B> {
     const s = (<Stream<A>>this.parent).semantic();
     return s.map(({ time, value }) => ({ time, value: this.f(value) }));
   }
-  activate(): void {
-    this.parent.addListener(this);
+  activate(): State {
+    return this.parent.addListener(this);
   }
   deactivate(): void {
     this.parent.removeListener(this);

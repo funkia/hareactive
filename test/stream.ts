@@ -1,3 +1,4 @@
+import { State } from "../src/common";
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
 
@@ -104,6 +105,7 @@ describe("stream", () => {
       class MyProducer<A> extends ProducerStream<A> {
         activate(): void {
           activate();
+          this.state = State.Pull;
         }
         deactivate(): void {
           deactivate();
@@ -128,7 +130,7 @@ describe("stream", () => {
       }
       const producer = new MyProducer();
       producer.subscribe(callback);
-      push(1); 
+      push(1);
       push(2);
       assert.deepEqual(callback.args, [[1], [2]]);
     });
