@@ -1,20 +1,67 @@
+import {ProducerBehavior} from "../src";
+import { Behavior, fromFunction } from "../src/behavior";
 import { State } from "../src/common";
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
 
 import { map, publish } from "../src/index";
 import {
-  empty,
-  isStream,
-  ProducerStream,
-  sinkStream,
-  subscribe,
-  testStreamFromArray,
-  testStreamFromObject
+  empty, isStream, ProducerStream, sinkStream, snapshot, snapshotWith,
+  Stream, subscribe, testStreamFromArray, testStreamFromObject
 } from "../src/stream";
+import {} from "../src/behavior";
 
 const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
+
+class TestProducer<A> extends ProducerStream<A> {
+  constructor(
+    private activateSpy: sinon.SinonSpy,
+    private deactivateSpy: sinon.SinonSpy
+  ) {
+    super();
+  }
+  activate(): void {
+    this.activateSpy();
+    this.state = State.Pull;
+  }
+  deactivate(): void {
+    this.deactivateSpy();
+  }
+}
+
+function createTestProducer() {
+  const activate = spy();
+  const deactivate = spy();
+  const producer = new TestProducer(activate, deactivate);
+  const push = producer.push.bind(producer);
+  return {activate, deactivate, push, producer};
+}
+
+class TestProducerBehavior<A> extends ProducerBehavior<A> {
+  constructor(
+    public last: A,
+    private activateSpy: sinon.SinonSpy,
+    private deactivateSpy: sinon.SinonSpy
+  ) {
+    super();
+  }
+  activate(): void {
+    this.activateSpy();
+    this.state = State.Pull;
+  }
+  deactivate(): void {
+    this.deactivateSpy();
+  }
+}
+
+function createTestProducerBehavior<A>(initial: A) {
+  const activate = spy();
+  const deactivate = spy();
+  const producer = new TestProducerBehavior(initial, activate, deactivate);
+  const push = producer.push.bind(producer);
+  return {activate, deactivate, push, producer};
+}
 
 describe("stream", () => {
   describe("test streams", () => {
@@ -46,7 +93,7 @@ describe("stream", () => {
     });
     /*
     it("should be true on placeholder", () => {
-      assert.isTrue(isStream(placeholder()));
+      assert.isTrue(isStream(placeholder())); 
     });
     */
     it("should be false when not Stream object", () => {
@@ -218,6 +265,78 @@ describe("stream", () => {
       assert.strictEqual(result, 0);
       s.push(1)
       assert.strictEqual(result, 2);
+    });
+    */
+  });
+  describe("snapshot", () => {
+    it("snapshots pull based Behavior", () => {
+      let n = 0;
+      const b: Behavior<number> = fromFunction(() => n);
+      const e = sinkStream<number>();
+      const shot = snapshot<number>(b, e);
+      const callback = spy();
+      subscribe(callback, shot);
+      publish(0, e);
+      publish(1, e);
+      n = 1;
+      publish(2, e);
+      n = 2;
+      publish(3, e);
+      publish(4, e);
+      assert.deepEqual(callback.args, [
+        [0], [0], [1], [2], [2]
+      ]);
+    });
+    it("activates producer", () => {
+      const {activate, push, producer} = createTestProducerBehavior(0);
+      const mapped = map(addTwo, producer);
+      const s = sinkStream<undefined>();
+      const shot = snapshot(mapped, s);
+      const callback = spy();
+      shot.subscribe(callback);
+      s.push(undefined);
+      push(1);
+      s.push(undefined);
+      push(2);
+      s.push(undefined);
+      push(3);
+      push(4);
+      s.push(undefined);
+      assert(activate.calledOnce, "called once");
+      assert.deepEqual(callback.args, [
+        [2], [3], [4], [6]
+      ]);
+    });
+    it("applies function in snapshotWith to pull based Behavior", () => {
+      let n = 0;
+      const b: Behavior<number> = fromFunction(() => n);
+      const e = sinkStream<number>();
+      const shot = snapshotWith<number, number, number>(sum, b, e);
+      const callback = spy();
+      subscribe(callback, shot);
+      publish(0, e);
+      publish(1, e);
+      n = 1;
+      publish(2, e);
+      n = 2;
+      publish(3, e);
+      publish(4, e);
+      assert.deepEqual(callback.args, [
+        [0], [1], [3], [5], [6]
+      ]);
+    });
+    /*
+    it("works with placeholder", () => {
+      let result = 0;
+      const b = Behavior.of(7);
+      const p = placeholder();
+      const snap = snapshot(b, p);
+      snap.subscribe((n: number) => result = n);
+      const s = S.empty();
+      p.replaceWith(s);
+      assert.strictEqual(result, 0);
+      s.push(1);
+      assert.strictEqual(result, 7);
     });
     */
   });

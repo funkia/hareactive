@@ -1,3 +1,4 @@
+import { Cons } from "./linkedlist";
 import { Monad, monad } from "@funkia/jabz";
 import { Observer, State, Reactive, Time } from "./common";
 
@@ -18,7 +19,7 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   nrOfListeners: number;
   child: Observer<any>;
   // The streams and behaviors that this behavior depends upon
-  dependencies: Reactive<any>[];
+  dependencies: Cons<Reactive<any>>;
   // Amount of nodes that wants to pull the behavior without actively
   // listening for updates
   nrOfPullers: number;
@@ -103,6 +104,17 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   deactivate(): void {
     throw new Error("The behavior can't deactivate");
   }
+  changePullers(n: number): void {
+    this.nrOfPullers += n;
+  }
+}
+
+/** Behaviors that are always active */
+abstract class ActiveBehavior<A> extends Behavior<A> {
+  activate() {
+    // noop, a stateful behavior is always active
+  }
+  deactivate() { }
 }
 
 export abstract class ProducerBehavior<A> extends Behavior<A> {
@@ -112,6 +124,14 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
       this.child.push(a);
     }
   }
+  changePullers(n: number): void {
+    this.nrOfPullers += n;
+    if (this.nrOfPullers === 1 && n === 1) {
+      this.activate();
+    } else if (this.nrOfPullers === 0 && n === -1) {
+      this.deactivate();
+    }
+  }
 }
 
 export class SinkBehavior<A> extends ProducerBehavior<A> {
@@ -119,6 +139,9 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
     super();
   };
   push(a: A): void {
+    if (this.last === a) {
+      return;
+    }
     this.last = a;
     if (this.state === State.Push) {
       this.child.push(a);
@@ -129,6 +152,9 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
   }
   activate(): void {
     this.state = State.Push;
+  }
+  deactivate(): void {
+    this.state = State.Inactive;
   }
 }
 
@@ -147,7 +173,7 @@ export function at<B>(b: Behavior<B>): B {
   return b.at();
 }
 
-class ConstantBehavior<A> extends Behavior<A> {
+class ConstantBehavior<A> extends ActiveBehavior<A> {
   constructor(public last: A) {
     super();
     this.state = State.Push;
@@ -173,6 +199,10 @@ class MapBehavior<A, B> extends Behavior<B> {
     if (this.state === State.Push) {
       this.last = this.pull();
     }
+  }
+  changePullers(n: number): void {
+    this.nrOfPullers += n;
+    this.parent.changePullers(n);
   }
 }
 
@@ -246,11 +276,13 @@ class ChainBehavior<A, B> extends Behavior<B> {
 class FunctionBehavior<A> extends Behavior<A> {
   constructor(private fn: () => A) {
     super();
-    this.state = State.Pull;
+    this.state = State.OnlyPull;
   }
   pull(): A {
     return this.fn();
   }
+  activate(): void { }
+  deactivate(): void { }
 }
 
 /** @private */
@@ -290,21 +322,6 @@ class ApBehavior<A, B> extends Behavior<B> {
 export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
   return valB.ap(fnB);
 }
-
-/*
-class SinkBehavior<B> extends Behavior<B> {
-  constructor(public last: B) {
-    super();
-    this.state = PState.Push;
-  }
-  push(v: B): void {
-    if (this.last !== v) {
-      this.last = v;
-      this.child.push(v);
-    }
-  }
-}
-*/
 
 /**
  * A placeholder behavior is a behavior without any value. It is used
@@ -408,24 +425,25 @@ export function snapshotAt<A>(
 }
 
 /** @private */
-class SwitcherBehavior<A> extends Behavior<A> {
+class SwitcherBehavior<A> extends ActiveBehavior<A> {
   constructor(
     private b: Behavior<A>,
-    next: Future<Behavior<A>> | Stream<Behavior<A>>) {
+    next: Future<Behavior<A>> | Stream<Behavior<A>>
+  ) {
     super();
-    /*
+    b.addListener(this);
     this.state = b.state;
     if (this.state === State.Push) {
       this.last = at(b);
     }
-    b.addListener(this);
     // FIXME: Using `bind` is hardly optimal for performance.
     next.subscribe(this.doSwitch.bind(this));
-    */
   }
   push(val: A): void {
     this.last = val;
-    this.child.push(val);
+    if (this.child !== undefined) {
+      this.child.push(val);
+    }
   }
   pull(): A {
     return at(this.b);
@@ -434,13 +452,13 @@ class SwitcherBehavior<A> extends Behavior<A> {
     this.b.removeListener(this);
     this.b = newB;
     newB.addListener(this);
-    if (newB.state === State.Push) {
-      if (this.state === State.Pull) {
-        this.endPulling();
-      }
-      this.push(at(newB));
-    } else if (this.state === State.Push) {
-      this.beginPulling();
+    const newState = newB.state;
+    if (newState === State.Push) {
+      this.push(newB.at());
+    }
+    this.state = newState;
+    if (this.child !== undefined) {
+      this.child.changeStateDown(this.state);
     }
   }
 }
@@ -467,17 +485,20 @@ export function switcher<A>(
 class StepperBehavior<B> extends Behavior<B> {
   constructor(initial: B, private steps: Stream<B>) {
     super();
-    /*
-    this.state = State.Push;
     this.last = initial;
-    steps.addListener(this);
-    */
+  }
+  activate(): void {
+    this.state = State.Push;
+    this.steps.addListener(this);
+  }
+  deactivate(): void {
+    this.steps.removeListener(this);
   }
   push(val: B): void {
     this.last = val;
     this.child.push(val);
   }
-}
+} 
 
 /**
  * Creates a Behavior whose value is the last occurrence in the stream.
@@ -529,32 +550,30 @@ export class CbObserver<A> implements Observer<A> {
     private _endPulling: () => void,
     private source: Behavior<A>
   ) {
-    /*
     source.addListener(this);
-    if (source.state === State.Pull) {
+    if (source.state === State.Pull || source.state === State.OnlyPull) {
       _beginPulling();
     } else if (source.state === State.Push) {
       _push(source.last);
     }
-    */
   }
   push(a: A): void {
     this._push(a);
   }
   changeStateDown(state: State): void {
-    if (state === State.Pull) {
-      this._beginPulling();
+      if (state === State.Pull || state === State.OnlyPull) {
+        this._beginPulling();
     } else {
+        this._endPulling();
+      }
+    }
+    beginPulling(): void {
+      this._beginPulling();
+    }
+    endPulling(): void {
       this._endPulling();
     }
   }
-  beginPulling(): void {
-    this._beginPulling();
-  }
-  endPulling(): void {
-    this._endPulling();
-  }
-}
 
 /**
  * Observe a behavior for the purpose of executing imperative actions

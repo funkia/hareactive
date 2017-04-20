@@ -1,4 +1,5 @@
-import {Reactive, State, Time} from "./common";
+import { Reactive, State, Time } from "./common";
+import { Behavior } from "./behavior";
 
 export type Occurrence<A> = {
   time: Time,
@@ -192,6 +193,57 @@ export function sinkStream<A>(): SinkStream<A> {
 
 export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
   stream.subscribe(fn);
+}
+
+class SnapshotStream<B> extends Stream<B> {
+  constructor(private behavior: Behavior<B>, private stream: Stream<any>) {
+    super();
+  }
+  push(a: any): void {
+    this.child.push(this.behavior.at());
+  }
+  activate(): void {
+    this.behavior.changePullers(1);
+    this.stream.addListener(this);
+  }
+  deactivate(): void {
+    this.stream.removeListener(this);
+  }
+  semantic(): SemanticStream<B> {
+    throw new Error("No semantic representation");
+  }
+}
+
+export function snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B> {
+  return new SnapshotStream(b, s);
+}
+
+class SnapshotWithStream<A, B, C> extends Stream<C> {
+  constructor(
+    private fn: (a: A, b: B) => C,
+    private behavior: Behavior<B>,
+    private stream: Stream<A>
+  ) {
+    super();
+  }
+  push(a: A): void {
+    this.child.push(this.fn(a, this.behavior.at()));
+  }
+  activate(): void {
+    this.stream.addListener(this);
+  }
+  deactivate(): void {
+    this.stream.removeListener(this);
+  }
+  semantic(): SemanticStream<C> {
+    throw new Error("No semantic representation");
+  }
+}
+
+export function snapshotWith<A, B, C>(
+  f: (a: A, b: B) => C, b: Behavior<B>, s: Stream<A>
+): Stream<C> {
+  return new SnapshotWithStream(f, b, s);
 }
 
 export function isStream(s: any): s is Stream<any> {

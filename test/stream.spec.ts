@@ -137,57 +137,6 @@ describe("Stream", () => {
       ]);
     });
   });
-
-  describe("snapshot", () => {
-    it("snapshots pull based Behavior", () => {
-      let n = 0;
-      const b: Behavior<number> = B.fromFunction(() => n);
-      const e: Stream<number> = S.empty<number>();
-      const shot = snapshot<number>(b, e);
-      const callback = spy();
-      S.subscribe(callback, shot);
-      publish(0, e);
-      publish(1, e);
-      n = 1;
-      publish(2, e);
-      n = 2;
-      publish(3, e);
-      publish(4, e);
-      assert.deepEqual(callback.args, [
-        [0], [0], [1], [2], [2]
-      ]);
-    });
-    it("applies function in snapshotWith to pull based Behavior", () => {
-      let n = 0;
-      const b: Behavior<number> = B.fromFunction(() => n);
-      const e: Stream<number> = S.empty<number>();
-      const shot = snapshotWith<number, number, number>(sum, b, e);
-      const callback = spy();
-      S.subscribe(callback, shot);
-      publish(0, e);
-      publish(1, e);
-      n = 1;
-      publish(2, e);
-      n = 2;
-      publish(3, e);
-      publish(4, e);
-      assert.deepEqual(callback.args, [
-        [0], [1], [3], [5], [6]
-      ]);
-    });
-    it("works with placeholder", () => {
-      let result = 0;
-      const b = Behavior.of(7);
-      const p = placeholder();
-      const snap = snapshot(b, p);
-      snap.subscribe((n: number) => result = n);
-      const s = S.empty();
-      p.replaceWith(s);
-      assert.strictEqual(result, 0);
-      s.push(1);
-      assert.strictEqual(result, 7);
-    });
-  });
   describe("timing operators", () => {
     let clock: any;
     beforeEach(() => {
