@@ -199,6 +199,10 @@ class MapBehavior<A, B> extends Behavior<B> {
       this.last = this.pull();
     }
   }
+  deactivate(): void {
+    this.parent.removeListener(this);
+    this.state = State.Inactive;
+  }
   changePullers(n: number): void {
     this.nrOfPullers += n;
     this.parent.changePullers(n);
@@ -459,6 +463,11 @@ class SwitcherBehavior<A> extends ActiveBehavior<A> {
     this.state = newState;
     if (this.child !== undefined) {
       this.child.changeStateDown(this.state);
+    }
+  }
+  changeStateDown(state: State): void {
+    if (this.child !== undefined) {
+      this.child.changeStateDown(state);
     }
   }
 }

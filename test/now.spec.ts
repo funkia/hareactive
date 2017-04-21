@@ -1,7 +1,10 @@
 import { Behavior, switchTo, when } from "../src/behavior";
 import { Future } from "../src/future";
-import { async, Now, performStream, performStreamLatest, performStreamOrdered, plan, runNow, sample } from "../src/now";
-import * as S from "../src/stream";
+import {
+  async, Now, performStream, performStreamLatest,
+  performStreamOrdered, plan, runNow, sample
+} from "../src/now";
+import { sinkStream } from "../src/stream";
 import { assert } from "chai";
 import {
   lift, Either, callP, IO, withEffects, withEffectsP, go
@@ -146,7 +149,7 @@ describe("Now", () => {
         actions.push(n);
         return n + 2;
       });
-      const s = S.empty();
+      const s = sinkStream();
       const mappedS = s.map(impure);
       performStream(mappedS).run().subscribe((n) => results.push(n));
       s.push(1);
@@ -168,7 +171,7 @@ describe("Now", () => {
     it("work with one occurrence", (done: Function) => {
       let results: any[] = [];
       const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
-      const s = S.empty();
+      const s = sinkStream();
       const mappedS = s.map(impure);
       performStreamLatest(mappedS).run().subscribe((n) => results.push(n));
       s.push(60);
@@ -187,7 +190,7 @@ describe("Now", () => {
           }, n);
         });
       });
-      const s = S.empty();
+      const s = sinkStream();
       const mappedS = s.map(impure);
       performStreamLatest(mappedS).run().subscribe((n) => results.push(n));
       s.push(60);
@@ -204,7 +207,7 @@ describe("Now", () => {
     it("work with one occurrence", (done: Function) => {
       let results: any[] = [];
       const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
-      const s = S.empty();
+      const s = sinkStream();
       const mappedS = s.map(impure);
       performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
       s.push(60);
@@ -221,7 +224,7 @@ describe("Now", () => {
           setTimeout(() => resolve(n), n);
         });
       });
-      const s = S.empty();
+      const s = sinkStream();
       const mappedS = s.map(impure);
       performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
       s.push(60);
@@ -239,7 +242,7 @@ describe("Now", () => {
     it("should support `undefined` as result", (done: MochaDone) => {
       let results: any[] = [];
       const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
-      const s = S.empty();
+      const s = sinkStream();
       const mappedS = s.map(impure);
       performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
       s.push(60);
