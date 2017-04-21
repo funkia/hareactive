@@ -4,7 +4,7 @@ import { Behavior, fromFunction, scan } from "./behavior";
 export type Occurrence<A> = {
   time: Time,
   value: A
-}
+};
 
 export type SemanticStream<A> = Occurrence<A>[];
 
@@ -55,13 +55,13 @@ export abstract class Stream<A> extends Reactive<A> {
     return s;
   }
   activate(): void {
-    throw new Error("The behavior can't activate");
+    throw new Error("The stream can't activate");
   }
   deactivate(): void {
-    throw new Error("The behavior can't deactivate");
+    throw new Error("The stream can't deactivate");
   }
   semantic(): SemanticStream<A> {
-    throw new Error("The behavior does not have a semantic representation");
+    throw new Error("The stream does not have a semantic representation");
   }
   // abstract semantic(): SemanticStream<A>;
 }
