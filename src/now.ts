@@ -1,9 +1,9 @@
-import {IO, runIO, Monad, monad} from "@funkia/jabz";
+import { IO, runIO, Monad, monad } from "@funkia/jabz";
 
-import {State} from "./common";
-import {Future, fromPromise, sinkFuture} from "./future";
-import {Behavior, at} from "./behavior";
-import {Stream} from "./stream";
+import { State } from "./common";
+import { Future, fromPromise, sinkFuture } from "./future";
+import { Behavior, at } from "./behavior";
+import { ActiveStream, Stream } from "./stream";
 
 @monad
 export abstract class Now<A> implements Monad<A> {
@@ -72,13 +72,6 @@ export function sample<A>(b: Behavior<A>): Now<A> {
   return new SampleNow(b);
 }
 
-abstract class ActiveStream<A> extends Stream<A> {
-  activate() {
-    // noop, behavior is always active
-  }
-  deactivate() { }
-}
-
 class PerformIOStream<A> extends ActiveStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
@@ -123,7 +116,7 @@ class PerformIOStreamLatest<A> extends ActiveStream<A> {
         } else {
           this.newest = time;
         }
-	this.child.push(a);
+        this.child.push(a);
       }
     });
   }
@@ -149,21 +142,21 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   }
   nextId: number = 0;
   next: number = 0;
-  buffer: {value:A}[] = []; // Object-wrapper to support a result as undefined
+  buffer: { value: A }[] = []; // Object-wrapper to support a result as undefined
   push(io: IO<A>): void {
     const id = this.nextId++;
     runIO(io).then((a: A) => {
       if (id === this.next) {
-        this.buffer[0] = {value: a}
+        this.buffer[0] = { value: a }
         this.pushFromBuffer();
       } else {
-	this.buffer[id - this.next] = {value: a};
+        this.buffer[id - this.next] = { value: a };
       }
     });
   }
   pushFromBuffer(): void {
     while (this.buffer[0] !== undefined) {
-      const {value} = this.buffer.shift();
+      const { value } = this.buffer.shift();
       this.child.push(value);
       this.next++;
     }
