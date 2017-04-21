@@ -306,7 +306,7 @@ describe("behavior", () => {
       assert.equal(endPullingSpy.callCount, 3);
     });
   });
-  describe("Placeholder behavior", () => {
+  describe.skip("Placeholder behavior", () => {
     it("subscribers are notified when placeholder is replaced", () => {
       let result: number;
       const p = placeholder();
@@ -502,7 +502,7 @@ describe("Behavior and Stream", () => {
     it("accumulates in a pure way", () => {
       const s = sinkStream<number>();
       const scanned = scan(sum, 1, s);
-      const b1 = at(scanned);
+      const b1 = scanned.at();
       assert.strictEqual(at(b1), 1);
       s.push(2);
       assert.strictEqual(at(b1), 3);

@@ -260,9 +260,11 @@ class SwitchBehaviorStream<A> extends Stream<A> {
   private outerConsumer: Observer<Stream<A>>;
   constructor(private b: Behavior<Stream<A>>) {
     super();
+  }
+  activate(): void {
     this.outerConsumer = new SwitchOuter(this);
-    b.addListener(this.outerConsumer);
-    const cur = this.currentSource = b.at();
+    this.b.addListener(this.outerConsumer);
+    const cur = this.currentSource = this.b.at();
     cur.addListener(this);
   }
   push(a: A): void {
@@ -282,16 +284,15 @@ export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
 class ChangesStream<A> extends Stream<A> {
   constructor(private b: Behavior<A>) {
     super();
-    b.addListener(this);
   }
-  push(a: A) {
+  push(a: A): void {
     this.child.push(a);
   }
-  beginPulling(): void {
-    throw new Error("Cannot get changes from pulling behavior");
+  activate(): void {
+    this.b.addListener(this);
   }
-  endPulling(): void {
-    throw new Error("Cannot get changes from pulling behavior");
+  deactivate(): void {
+    this.b.removeListener(this);
   }
 }
 

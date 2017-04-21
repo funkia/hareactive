@@ -517,15 +517,15 @@ class ScanBehavior<A, B> extends Behavior<B> {
     private source: Stream<A>
   ) {
     super();
-    /*
     this.state = State.Push;
     this.last = initial;
     source.addListener(this);
-    */
   }
   push(val: A): void {
     this.last = this.fn(val, this.last);
-    this.child.push(this.last);
+    if (this.child) {
+      this.child.push(this.last);
+    }
   }
 }
 
