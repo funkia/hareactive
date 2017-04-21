@@ -16,7 +16,7 @@ import {
   Behavior, at, switchTo, switcher, scan, timeFrom, observe,
   time, integrate, ap, stepper, isBehavior, fromFunction
 } from "../src/behavior";
-import { sinkStream, Stream } from "../src/stream";
+import { changes, sinkStream, Stream, switchStream } from "../src/stream";
 
 function double(n: number): number {
   return n * 2;
@@ -80,7 +80,19 @@ describe("behavior", () => {
       assert(deactivate.calledOnce);
     });
   });
-
+  describe("fromFunction", () => {
+    it("pulls from time varying functions", () => {
+      let time = 0;
+      const b = fromFunction(() => time);
+      assert.equal(B.at(b), 0);
+      time = 1;
+      assert.equal(B.at(b), 1);
+      time = 2;
+      assert.equal(B.at(b), 2);
+      time = 3;
+      assert.equal(B.at(b), 3);
+    });
+  });
   describe("functor", () => {
     it("maps over initial value from parent", () => {
       const b = Behavior.of(3);
@@ -117,9 +129,259 @@ describe("behavior", () => {
       assert.strictEqual(at(b2), 2);
     });
   });
+  describe("applicative", () => {
+    it("returns a constant behavior from of", () => {
+      const b1 = Behavior.of(1);
+      const b2 = b1.of(2);
+      assert.strictEqual(at(b1), 1);
+      assert.strictEqual(at(b2), 2);
+    });
+    describe("ap", () => {
+      it("applies event of functions to event of numbers with publish", () => {
+        const fnB = sinkBehavior(add(1));
+        const numE = sinkBehavior(3);
+        const applied = B.ap(fnB, numE);
+        assert.equal(B.at(applied), 4);
+        fnB.push(add(2));
+        assert.equal(B.at(applied), 5);
+        numE.push(4);
+        assert.equal(B.at(applied), 6);
+        fnB.push(double);
+        assert.equal(B.at(applied), 8);
+      });
+      it("applies event of functions to event of numbers with pull", () => {
+        let n = 1;
+        let fn = add(5);
+        const fnB = fromFunction(() => fn);
+        const numB = fromFunction(() => n);
+        const applied = B.ap(fnB, numB);
+
+        assert.equal(B.at(applied), 6);
+        fn = add(2);
+        assert.equal(B.at(applied), 3);
+        n = 4;
+        assert.equal(B.at(applied), 6);
+        fn = double;
+        assert.equal(B.at(applied), 8);
+        n = 8;
+        assert.equal(B.at(applied), 16);
+      });
+      it("applies pushed event of functions to pulled event of numbers", () => {
+        let n = 1;
+        const fnB = sinkBehavior(add(5));
+        const numE = B.fromFunction(() => {
+          return n;
+        });
+        const applied = B.ap(fnB, numE);
+        assert.equal(B.at(applied), 6);
+        fnB.push(add(2));
+        assert.equal(B.at(applied), 3);
+        n = 4;
+        assert.equal(B.at(applied), 6);
+        fnB.push(double);
+        assert.equal(B.at(applied), 8);
+        n = 8;
+        assert.equal(B.at(applied), 16);
+      });
+      it("works on placeholder", () => {
+        const b = B.behaviorPlaceholder();
+        const applied = ap(b, Behavior.of(12));
+      });
+    });
+    describe("lift", () => {
+      it("lifts function of three arguments", () => {
+        const b1 = sinkBehavior(1);
+        const b2 = sinkBehavior(1);
+        const b3 = sinkBehavior(1);
+        const lifted = lift((a, b, c) => a * b + c, b1, b2, b3);
+        assert.strictEqual(at(lifted), 2);
+        b2.push(2);
+        assert.strictEqual(at(lifted), 3);
+        b1.push(3);
+        assert.strictEqual(at(lifted), 7);
+        b3.push(3);
+        assert.strictEqual(at(lifted), 9);
+      });
+    });
+  });
+  describe("chain", () => {
+    it("handles a constant behavior", () => {
+      const b1 = Behavior.of(12);
+      const b2 = b1.chain(x => Behavior.of(x * x));
+      assert.strictEqual(at(b2), 144);
+    });
+    it("handles changing outer behavior", () => {
+      const b1 = sinkBehavior(0);
+      const b2 = b1.chain(x => Behavior.of(x * x));
+      assert.strictEqual(at(b2), 0);
+      b1.push(2);
+      assert.strictEqual(at(b2), 4);
+      b1.push(3);
+      assert.strictEqual(at(b2), 9);
+    });
+    it("handles changing inner behavior", () => {
+      const inner = sinkBehavior(0);
+      const b = Behavior.of(1).chain(_ => inner);
+      assert.strictEqual(at(b), 0);
+      inner.push(2);
+      assert.strictEqual(at(b), 2);
+      inner.push(3);
+      assert.strictEqual(at(b), 3);
+    });
+    it("stops subscribing to past inner behavior", () => {
+      const inner = sinkBehavior(0);
+      const outer = sinkBehavior(1);
+      const b = outer.chain(n => n === 1 ? inner : Behavior.of(6));
+      assert.strictEqual(at(b), 0);
+      inner.push(2);
+      assert.strictEqual(at(b), 2);
+      outer.push(2);
+      assert.strictEqual(at(b), 6);
+      inner.push(3);
+      assert.strictEqual(at(b), 6);
+    });
+    it("handles changes from both inner and outer", () => {
+      const outer = sinkBehavior(0);
+      const inner1 = sinkBehavior(1);
+      const inner2 = sinkBehavior(3);
+      const b = outer.chain(n => {
+        if (n === 0) {
+          return Behavior.of(0);
+        } else if (n === 1) {
+          return inner1;
+        } else if (n === 2) {
+          return inner2;
+        }
+      });
+      assert.strictEqual(at(b), 0);
+      outer.push(1);
+      assert.strictEqual(at(b), 1);
+      inner1.push(2);
+      assert.strictEqual(at(b), 2);
+      outer.push(2);
+      assert.strictEqual(at(b), 3);
+      inner1.push(7); // Pushing to previous inner should have no effect
+      assert.strictEqual(at(b), 3);
+      inner2.push(4);
+      assert.strictEqual(at(b), 4);
+    });
+    /*
+    it("works on placeholder", () => {
+      const b = placeholder();
+      const chained = b.chain((n: any) => Behavior.of(n));
+      b.replaceWith(Behavior.of(3));
+    });
+    */
+    it("can switch between pulling and pushing", () => {
+      const pushingB = sinkBehavior(0);
+      let variable = 7;
+      const pullingB = fromFunction(() => variable);
+      const outer = sinkBehavior(true);
+      const chained = outer.chain((b) => b ? pushingB : pullingB);
+      const pushSpy = spy();
+      const beginPullingSpy = spy();
+      const endPullingSpy = spy();
+      // Test that several observers are notified
+      chained.observe(pushSpy, beginPullingSpy, endPullingSpy);
+      chained.observe(pushSpy, beginPullingSpy, endPullingSpy);
+      chained.observe(pushSpy, beginPullingSpy, endPullingSpy);
+      pushingB.push(1);
+      pushingB.push(2);
+      outer.push(false);
+      assert.strictEqual(at(chained), 7);
+      variable = 8;
+      assert.strictEqual(at(chained), 8);
+      pushingB.push(3);
+      pushingB.push(4);
+      outer.push(true);
+      pushingB.push(5);
+      outer.push(false);
+      variable = 9;
+      assert.strictEqual(at(chained), 9);
+      assert.deepEqual(
+        pushSpy.args,
+        [[0], [0], [0], [1], [1], [1], [2], [2], [2], [4], [4], [4], [5], [5], [5]]
+      );
+      assert.equal(beginPullingSpy.callCount, 6);
+      assert.equal(endPullingSpy.callCount, 3);
+    });
+  });
+  describe("Placeholder behavior", () => {
+    it("subscribers are notified when placeholder is replaced", () => {
+      let result: number;
+      const p = placeholder();
+      const mapped = p.map((s: string) => s.length);
+      mapped.subscribe((n: number) => result = n);
+      p.replaceWith(sinkBehavior("Hello"));
+      assert.strictEqual(result, 5);
+    });
+    it("observer are notified when replaced with pulling behavior", () => {
+      let beginPulling = false;
+      const p = placeholder();
+      const b = B.fromFunction(() => 12);
+      observe(
+        () => { throw new Error("should not be called"); },
+        () => beginPulling = true,
+        () => { throw new Error("should not be called"); },
+        p
+      );
+      assert.strictEqual(beginPulling, false);
+      p.replaceWith(b);
+      assert.strictEqual(beginPulling, true);
+      assert.strictEqual(at(p), 12);
+    });
+    it("pushes if replaced with pushing behavior", () => {
+      const stream = sinkStream();
+      const b = stepper(0, stream);
+      const p = placeholder();
+      // We replace with a behavior that does not support pulling
+      p.replaceWith(b);
+      assert.strictEqual(at(p), 0);
+    });
+    it("is a behavior", () => {
+      const p = placeholder();
+      assert.strictEqual(isBehavior(p), true);
+    });
+  });
+  describe("integrate", () => {
+    it("can integrate", () => {
+      const clock = useFakeTimers();
+      const acceleration = sinkBehavior(1);
+      const integration = at(integrate(acceleration));
+      assert.strictEqual(at(integration), 0);
+      clock.tick(2000);
+      assert.strictEqual(at(integration), 2);
+      clock.tick(1000);
+      assert.strictEqual(at(integration), 3);
+      clock.tick(500);
+      acceleration.push(2);
+      assert.strictEqual(at(integration), 4);
+      clock.restore();
+    });
+  });
 });
 
 describe("Behavior and Future", () => {
+  describe("when", () => {
+    it("gives occurred future when behavior is true", () => {
+      let occurred = false;
+      const b = Behavior.of(true);
+      const w = B.when(b);
+      const fut = at(w);
+      fut.subscribe((_) => occurred = true);
+      assert.strictEqual(occurred, true);
+    });
+    it("future occurs when behavior turns true", () => {
+      let occurred = false;
+      const b = sinkBehavior(false);
+      const w = B.when(b);
+      const fut = at(w);
+      fut.subscribe((_) => occurred = true);
+      assert.strictEqual(occurred, false);
+      b.push(true);
+      assert.strictEqual(occurred, true);
+    });
+  });
   describe("snapshotAt", () => {
     it("snapshots behavior at future occurring in future", () => {
       let result: number;
@@ -234,6 +496,107 @@ describe("Behavior and Stream", () => {
       e.push(1);
       e.push(2);
       assert.deepEqual(cb.args, [[0], [1], [2]]);
+    });
+  });
+  describe("scan", () => {
+    it("accumulates in a pure way", () => {
+      const s = sinkStream<number>();
+      const scanned = scan(sum, 1, s);
+      const b1 = at(scanned);
+      assert.strictEqual(at(b1), 1);
+      s.push(2);
+      assert.strictEqual(at(b1), 3);
+      const b2 = at(scanned);
+      assert.strictEqual(at(b2), 1);
+      s.push(4);
+      assert.strictEqual(at(b1), 7);
+      assert.strictEqual(at(b2), 5);
+    });
+  });
+  describe("switchStream", () => {
+    it("returns stream that emits from stream", () => {
+      const s1 = sinkStream();
+      const s2 = sinkStream();
+      const s3 = sinkStream();
+      const b = sinkBehavior(s1);
+      const switching = switchStream(b);
+      const cb = spy();
+      switching.subscribe(cb);
+      s1.push(1);
+      s1.push(2);
+      b.push(s2);
+      s2.push(3);
+      b.push(s3);
+      s2.push(4);
+      s3.push(5);
+      s3.push(6);
+      assert.deepEqual(cb.args, [[1], [2], [3], [5], [6]]);
+    });
+  });
+  describe("continuous time", () => {
+    it("gives time from sample point", () => {
+      const [setTime, restore] = mockNow();
+      setTime(3);
+      const time = at(timeFrom);
+      assert.strictEqual(at(time), 0);
+      setTime(4);
+      assert.strictEqual(at(time), 1);
+      setTime(7);
+      assert.strictEqual(at(time), 4);
+      restore();
+    });
+    it("gives time since UNIX epoch", () => {
+      let beginPull = false;
+      let endPull = false;
+      let pushed: number[] = [];
+      observe(
+        (n: number) => pushed.push(n),
+        () => beginPull = true,
+        () => endPull = true,
+        time
+      );
+      assert.strictEqual(beginPull, true);
+      const t = at(time);
+      const now = Date.now();
+      assert(now - 2 <= t && t <= now);
+      assert.strictEqual(endPull, false);
+    });
+  });
+  describe("changes", () => {
+    it("gives changes from pushing behavior", () => {
+      const b = sinkBehavior(0);
+      const s = changes(b);
+      const cb = spy();
+      S.subscribe(cb, s);
+      b.push(1);
+      b.push(2);
+      b.push(2);
+      b.push(2);
+      b.push(3);
+      assert.deepEqual(cb.args, [[1], [2], [3]]);
+    });
+  });
+  describe("toggle", () => {
+    it("has correct initial value", () => {
+      const s1 = sinkStream();
+      const s2 = sinkStream();
+      const flipper1 = toggle(true, s1, s2);
+      assert.strictEqual(at(flipper1), true);
+      const flipper2 = toggle(false, s1, s2);
+      assert.strictEqual(at(flipper2), false);
+    });
+    it("flips properly", () => {
+      const s1 = sinkStream();
+      const s2 = sinkStream();
+      const flipper = toggle(false, s1, s2);
+      const cb = subscribeSpy(flipper);
+      s1.push(1);
+      s2.push(2);
+      s1.push(3);
+      assert.deepEqual(
+        cb.args,
+        [[false], [true], [false], [true]]
+      );
     });
   });
 });

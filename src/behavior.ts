@@ -69,8 +69,7 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   static multi: boolean = false;
   multi: boolean = false;
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
-    // return new ChainBehavior<A, B>(this, fn);
-    return <any>0;
+    return new ChainBehavior<A, B>(this, fn);
   }
   flatten: <B>() => Behavior<B>;
   endPulling(): void {
@@ -112,7 +111,7 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
 /** Behaviors that are always active */
 abstract class ActiveBehavior<A> extends Behavior<A> {
   activate() {
-    // noop, a stateful behavior is always active
+    // noop, behavior is always active
   }
   deactivate() { }
 }
@@ -206,7 +205,6 @@ class MapBehavior<A, B> extends Behavior<B> {
   }
 }
 
-/*
 class ChainOuter<A> extends Behavior<A> {
   constructor(private chainB: ChainBehavior<A, any>) {
     super();
@@ -225,18 +223,19 @@ class ChainBehavior<A, B> extends Behavior<B> {
     private fn: (a: A) => Behavior<B>
   ) {
     super();
+  }
+  activate(): void {
     // Create the outer consumer
     this.outerConsumer = new ChainOuter(this);
     // Make the consumers listen to inner and outer behavior
-    outer.addListener(this.outerConsumer);
-    if (outer.state === State.Push) {
+    this.outer.addListener(this.outerConsumer);
+    if (this.outer.state === State.Push) {
       this.innerB = this.fn(at(this.outer));
-      this.state = this.innerB.state;
       this.innerB.addListener(this);
+      this.state = this.innerB.state;
       this.last = at(this.innerB);
     }
   }
-
   pushOuter(a: A): void {
     // The outer behavior has changed. This means that we will have to
     // call our function, which will result in a new inner behavior.
@@ -245,10 +244,11 @@ class ChainBehavior<A, B> extends Behavior<B> {
     if (this.innerB !== undefined) {
       this.innerB.removeListener(this);
     }
-    const wasPushing = this.state;
     const newInner = this.innerB = this.fn(a);
-    this.state = newInner.state;
     newInner.addListener(this);
+    this.state = newInner.state;
+    this.changeStateDown(this.state);
+    /*
     if (wasPushing !== this.state) {
       if (wasPushing === State.Push) {
         this.beginPulling();
@@ -256,8 +256,9 @@ class ChainBehavior<A, B> extends Behavior<B> {
         this.endPulling();
       }
     }
+    */
     if (this.state === State.Push) {
-      this.push(at(newInner));
+      this.push(newInner.at());
     }
   }
 
@@ -270,7 +271,6 @@ class ChainBehavior<A, B> extends Behavior<B> {
     return at(this.fn(at(this.outer)));
   }
 }
-*/
 
 /** @private */
 class FunctionBehavior<A> extends Behavior<A> {
@@ -498,7 +498,7 @@ class StepperBehavior<B> extends Behavior<B> {
     this.last = val;
     this.child.push(val);
   }
-} 
+}
 
 /**
  * Creates a Behavior whose value is the last occurrence in the stream.
@@ -561,19 +561,19 @@ export class CbObserver<A> implements Observer<A> {
     this._push(a);
   }
   changeStateDown(state: State): void {
-      if (state === State.Pull || state === State.OnlyPull) {
-        this._beginPulling();
-    } else {
-        this._endPulling();
-      }
-    }
-    beginPulling(): void {
+    if (state === State.Pull || state === State.OnlyPull) {
       this._beginPulling();
-    }
-    endPulling(): void {
+    } else {
       this._endPulling();
     }
   }
+  beginPulling(): void {
+    this._beginPulling();
+  }
+  endPulling(): void {
+    this._endPulling();
+  }
+}
 
 /**
  * Observe a behavior for the purpose of executing imperative actions
