@@ -50,11 +50,6 @@ export class MultiObserver<A> implements Observer<A> {
       this.listeners[i].changeStateDown(state);
     }
   }
-  // endPulling(state): void {
-  //   for (let i = 0; i < this.listeners.length; ++i) {
-  //     this.listeners[i].changeStateDown(state);
-  //   }
-  // }
 }
 
 export interface Subscriber<A> extends Observer<A> {

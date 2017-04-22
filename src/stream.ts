@@ -227,12 +227,6 @@ export function scanS<A, B>(fn: (a: A, b: B) => B, startingValue: B, stream: Str
 /** @private */
 class SwitchOuter<A> implements Observer<Stream<A>> {
   constructor(private s: SwitchBehaviorStream<A>) { };
-  beginPulling(): void {
-    throw new Error("not implemented");
-  }
-  endPulling(): void {
-    throw new Error("not implemented");
-  }
   changeStateDown(state: State): void {
     throw new Error("not implemented");
   }

@@ -72,14 +72,6 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     return new ChainBehavior<A, B>(this, fn);
   }
   flatten: <B>() => Behavior<B>;
-  endPulling(): void {
-    this.state = State.Push;
-    (<any>this.child).endPulling();
-  }
-  beginPulling(): void {
-    this.state = State.Push;
-    (<any>this.child).beginPulling();
-  }
   observe(
     push: (a: A) => void,
     beginPulling: () => void,
@@ -252,15 +244,6 @@ class ChainBehavior<A, B> extends Behavior<B> {
     newInner.addListener(this);
     this.state = newInner.state;
     this.changeStateDown(this.state);
-    /*
-    if (wasPushing !== this.state) {
-      if (wasPushing === State.Push) {
-        this.beginPulling();
-      } else {
-        this.endPulling();
-      }
-    }
-    */
     if (this.state === State.Push) {
       this.push(newInner.at());
     }
@@ -334,12 +317,8 @@ export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavio
  */
 export class PlaceholderBehavior<B> extends Behavior<B> {
   private source: Behavior<B>;
-
   constructor() {
     super();
-    // `undefined` indicates that this behavior is neither pushing nor
-    // pulling
-    this.state = undefined;
   }
   push(v: B): void {
     this.last = v;
@@ -352,10 +331,9 @@ export class PlaceholderBehavior<B> extends Behavior<B> {
     this.source = b;
     b.addListener(this);
     this.state = b.state;
+    this.changeStateDown(b.state);
     if (b.state === State.Push) {
       this.push(at(b));
-    } else {
-      this.beginPulling();
     }
   }
 }
@@ -576,12 +554,6 @@ export class CbObserver<A> implements Observer<A> {
       this._endPulling();
     }
   }
-  beginPulling(): void {
-    this._beginPulling();
-  }
-  endPulling(): void {
-    this._endPulling();
-  }
 }
 
 /**
@@ -618,8 +590,7 @@ class TimeFromBehavior extends Behavior<Time> {
  * UNIX epoch. I.e. its current value is equal to the value got by
  * calling `Date.now`.
  */
-export const time: Behavior<Time>
-  = fromFunction(Date.now);
+export const time: Behavior<Time> = fromFunction(Date.now);
 
 /**
  * A behavior giving access to continuous time. When sampled the outer
