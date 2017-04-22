@@ -1,80 +1,67 @@
-import {Behavior, isBehavior, at, behaviorPlaceholder} from "./behavior";
-import {Stream, isStream, placeholderStream} from "./stream";
+import { MapBehavior, MapToStream } from "./";
+import { Reactive, State } from "./common";
+import { Behavior, isBehavior } from "./behavior";
+import { Stream } from "./stream";
 
-export class Placeholder {
-  source: any
-  children: Placeholder[] = [];
-  args: any[];
-
-  constructor(private methodName?: string, ...args: any[]) {
-    this.args = args;
-  }
-  replaceWith(parent: any) {
-    this.source = this.methodName === undefined ? parent : parent[this.methodName](...this.args);
-    for (const c of this.children) {
-      c.replaceWith(this.source);
+export class Placeholder<A> extends Behavior<A> {
+  source: Reactive<A>;
+  replaceWith(parent: Reactive<A>): void {
+    this.source = parent;
+    if (this.child !== undefined) {
+      this.activate();
+      if (isBehavior(parent) && this.state === State.Push) {
+        this.push(parent.at());
+      }
     }
-    this.children = undefined;
   }
-}
-
-function definePlaceholderMethod (methodName: string) {
-  return function (...args: any[]) {
+  push(a: any): void {
+    this.last = a;
+    this.child.push(a);
+  }
+  pull(): A {
+    return (<any>this.source).pull();
+  }
+  activate(): void {
     if (this.source !== undefined) {
-      return this.source[methodName](...args);
-    } else {
-      const p = new Placeholder(methodName, ...args);
-      this.children.push(p);
-      return p;
+      this.source.addListener(this);
+      this.state = this.source.state;
+      this.changeStateDown(this.state);
+    }
+  }
+  map<B>(fn: (a: A) => B): Behavior<B> {
+    return new MapPlaceholder<A, B>(this, fn);
+  }
+  mapTo<B>(b: B): Behavior<B> {
+    return <any>(new MapToPlaceholder<A, B>(this, b));
+  }
+}
+
+class MapPlaceholder<A, B> extends MapBehavior<A, B> {
+}
+
+class MapToPlaceholder<A, B> extends MapToStream<A, B> {
+}
+
+function install(target: Function, source: Function): void {
+  for (const key of Object.getOwnPropertyNames(source.prototype)) {
+    if (target.prototype[key] === undefined) {
+      target.prototype[key] = source.prototype[key];
     }
   }
 }
 
-function defineBehaviorMethod (methodName: string) {
-  return function (...args: any[]) {
-    if (this.source !== undefined) {
-      return this.source[methodName](...args);
-    } else {
-      const p = <any> behaviorPlaceholder();
-      this.children.push(p);
-      return p[methodName](...args);
-    }
+function installMethods(): void {
+  install(Placeholder, Stream);
+  install(MapPlaceholder, Stream);
+  install(MapToPlaceholder, Behavior);
+}
+
+export function placeholder<A>(): Placeholder<A> & Stream<A> {
+  if ((<any>Placeholder).prototype.scanS === undefined) {
+    // The methods are installed lazily when the placeholder is first
+    // used. This avoids a top-level impure expression that would
+    // prevent tree-shaking.
+    installMethods();
   }
-}
-
-function defineStreamMethod (methodName: string) {
-  return function (...args: any[]) {
-    if (this.source !== undefined) {
-      return this.source[methodName](...args);
-    } else {
-      const p = <any> placeholderStream();
-      this.children.push(p);
-      return p[methodName](...args);
-    }
-  }
-}
-
-const commonMethods = [
-  "map", "mapTo", "subscribe", "addListener"
-];
-const streamMethods = [
-  "combine", "filter", "filterApply", "scanS", "delay", "throttle", "debounce"
-];
-const behaviorMethods = [
-  "ap", "lift", "chain", "push", "pull", "beginPulling", "endPulling",
-  "observe", "at", "flatten"
-];
-
-for (const name of commonMethods) {
-  (<any>Placeholder).prototype[name] = definePlaceholderMethod(name);
-}
-for (const name of streamMethods) {
-  (<any>Placeholder).prototype[name] = defineStreamMethod(name);
-}
-for (const name of behaviorMethods) {
-  (<any>Placeholder).prototype[name] = defineBehaviorMethod(name);
-}
-
-export function placeholder(): any {
-  return new Placeholder();
+  return (<any>new Placeholder());
 }

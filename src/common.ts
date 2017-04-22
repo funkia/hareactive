@@ -22,7 +22,7 @@ export interface Observer<A> {
 export class PushOnlyObserver<A> {
   constructor(private callback: (a: A) => void, private source: Reactive<A>) {
     source.addListener(this);
-    if (isBehavior(source)) {
+    if (isBehavior(source) && source.state === State.Push) {
       callback(source.at());
     }
   }

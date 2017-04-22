@@ -1,5 +1,4 @@
 import { spy, useFakeTimers } from "sinon";
-import { placeholder } from "../src/placeholder";
 import {
   Behavior, ProducerBehavior, fromFunction, sinkBehavior
 } from "../src/behavior";
@@ -93,9 +92,6 @@ describe("stream", () => {
   describe("isStream", () => {
     it("should be true when Stream object", () => {
       assert.isTrue(isStream(empty));
-    });
-    it("should be true on placeholder", () => {
-      assert.isTrue(isStream(placeholder()));
     });
     it("should be false when not Stream object", () => {
       assert.isFalse(isStream([]));
@@ -255,17 +251,6 @@ describe("stream", () => {
         testStreamFromArray([7, 7, 7]).semantic()
       );
     });
-    it("works on placeholder", () => {
-      let result = 0;
-      const p = placeholder();
-      const mapped = p.map((s: number) => s + 1);
-      mapped.subscribe((n: number) => result = n);
-      const s = sinkStream();
-      p.replaceWith(s);
-      assert.strictEqual(result, 0);
-      s.push(1)
-      assert.strictEqual(result, 2);
-    });
   });
   describe("apply", () => {
     it("at applies function in behavior", () => {
@@ -399,21 +384,6 @@ describe("stream", () => {
         clock.tick(1);
         assert.strictEqual(n, 2);
       });
-      it.skip("should work with placeholder", () => {
-        let n = 0;
-        const p = placeholder();
-        const delayedP = delay(50, p);
-        delayedP.subscribe(() => n = 2);
-        p.subscribe(() => n = 1);
-        const s = sinkStream<number>();
-        p.replaceWith(s);
-        s.push(0);
-        assert.strictEqual(n, 1);
-        clock.tick(49);
-        assert.strictEqual(n, 1);
-        clock.tick(1);
-        assert.strictEqual(n, 2);
-      });
     });
     describe("throttle", () => {
       it("after an occurrence it should ignore", () => {
@@ -434,22 +404,6 @@ describe("stream", () => {
         s.push(4);
         assert.strictEqual(n, 4);
       });
-      it.skip("should work with placeholder", () => {
-        let n = 0;
-        const p = placeholder();
-        const throttleP = throttle(100, p);
-        throttleP.subscribe((v: number) => n = v);
-        assert.strictEqual(n, 0);
-        const s = sinkStream<number>();
-        p.replaceWith(s);
-        s.push(1);
-        clock.tick(99);
-        s.push(2);
-        assert.strictEqual(n, 1);
-        clock.tick(1);
-        s.push(3);
-        assert.strictEqual(n, 3);
-      });
     });
     describe("debounce", () => {
       it("holding the latest occurrence until an amount of time has passed", () => {
@@ -457,26 +411,6 @@ describe("stream", () => {
         const s = sinkStream<number>();
         const debouncedS = debounce(100, s);
         debouncedS.subscribe((v) => n = v);
-        assert.strictEqual(n, 0);
-        s.push(1);
-        clock.tick(80);
-        assert.strictEqual(n, 0);
-        clock.tick(30);
-        assert.strictEqual(n, 1);
-        s.push(2);
-        assert.strictEqual(n, 1);
-        clock.tick(99);
-        assert.strictEqual(n, 1);
-        clock.tick(2);
-        assert.strictEqual(n, 2);
-      });
-      it.skip("should work with placeholder", () => {
-        let n = 0;
-        const p = placeholder();
-        const debouncedP = debounce(100, p);
-        debouncedP.subscribe((v: number) => n = v);
-        const s = sinkStream<number>();
-        p.replaceWith(s);
         assert.strictEqual(n, 0);
         s.push(1);
         clock.tick(80);
@@ -548,18 +482,6 @@ describe("stream", () => {
       assert.deepEqual(callback.args, [
         [0], [1], [3], [5], [6]
       ]);
-    });
-    it.skip("works with placeholder", () => {
-      let result = 0;
-      const b = Behavior.of(7);
-      const p = placeholder();
-      const snap = snapshot(b, p);
-      snap.subscribe((n: number) => result = n);
-      const s = sinkStream();
-      p.replaceWith(s);
-      assert.strictEqual(result, 0);
-      s.push(1);
-      assert.strictEqual(result, 7);
     });
   });
 });

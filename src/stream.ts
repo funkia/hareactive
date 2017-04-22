@@ -21,10 +21,10 @@ export abstract class Stream<A> extends Reactive<A> {
     return new CombineStream(stream, this);
   }
   map<B>(f: (a: A) => B): Stream<B> {
-    return new MapReactive(this, f);
+    return new MapStream(this, f);
   }
   mapTo<B>(b: B): Stream<B> {
-    return new MapToReactive(this, b);
+    return new MapToStream(this, b);
   }
   filter(fn: (a: A) => boolean): Stream<A> {
     return new FilterStream<A>(this, fn);
@@ -76,7 +76,7 @@ class EmptyStream extends Stream<any> {
 export const empty: Stream<any> = new EmptyStream();
 
 /** For pure combinators with a single parent */
-abstract class PureStream<A> extends Stream<A> {
+export abstract class PureStream<A> extends Stream<A> {
   abstract parent: Reactive<any>;
   activate(): State {
     return this.parent.addListener(this);
@@ -92,7 +92,7 @@ export abstract class ActiveStream<A> extends Stream<A> {
   deactivate() { }
 }
 
-export class MapReactive<A, B> extends PureStream<B> {
+export class MapStream<A, B> extends PureStream<B> {
   constructor(public parent: Reactive<A>, private f: (a: A) => B) {
     super();
   }
@@ -105,7 +105,7 @@ export class MapReactive<A, B> extends PureStream<B> {
   }
 }
 
-export class MapToReactive<A, B> extends PureStream<B> {
+export class MapToStream<A, B> extends PureStream<B> {
   constructor(public parent: Reactive<A>, private b: B) {
     super();
   }
@@ -278,23 +278,6 @@ class ChangesStream<A> extends Stream<A> {
 
 export function changes<A>(b: Behavior<A>): Stream<A> {
   return new ChangesStream(b);
-}
-
-export class PlaceholderStream<B> extends Stream<B> {
-  private source: Stream<B>;
-
-  push(a: B): void {
-    this.child.push(a);
-  }
-
-  replaceWith(s: Stream<B>): void {
-    this.source = s;
-    s.addListener(this);
-  }
-}
-
-export function placeholderStream<A>(): PlaceholderStream<A> {
-  return new PlaceholderStream<A>();
 }
 
 export function combineList<A>(ss: Stream<A>[]): Stream<A> {
