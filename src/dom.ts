@@ -1,3 +1,4 @@
+import { State } from "./common";
 import { Stream, ProducerStream } from "./stream";
 import { Behavior, ProducerBehavior } from "./behavior";
 
@@ -7,18 +8,21 @@ export type EventName = HTMLEventName | WindowEventName;
 export type Extractor<E, T, A> = (event: E, target: T) => A;
 
 class DomEventStream<A> extends ProducerStream<A> {
-  private listener: EventListener;
-  constructor(private target: EventTarget, private eventName: string, private extractor: Extractor<any, EventTarget, A>) {
+  constructor(
+    private target: EventTarget,
+    private eventName: string,
+    private extractor: Extractor<any, EventTarget, A>
+  ) {
     super();
-    this.listener = (ev) => {
-      this.push(this.extractor(ev, this.target));
-    };
+  }
+  handleEvent(event: Event): void {
+    this.push(this.extractor(event, this.target));
   }
   activate(): void {
-    this.target.addEventListener(this.eventName, this.listener);
+    this.target.addEventListener(this.eventName, this);
   }
   deactivate(): void {
-    this.target.removeEventListener(this.eventName, this.listener);
+    this.target.removeEventListener(this.eventName, this);
   }
 }
 
@@ -45,19 +49,25 @@ export function streamFromEvent<A>(
 }
 
 class DomEventBehavior<A> extends ProducerBehavior<A> {
-  private listener: EventListener;
-  constructor(private target: EventTarget, private eventName: string, initial: A,  private extractor: Extractor<any, EventTarget, A>) {
+  constructor(
+    private target: EventTarget,
+    private eventName: string,
+    initial: A,
+    private extractor: Extractor<any, EventTarget, A>
+  ) {
     super();
     this.last = initial;
-    this.listener = ev => {
-      this.push(this.extractor(ev, this.target));
-    };
+  }
+  handleEvent(event: Event): void {
+    this.push(this.extractor(event, this.target));
   }
   activate(): void {
-    this.target.addEventListener(this.eventName, this.listener);
+    this.state = State.Push;
+    this.target.addEventListener(this.eventName, this);
   }
   deactivate(): void {
-    this.target.removeEventListener(this.eventName, this.listener);
+    this.state = State.Inactive;
+    this.target.removeEventListener(this.eventName, this);
   }
 }
 

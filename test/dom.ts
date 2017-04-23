@@ -54,7 +54,7 @@ describe("dom", () => {
       input.value = "second";
       input.dispatchEvent(new Event("change"));
       assert.strictEqual(result.length, 2);
-      assert.strictEqual(result, ["initial", "second"]);
+      assert.deepEqual(result, ["initial", "second"]);
     });
   });
 });
