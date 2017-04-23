@@ -1,7 +1,11 @@
 import { monad, Monad } from "@funkia/jabz";
 import { State } from "./common";
-import { Consumer, Observer } from "./frp-common";
+import { Observer } from "./common";
 import { Behavior } from "./behavior";
+
+export interface Consumer<A> {
+  push(a: A): void;
+}
 
 /**
  * A future is a thing that occurs at some point in time with a value.
@@ -185,12 +189,6 @@ export class BehaviorFuture<A> extends Future<A> implements Observer<A> {
   constructor(private b: Behavior<A>) {
     super();
     b.addListener(this);
-  }
-  endPulling(): void {
-    throw new Error("Behavior future should never switch to pushing");
-  }
-  beginPulling(): void {
-    throw new Error("Behavior future does not support pushing behavior");
   }
   changeStateDown(): void {
     throw new Error("Behavior future does not support pushing behavior");

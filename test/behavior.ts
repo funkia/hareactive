@@ -11,12 +11,13 @@ import * as B from "../src/behavior";
 import * as S from "../src/stream";
 import { Future } from "../src/future";
 import * as F from "../src/future";
-import { placeholder } from "../src/placeholder";
 import {
   Behavior, at, switchTo, switcher, scan, timeFrom, observe,
   time, integrate, ap, stepper, isBehavior, fromFunction
 } from "../src/behavior";
 import { changes, sinkStream, Stream, switchStream } from "../src/stream";
+
+import { subscribeSpy } from "./helpers";
 
 function double(n: number): number {
   return n * 2;
@@ -24,12 +25,6 @@ function double(n: number): number {
 
 function sum(n: number, m: number): number {
   return n + m;
-}
-
-function subscribeSpy(b: Behavior<any>): sinon.SinonSpy {
-  const cb = spy();
-  b.subscribe(cb);
-  return cb;
 }
 
 const add = (a: number) => (b: number) => a + b;
@@ -183,10 +178,6 @@ describe("behavior", () => {
         n = 8;
         assert.equal(B.at(applied), 16);
       });
-      it("works on placeholder", () => {
-        const b = B.behaviorPlaceholder();
-        const applied = ap(b, Behavior.of(12));
-      });
     });
     describe("lift", () => {
       it("lifts function of three arguments", () => {
@@ -265,13 +256,6 @@ describe("behavior", () => {
       inner2.push(4);
       assert.strictEqual(at(b), 4);
     });
-    /*
-    it("works on placeholder", () => {
-      const b = placeholder();
-      const chained = b.chain((n: any) => Behavior.of(n));
-      b.replaceWith(Behavior.of(3));
-    });
-    */
     it("can switch between pulling and pushing", () => {
       const pushingB = sinkBehavior(0);
       let variable = 7;
@@ -304,43 +288,6 @@ describe("behavior", () => {
       );
       assert.equal(beginPullingSpy.callCount, 6);
       assert.equal(endPullingSpy.callCount, 3);
-    });
-  });
-  describe.skip("Placeholder behavior", () => {
-    it("subscribers are notified when placeholder is replaced", () => {
-      let result: number;
-      const p = placeholder();
-      const mapped = p.map((s: string) => s.length);
-      mapped.subscribe((n: number) => result = n);
-      p.replaceWith(sinkBehavior("Hello"));
-      assert.strictEqual(result, 5);
-    });
-    it("observer are notified when replaced with pulling behavior", () => {
-      let beginPulling = false;
-      const p = placeholder();
-      const b = B.fromFunction(() => 12);
-      observe(
-        () => { throw new Error("should not be called"); },
-        () => beginPulling = true,
-        () => { throw new Error("should not be called"); },
-        p
-      );
-      assert.strictEqual(beginPulling, false);
-      p.replaceWith(b);
-      assert.strictEqual(beginPulling, true);
-      assert.strictEqual(at(p), 12);
-    });
-    it("pushes if replaced with pushing behavior", () => {
-      const stream = sinkStream();
-      const b = stepper(0, stream);
-      const p = placeholder();
-      // We replace with a behavior that does not support pulling
-      p.replaceWith(b);
-      assert.strictEqual(at(p), 0);
-    });
-    it("is a behavior", () => {
-      const p = placeholder();
-      assert.strictEqual(isBehavior(p), true);
     });
   });
   describe("integrate", () => {

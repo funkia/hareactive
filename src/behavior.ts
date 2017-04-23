@@ -41,12 +41,6 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     return new ConstantBehavior(v);
   }
   ap<B>(f: Behavior<(a: A) => B>): Behavior<B> {
-    /*
-    const newB = new ApBehavior<A, B>(f, this);
-    f.addListener(newB);
-    this.addListener(newB);
-    return newB;
-    */
     return new ApBehavior<A, B>(f, this);
   }
   lift<T1, R>(f: (t: T1) => R, m: Behavior<T1>): Behavior<R>;
@@ -72,14 +66,6 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     return new ChainBehavior<A, B>(this, fn);
   }
   flatten: <B>() => Behavior<B>;
-  endPulling(): void {
-    this.state = State.Push;
-    (<any>this.child).endPulling();
-  }
-  beginPulling(): void {
-    this.state = State.Push;
-    (<any>this.child).beginPulling();
-  }
   observe(
     push: (a: A) => void,
     beginPulling: () => void,
@@ -182,15 +168,18 @@ class ConstantBehavior<A> extends ActiveBehavior<A> {
   }
 }
 
-class MapBehavior<A, B> extends Behavior<B> {
+export class MapBehavior<A, B> extends Behavior<B> {
   constructor(
     private parent: Behavior<any>,
-    private fn: (a: A) => B
+    private f: (a: A) => B
   ) {
     super();
   }
+  push(a: A): void {
+    this.child.push(this.f(a));
+  }
   pull(): B {
-    return this.fn(this.parent.at());
+    return this.f(this.parent.at());
   }
   activate(): void {
     this.parent.addListener(this);
@@ -198,6 +187,10 @@ class MapBehavior<A, B> extends Behavior<B> {
     if (this.state === State.Push) {
       this.last = this.pull();
     }
+  }
+  deactivate(): void {
+    this.parent.removeListener(this);
+    this.state = State.Inactive;
   }
   changePullers(n: number): void {
     this.nrOfPullers += n;
@@ -248,25 +241,14 @@ class ChainBehavior<A, B> extends Behavior<B> {
     newInner.addListener(this);
     this.state = newInner.state;
     this.changeStateDown(this.state);
-    /*
-    if (wasPushing !== this.state) {
-      if (wasPushing === State.Push) {
-        this.beginPulling();
-      } else {
-        this.endPulling();
-      }
-    }
-    */
     if (this.state === State.Push) {
       this.push(newInner.at());
     }
   }
-
   push(b: B): void {
     this.last = b;
     this.child.push(b);
   }
-
   pull(): B {
     return at(this.fn(at(this.outer)));
   }
@@ -321,43 +303,6 @@ class ApBehavior<A, B> extends Behavior<B> {
  */
 export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
   return valB.ap(fnB);
-}
-
-/**
- * A placeholder behavior is a behavior without any value. It is used
- * to do value recursion in `./framework.ts`.
- * @private
- */
-export class PlaceholderBehavior<B> extends Behavior<B> {
-  private source: Behavior<B>;
-
-  constructor() {
-    super();
-    // `undefined` indicates that this behavior is neither pushing nor
-    // pulling
-    this.state = undefined;
-  }
-  push(v: B): void {
-    this.last = v;
-    this.child.push(v);
-  }
-  pull(): B {
-    return this.source.pull();
-  }
-  replaceWith(b: Behavior<B>): void {
-    this.source = b;
-    b.addListener(this);
-    this.state = b.state;
-    if (b.state === State.Push) {
-      this.push(at(b));
-    } else {
-      this.beginPulling();
-    }
-  }
-}
-
-export function behaviorPlaceholder(): PlaceholderBehavior<any> {
-  return new PlaceholderBehavior();
 }
 
 /** @private */
@@ -459,6 +404,11 @@ class SwitcherBehavior<A> extends ActiveBehavior<A> {
     this.state = newState;
     if (this.child !== undefined) {
       this.child.changeStateDown(this.state);
+    }
+  }
+  changeStateDown(state: State): void {
+    if (this.child !== undefined) {
+      this.child.changeStateDown(state);
     }
   }
 }
@@ -567,12 +517,6 @@ export class CbObserver<A> implements Observer<A> {
       this._endPulling();
     }
   }
-  beginPulling(): void {
-    this._beginPulling();
-  }
-  endPulling(): void {
-    this._endPulling();
-  }
 }
 
 /**
@@ -589,7 +533,7 @@ export function observe<A>(
 }
 
 export function isBehavior(b: any): b is Behavior<any> {
-  return typeof b === "object" && ("observe" in b) && ("at" in b);
+  return typeof b === "object" && ("at" in b);
 }
 
 class TimeFromBehavior extends Behavior<Time> {
@@ -609,8 +553,7 @@ class TimeFromBehavior extends Behavior<Time> {
  * UNIX epoch. I.e. its current value is equal to the value got by
  * calling `Date.now`.
  */
-export const time: Behavior<Time>
-  = fromFunction(Date.now);
+export const time: Behavior<Time> = fromFunction(Date.now);
 
 /**
  * A behavior giving access to continuous time. When sampled the outer

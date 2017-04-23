@@ -22,7 +22,7 @@ export interface Observer<A> {
 export class PushOnlyObserver<A> {
   constructor(private callback: (a: A) => void, private source: Reactive<A>) {
     source.addListener(this);
-    if (isBehavior(source)) {
+    if (isBehavior(source) && source.state === State.Push) {
       callback(source.at());
     }
   }
@@ -50,11 +50,6 @@ export class MultiObserver<A> implements Observer<A> {
       this.listeners[i].changeStateDown(state);
     }
   }
-  // endPulling(state): void {
-  //   for (let i = 0; i < this.listeners.length; ++i) {
-  //     this.listeners[i].changeStateDown(state);
-  //   }
-  // }
 }
 
 export interface Subscriber<A> extends Observer<A> {
