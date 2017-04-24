@@ -1,21 +1,16 @@
 import { State } from "../src/common";
-import { ProducerBehavior, publish, sinkBehavior, toggle } from "../src";
+import { ProducerBehavior, producerBehavior, publish, sinkBehavior, toggle, Future,
+  Behavior, at, switchTo, switcher, scan, timeFrom, observe,
+  time, integrate, stepper, isBehavior, fromFunction,
+  changes, sinkStream, Stream, switchStream } from "../src";
 import "mocha";
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
+import { lift, mapTo, map, ap } from "@funkia/jabz";
 
-import { lift, mapTo } from "@funkia/jabz";
-
-import { map } from "../src/index";
 import * as B from "../src/behavior";
 import * as S from "../src/stream";
-import { Future } from "../src/future";
 import * as F from "../src/future";
-import {
-  Behavior, at, switchTo, switcher, scan, timeFrom, observe,
-  time, integrate, ap, stepper, isBehavior, fromFunction
-} from "../src/behavior";
-import { changes, sinkStream, Stream, switchStream } from "../src/stream";
 
 import { subscribeSpy } from "./helpers";
 
@@ -69,6 +64,20 @@ describe("behavior", () => {
         }
       }
       const producer = new MyProducer();
+      const observer = producer.subscribe((a) => a);
+      observer.deactivate();
+      assert(activate.calledOnce);
+      assert(deactivate.calledOnce);
+    });
+  });
+  describe("producerBehavior", () => {
+    it("activates and deactivates", () => {
+      const activate = spy();
+      const deactivate = spy();
+      const producer = producerBehavior((push) => {
+        activate();
+        return deactivate;
+      }, "");
       const observer = producer.subscribe((a) => a);
       observer.deactivate();
       assert(activate.calledOnce);

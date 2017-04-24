@@ -119,6 +119,29 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
   }
 }
 
+export type ProducerBehaviorFunction<A> = (push: (a: A) => void) => () => void;
+
+class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
+  constructor(private activateFn: ProducerBehaviorFunction<A>, private initial: A) {
+    super();
+    this.last = initial;
+  }
+  deactivateFn: () => void;
+  activate(): void {
+    this.state = State.Push;
+    this.deactivateFn = this.activateFn(this.push.bind(this));
+  }
+  deactivate(): void {
+    this.state = State.Inactive;
+    this.deactivateFn();
+  }
+}
+
+export function producerBehavior<A>(activate: ProducerBehaviorFunction<A>, initial: A): Behavior<A> {
+  return new ProducerBehaviorFromFunction(activate, initial);
+}
+
+
 export class SinkBehavior<A> extends ProducerBehavior<A> {
   constructor(public last: A) {
     super();

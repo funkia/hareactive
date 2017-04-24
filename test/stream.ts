@@ -8,8 +8,8 @@ import { assert } from "chai";
 import { map, publish } from "../src/index";
 import {
   apply, debounce, delay, empty, filter, filterApply, isStream,
-  keepWhen, ProducerStream, scanS, sinkStream, snapshot, snapshotWith,
-  split, Stream, subscribe, testStreamFromArray, testStreamFromObject,
+  keepWhen, producerStream, ProducerStream, scanS, sinkStream, snapshot,
+  snapshotWith, split, Stream, subscribe, testStreamFromArray, testStreamFromObject,
   throttle
 } from "../src/stream";
 
@@ -173,6 +173,32 @@ describe("stream", () => {
         }
       }
       const producer = new MyProducer();
+      producer.subscribe(callback);
+      push(1);
+      push(2);
+      assert.deepEqual(callback.args, [[1], [2]]);
+    });
+  });
+  describe("producerStream", () => {
+    it("activates and deactivates", () => {
+      const activate = spy();
+      const deactivate = spy();
+      const producer = producerStream((push) => {
+        activate();
+        return deactivate;
+      });
+      const observer = producer.subscribe((a) => a);
+      observer.deactivate();
+      assert(activate.calledOnce);
+      assert(deactivate.calledOnce);
+    });
+    it("pushes to listener", () => {
+      const callback = spy();
+      let push: (n: number) => void;
+      const producer = producerStream((p) => {
+        push = p;
+        return () => push = undefined;
+      });
       producer.subscribe(callback);
       push(1);
       push(2);

@@ -226,7 +226,7 @@ export function scanS<A, B>(fn: (a: A, b: B) => B, startingValue: B, stream: Str
 
 /** @private */
 class SwitchOuter<A> implements Observer<Stream<A>> {
-  constructor(private s: SwitchBehaviorStream<A>) { };
+  constructor(private s: SwitchBehaviorStream<A>) { }
   changeStateDown(state: State): void {
     throw new Error("not implemented");
   }
@@ -325,7 +325,7 @@ class CombineStream<A, B> extends Stream<A | B> {
     const result = [];
     const a = this.s1.semantic();
     const b = this.s2.semantic();
-    for (let i = 0, j = 0; i < a.length || j < b.length;) {
+    for (let i = 0, j = 0; i < a.length || j < b.length; ) {
       if (j === b.length || (i < a.length && a[i].time <= b[j].time)) {
         result.push(a[i]);
         i++;
@@ -357,6 +357,27 @@ export abstract class ProducerStream<A> extends Stream<A> {
   push(a: A): void {
     this.child.push(a);
   }
+}
+
+export type ProducerStreamFunction<A> = (push: (a: A) => void) => () => void;
+
+class ProducerStreamFromFunction<A> extends ProducerStream<A> {
+  constructor(private activateFn: ProducerStreamFunction<A>) {
+    super();
+  }
+  deactivateFn: () => void;
+  activate(): void {
+    this.state = State.Push;
+    this.deactivateFn = this.activateFn(this.push.bind(this));
+  }
+  deactivate(): void {
+    this.state = State.Inactive;
+    this.deactivateFn();
+  }
+}
+
+export function producerStream<A>(activate: ProducerStreamFunction<A>): Stream<A> {
+  return new ProducerStreamFromFunction(activate);
 }
 
 export class SinkStream<A> extends ProducerStream<A> {
