@@ -44,6 +44,10 @@ export abstract class Stream<A> extends Reactive<A> {
   debounce(ms: number): Stream<A> {
     return new DebounceStream<A>(this, ms);
   }
+  log(prefix?: string): Stream<A> {
+    this.subscribe(a => console.log(`${prefix || ""} ${a}`));
+    return this;
+  }
   activate(): void {
     throw new Error("The stream can't activate");
   }

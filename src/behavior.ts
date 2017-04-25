@@ -92,6 +92,10 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   changePullers(n: number): void {
     this.nrOfPullers += n;
   }
+  log(prefix?: string): Behavior<A> {
+    this.subscribe(a => console.log(`${prefix || ""} ${a}`));
+    return this;
+  }
 }
 
 /** Behaviors that are always active */
