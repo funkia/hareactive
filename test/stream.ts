@@ -1,17 +1,13 @@
 import { spy, useFakeTimers } from "sinon";
-import {
-  Behavior, ProducerBehavior, fromFunction, sinkBehavior
-} from "../src/behavior";
 import { State } from "../src/common";
 import { assert } from "chai";
-
-import { map, publish } from "../src/index";
-import {
+import { map, publish,
+  Behavior, ProducerBehavior, fromFunction, sinkBehavior,
   apply, debounce, delay, empty, filter, filterApply, isStream,
   keepWhen, producerStream, ProducerStream, scanS, sinkStream, snapshot,
   snapshotWith, split, Stream, subscribe, testStreamFromArray, testStreamFromObject,
   throttle
-} from "../src/stream";
+ } from "../src";
 
 const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
@@ -301,6 +297,15 @@ describe("stream", () => {
     });
   });
   describe("filter", () => {
+    it("filter values semantically", () => {
+      const s = testStreamFromArray([1, 3, 2, 4, 1]);
+      const filtered = s.filter((n) => n > 2);
+      assert.deepEqual(
+        filtered.semantic(),
+        [{ time: 1, value: 3 },
+         { time: 3, value: 4 }]
+      );
+    });
     it("should filter the unwanted values", () => {
       const sink = sinkStream();
       const callback = spy();

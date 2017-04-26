@@ -129,6 +129,10 @@ class FilterStream<A> extends PureStream<A> {
     ) {
     super();
   }
+  semantic(): SemanticStream<A> {
+    const s = (<Stream<A>>this.parent).semantic();
+    return s.filter(({ value }) => this.fn(value));
+  }
   push(a: A): void {
     if (this.fn(a) === true) {
       this.child.push(a);
