@@ -1,8 +1,9 @@
-import {IO, runIO, Monad, monad} from "@funkia/jabz";
+import { IO, runIO, Monad, monad } from "@funkia/jabz";
 
-import {Future, fromPromise, sinkFuture} from "./future";
-import {Behavior, at} from "./behavior";
-import {Stream} from "./stream";
+import { State } from "./common";
+import { Future, fromPromise, sinkFuture } from "./future";
+import { Behavior, at } from "./behavior";
+import { ActiveStream, Stream } from "./stream";
 
 @monad
 export abstract class Now<A> implements Monad<A> {
@@ -71,10 +72,11 @@ export function sample<A>(b: Behavior<A>): Now<A> {
   return new SampleNow(b);
 }
 
-class PerformIOStream<A> extends Stream<A> {
+class PerformIOStream<A> extends ActiveStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this);
+    this.state = State.Push;
   }
   push(io: IO<A>): void {
     runIO(io).then((a: A) => this.child.push(a));
@@ -94,7 +96,7 @@ export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNow(s);
 }
 
-class PerformIOStreamLatest<A> extends Stream<A> {
+class PerformIOStreamLatest<A> extends ActiveStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this);
@@ -114,7 +116,7 @@ class PerformIOStreamLatest<A> extends Stream<A> {
         } else {
           this.newest = time;
         }
-	this.child.push(a);
+        this.child.push(a);
       }
     });
   }
@@ -133,28 +135,28 @@ export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNowLatest(s);
 }
 
-class PerformIOStreamOrdered<A> extends Stream<A> {
+class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this);
   }
   nextId: number = 0;
   next: number = 0;
-  buffer: {value:A}[] = []; // Object-wrapper to support a result as undefined
+  buffer: { value: A }[] = []; // Object-wrapper to support a result as undefined
   push(io: IO<A>): void {
     const id = this.nextId++;
     runIO(io).then((a: A) => {
       if (id === this.next) {
-        this.buffer[0] = {value: a}
+        this.buffer[0] = { value: a }
         this.pushFromBuffer();
       } else {
-	this.buffer[id - this.next] = {value: a};
+        this.buffer[id - this.next] = { value: a };
       }
     });
   }
   pushFromBuffer(): void {
     while (this.buffer[0] !== undefined) {
-      const {value} = this.buffer.shift();
+      const { value } = this.buffer.shift();
       this.child.push(value);
       this.next++;
     }
