@@ -1,15 +1,15 @@
-import { State } from "../src/common";
-import { ProducerBehavior, producerBehavior, publish, sinkBehavior, toggle, Future,
-  Behavior, at, switchTo, switcher, scan, timeFrom, observe,
-  time, integrate, stepper, isBehavior, fromFunction,
-  changes, sinkStream, Stream, switchStream } from "../src";
+import {
+  ProducerBehavior, producerBehavior, publish, sinkBehavior, toggle,
+  Future, Behavior, at, switchTo, switcher, scan, timeFrom, observe,
+  time, integrate, stepper, isBehavior, fromFunction, sinkStream,
+  switchStream
+} from "../src";
 import "mocha";
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
-import { lift, mapTo, map, ap } from "@funkia/jabz";
+import { lift, mapTo, map } from "@funkia/jabz";
 
 import * as B from "../src/behavior";
-import * as S from "../src/stream";
 import * as F from "../src/future";
 
 import { subscribeSpy } from "./helpers";
@@ -516,20 +516,6 @@ describe("Behavior and Stream", () => {
       const now = Date.now();
       assert(now - 2 <= t && t <= now);
       assert.strictEqual(endPull, false);
-    });
-  });
-  describe("changes", () => {
-    it("gives changes from pushing behavior", () => {
-      const b = sinkBehavior(0);
-      const s = changes(b);
-      const cb = spy();
-      S.subscribe(cb, s);
-      b.push(1);
-      b.push(2);
-      b.push(2);
-      b.push(2);
-      b.push(3);
-      assert.deepEqual(cb.args, [[1], [2], [3]]);
     });
   });
   describe("toggle", () => {

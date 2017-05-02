@@ -1,7 +1,6 @@
-import { MapBehavior, MapToStream } from "./";
 import { Reactive, State } from "./common";
-import { Behavior, isBehavior } from "./behavior";
-import { Stream } from "./stream";
+import { Behavior, isBehavior, MapBehavior } from "./behavior";
+import { Stream , MapToStream} from "./stream";
 
 export class Placeholder<A> extends Behavior<A> {
   source: Reactive<A>;

@@ -11,7 +11,6 @@ export type SemanticStream<A> = Occurrence<A>[];
 /**
  * A stream is a list of occurrences over time. Each occurrence
  * happens at a discrete point in time and has an associated value.
- * Semantically it is a list `type Stream<A> = [Time, A]`.
  */
 export abstract class Stream<A> extends Reactive<A> {
   constructor() {

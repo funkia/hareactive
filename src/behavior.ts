@@ -66,13 +66,6 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     return new ChainBehavior<A, B>(this, fn);
   }
   flatten: <B>() => Behavior<B>;
-  observe(
-    push: (a: A) => void,
-    beginPulling: () => void,
-    endPulling: () => void,
-  ): CbObserver<A> {
-    return new CbObserver(push, beginPulling, endPulling, this);
-  }
   at(): A {
     return this.state === State.Push ? this.last : this.pull();
   }
@@ -518,45 +511,6 @@ export function toggle(
 
 export function fromFunction<B>(fn: () => B): Behavior<B> {
   return new FunctionBehavior(fn);
-}
-
-export class CbObserver<A> implements Observer<A> {
-  constructor(
-    private _push: (a: A) => void,
-    private _beginPulling: () => void,
-    private _endPulling: () => void,
-    private source: Behavior<A>
-  ) {
-    source.addListener(this);
-    if (source.state === State.Pull || source.state === State.OnlyPull) {
-      _beginPulling();
-    } else if (source.state === State.Push) {
-      _push(source.last);
-    }
-  }
-  push(a: A): void {
-    this._push(a);
-  }
-  changeStateDown(state: State): void {
-    if (state === State.Pull || state === State.OnlyPull) {
-      this._beginPulling();
-    } else {
-      this._endPulling();
-    }
-  }
-}
-
-/**
- * Observe a behavior for the purpose of executing imperative actions
- * based on the value of the behavior.
- */
-export function observe<A>(
-  push: (a: A) => void,
-  beginPulling: () => void,
-  endPulling: () => void,
-  b: Behavior<A>
-): CbObserver<A> {
-  return b.observe(push, beginPulling, endPulling);
 }
 
 export function isBehavior(b: any): b is Behavior<any> {

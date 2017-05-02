@@ -1,6 +1,10 @@
-import { isBehavior } from "./behavior";
+import { Behavior } from "./behavior";
 
 export type Time = number;
+
+function isBehavior(b: any): b is Behavior<any> {
+  return typeof b === "object" && ("at" in b);
+}
 
 export const enum State {
   // Values are pushed to listeners
@@ -104,8 +108,54 @@ export abstract class Reactive<A> implements Observer<any> {
   subscribe(callback: (a: A) => void): Subscriber<A> {
     return new PushOnlyObserver(callback, this);
   }
+  observe(
+    push: (a: A) => void,
+    beginPulling: () => void,
+    endPulling: () => void,
+  ): CbObserver<A> {
+    return new CbObserver(push, beginPulling, endPulling, this);
+  }
   abstract push(a: any): void;
   abstract deactivate(): void;
   abstract activate(): void;
   abstract map<B>(f: (a: A) => B): Reactive<B>;
+}
+
+export class CbObserver<A> implements Observer<A> {
+  constructor(
+    private _push: (a: A) => void,
+    private _beginPulling: () => void,
+    private _endPulling: () => void,
+    private source: Reactive<A>
+  ) {
+    source.addListener(this);
+    if (source.state === State.Pull || source.state === State.OnlyPull) {
+      _beginPulling();
+    } else if (isBehavior(source) && source.state === State.Push) {
+      _push(source.last);
+    }
+  }
+  push(a: A): void {
+    this._push(a);
+  }
+  changeStateDown(state: State): void {
+    if (state === State.Pull || state === State.OnlyPull) {
+      this._beginPulling();
+    } else {
+      this._endPulling();
+    }
+  }
+}
+
+/**
+ * Observe a behavior for the purpose of executing imperative actions
+ * based on the value of the behavior.
+ */
+export function observe<A>(
+  push: (a: A) => void,
+  beginPulling: () => void,
+  endPulling: () => void,
+  b: Reactive<A>
+): CbObserver<A> {
+  return b.observe(push, beginPulling, endPulling);
 }

@@ -4,10 +4,10 @@ import { spy, useFakeTimers } from "sinon";
 import { assert } from "chai";
 
 import { placeholder } from "../src/placeholder";
-import { State } from "../src/common";
+import { State, observe } from "../src/common";
 import { map, publish } from "../src/index";
 import {
-  Behavior, stepper, fromFunction, sinkBehavior, observe, ap
+  Behavior, stepper, fromFunction, sinkBehavior, ap
 } from "../src/behavior";
 import {
   apply, debounce, delay, empty, filter, filterApply, isStream,

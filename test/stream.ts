@@ -1,13 +1,16 @@
-import { spy, useFakeTimers } from "sinon";
-import { State } from "../src/common";
 import { assert } from "chai";
-import { map, publish,
-  Behavior, ProducerBehavior, fromFunction, sinkBehavior,
-  apply, debounce, delay, empty, filter, filterApply, isStream,
-  keepWhen, producerStream, ProducerStream, scanS, sinkStream, snapshot,
-  snapshotWith, split, Stream, subscribe, testStreamFromArray, testStreamFromObject,
-  throttle
- } from "../src";
+import { spy, useFakeTimers } from "sinon";
+import {
+  Behavior, ProducerBehavior, fromFunction, sinkBehavior
+} from "../src/behavior";
+import { State } from "../src/common";
+import { map, publish } from "../src/index";
+import {
+  apply, changes, debounce, delay, empty, filter, filterApply,
+  isStream, keepWhen, producerStream, ProducerStream, scanS, sinkStream, snapshot,
+  snapshotWith, split, subscribe, testStreamFromArray,
+  testStreamFromObject, throttle
+} from "../src/stream";
 
 const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
@@ -514,5 +517,32 @@ describe("stream", () => {
         [0], [1], [3], [5], [6]
       ]);
     });
+  });
+  describe("changes", () => {
+    it("gives changes from pushing behavior", () => {
+      const b = sinkBehavior(0);
+      const s = changes(b);
+      const cb = spy();
+      subscribe(cb, s);
+      b.push(1);
+      b.push(2);
+      b.push(2);
+      b.push(2);
+      b.push(3);
+      assert.deepEqual(cb.args, [[1], [2], [3]]);
+    });
+    /*
+    it("gives changes from pulling behavior", () => {
+      let x = 0;
+      const b = fromFunction(() => x);
+      const s = changes(b);
+      const cb = spy();
+      observe
+      x = 1;
+      x = 2;
+      x = 3;
+      assert.deepEqual(cb.args, [[1], [2], [3]]);
+    });
+    */
   });
 });
