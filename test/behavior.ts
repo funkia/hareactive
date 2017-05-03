@@ -459,6 +459,7 @@ describe("Behavior and Stream", () => {
       const s = sinkStream<number>();
       const scanned = scan(sum, 1, s);
       const b1 = scanned.at();
+      const spy = subscribeSpy(b1);
       assert.strictEqual(at(b1), 1);
       s.push(2);
       assert.strictEqual(at(b1), 3);
@@ -467,6 +468,7 @@ describe("Behavior and Stream", () => {
       s.push(4);
       assert.strictEqual(at(b1), 7);
       assert.strictEqual(at(b2), 5);
+      assert.deepEqual(spy.args, [[1], [3], [7]]);
     });
   });
   describe("switchStream", () => {

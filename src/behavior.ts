@@ -480,7 +480,7 @@ export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
 }
 
 /** @private */
-class ScanBehavior<A, B> extends Behavior<B> {
+class ScanBehavior<A, B> extends ActiveBehavior<B> {
   constructor(
     initial: B,
     private fn: (a: A, b: B) => B,
