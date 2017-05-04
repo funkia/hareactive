@@ -79,7 +79,11 @@ class PerformIOStream<A> extends StatefulStream<A> {
     this.state = State.Push;
   }
   push(io: IO<A>): void {
-    runIO(io).then((a: A) => this.child.push(a));
+    runIO(io).then((a: A) => {
+      if (this.child !== undefined) {
+        this.child.push(a);
+      }
+    });
   }
 }
 
@@ -116,7 +120,9 @@ class PerformIOStreamLatest<A> extends StatefulStream<A> {
         } else {
           this.newest = time;
         }
-        this.child.push(a);
+        if (this.child !== undefined) {
+          this.child.push(a);
+        }
       }
     });
   }
@@ -157,7 +163,9 @@ class PerformIOStreamOrdered<A> extends StatefulStream<A> {
   pushFromBuffer(): void {
     while (this.buffer[0] !== undefined) {
       const { value } = this.buffer.shift();
-      this.child.push(value);
+      if (this.child !== undefined) {
+        this.child.push(value);
+      }
       this.next++;
     }
   }

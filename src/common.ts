@@ -103,7 +103,9 @@ export abstract class Reactive<A> implements Observer<any> {
     }
   }
   changeStateDown(state: State): void {
-    this.child.changeStateDown(state);
+    if (this.child !== undefined) {
+      this.child.changeStateDown(state);
+    }
   }
   subscribe(callback: (a: A) => void): Subscriber<A> {
     return new PushOnlyObserver(callback, this);
