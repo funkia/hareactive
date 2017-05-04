@@ -31,14 +31,14 @@ export class Placeholder<A> extends Behavior<A> {
     return new MapPlaceholder<A, B>(this, fn);
   }
   mapTo<B>(b: B): Behavior<B> {
-    return <any>(new MapToPlaceholder<A, B>(b));
+    return <any>(new MapToPlaceholder<A, B>(<any>this, b));
   }
 }
 
 class MapPlaceholder<A, B> extends MapBehavior<A, B> {
 }
 
-class MapToPlaceholder<A, B> extends ConstantBehavior<B> {
+class MapToPlaceholder<A, B> extends MapToStream<A, B> {
 }
 
 function install(target: Function, source: Function): void {
