@@ -223,11 +223,11 @@ export class MapBehavior<A, B> extends Behavior<B> {
 }
 
 class ChainOuter<A> extends Behavior<A> {
-  constructor(private chainB: ChainBehavior<A, any>) {
+  constructor(public child: ChainBehavior<A, any>) {
     super();
   }
   push(a: A): void {
-    this.chainB.pushOuter(a);
+    this.child.pushOuter(a);
   }
 }
 
