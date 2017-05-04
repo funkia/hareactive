@@ -1,5 +1,5 @@
 import { Reactive, State } from "./common";
-import { Behavior, isBehavior, MapBehavior } from "./behavior";
+import { Behavior, ConstantBehavior, isBehavior, MapBehavior } from "./behavior";
 import { Stream , MapToStream} from "./stream";
 
 export class Placeholder<A> extends Behavior<A> {
@@ -31,14 +31,14 @@ export class Placeholder<A> extends Behavior<A> {
     return new MapPlaceholder<A, B>(this, fn);
   }
   mapTo<B>(b: B): Behavior<B> {
-    return <any>(new MapToPlaceholder<A, B>(this, b));
+    return <any>(new MapToPlaceholder<A, B>(b));
   }
 }
 
 class MapPlaceholder<A, B> extends MapBehavior<A, B> {
 }
 
-class MapToPlaceholder<A, B> extends MapToStream<A, B> {
+class MapToPlaceholder<A, B> extends ConstantBehavior<B> {
 }
 
 function install(target: Function, source: Function): void {

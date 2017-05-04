@@ -1,5 +1,4 @@
 import { subscribeSpy } from "./helpers";
-import { isBehavior } from "../src";
 import { spy, useFakeTimers } from "sinon";
 import { assert } from "chai";
 
@@ -7,6 +6,7 @@ import { placeholder } from "../src/placeholder";
 import { State, observe } from "../src/common";
 import { map, publish } from "../src/index";
 import {
+  isBehavior,
   Behavior, stepper, fromFunction, sinkBehavior, ap
 } from "../src/behavior";
 import {

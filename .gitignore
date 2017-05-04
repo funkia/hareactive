@@ -10,3 +10,5 @@ dist/
 benchmark/hareactive-old
 .nyc_output/
 coverage/
+src/**/*.js
+test/**/*.js

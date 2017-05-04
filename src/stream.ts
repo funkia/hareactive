@@ -47,12 +47,6 @@ export abstract class Stream<A> extends Reactive<A> {
     this.subscribe(a => console.log(`${prefix || ""} ${a}`));
     return this;
   }
-  activate(): void {
-    throw new Error("The stream can't activate");
-  }
-  deactivate(): void {
-    throw new Error("The stream can't deactivate");
-  }
   semantic(): SemanticStream<A> {
     throw new Error("The stream does not have a semantic representation");
   }
@@ -78,8 +72,8 @@ class EmptyStream extends Stream<any> {
 
 export const empty: Stream<any> = new EmptyStream();
 
-/** For pure combinators with a single parent */
-export abstract class PureStream<A> extends Stream<A> {
+/** For stateless operators with a single parent */
+export abstract class StatelessStream<A> extends Stream<A> {
   abstract parent: Reactive<any>;
   activate(): State {
     return this.parent.addListener(this);
@@ -90,13 +84,13 @@ export abstract class PureStream<A> extends Stream<A> {
 }
 
 /** For stateful streams that are always active */
-export abstract class ActiveStream<A> extends Stream<A> {
-  activate() { }
-  deactivate() { }
+export abstract class StatefulStream<A> extends Stream<A> {
+  activate(): void { }
+  deactivate(): void { }
 }
 
-export class MapStream<A, B> extends PureStream<B> {
-  constructor(public parent: Reactive<A>, private f: (a: A) => B) {
+export class MapStream<A, B> extends StatelessStream<B> {
+  constructor(public parent: Stream<A>, private f: (a: A) => B) {
     super();
   }
   semantic(): SemanticStream<B> {
@@ -108,10 +102,11 @@ export class MapStream<A, B> extends PureStream<B> {
   }
 }
 
-export class MapToStream<A, B> extends PureStream<B> {
-  constructor(public parent: Reactive<A>, private b: B) {
-    super();
-  }
+export class MapToStream<A, B> extends StatelessStream<B> {
+  constructor(
+    public parent: Stream<A>,
+    private b: B
+  ) { super(); }
   semantic(): SemanticStream<B> {
     const s = (<Stream<A>>this.parent).semantic();
     return s.map(({ time }) => ({ time, value: this.b }));
@@ -121,13 +116,11 @@ export class MapToStream<A, B> extends PureStream<B> {
   }
 }
 
-class FilterStream<A> extends PureStream<A> {
+class FilterStream<A> extends StatelessStream<A> {
   constructor(
-    public parent: Reactive<any>,
+    public parent: Stream<A>,
     private fn: (a: A) => boolean
-    ) {
-    super();
-  }
+  ) { super(); }
   semantic(): SemanticStream<A> {
     const s = (<Stream<A>>this.parent).semantic();
     return s.filter(({ value }) => this.fn(value));
@@ -139,11 +132,11 @@ class FilterStream<A> extends PureStream<A> {
   }
 }
 
-class ThrottleStream<A> extends ActiveStream<A> {
-  constructor(parent: Stream<A>, private ms: number) {
-    super();
-    parent.addListener(this);
-  }
+class ThrottleStream<A> extends StatelessStream<A> {
+  constructor(
+    public parent: Stream<A>,
+    private ms: number
+  ) { super(); }
   private isSilenced: boolean = false;
   push(a: A): void {
     if (!this.isSilenced) {
@@ -156,11 +149,11 @@ class ThrottleStream<A> extends ActiveStream<A> {
   }
 }
 
-class DebounceStream<A> extends ActiveStream<A> {
-  constructor(parent: Stream<A>, private ms: number) {
-    super();
-    parent.addListener(this);
-  }
+class DebounceStream<A> extends StatelessStream<A> {
+  constructor(
+    public parent: Stream<A>,
+    private ms: number
+  ) { super(); }
   private timer: number = undefined;
   push(a: A): void {
     clearTimeout(this.timer);
@@ -210,10 +203,18 @@ export function keepWhen<A>(stream: Stream<A>, behavior: Behavior<boolean>): Str
   return stream.filter((_) => behavior.at());
 }
 
-class ScanStream<A, B> extends ActiveStream<B> {
-  constructor(private fn: (a: A, b: B) => B, private last: B, source: Stream<A>) {
+class ScanStream<A, B> extends StatefulStream<B> {
+  constructor(private fn: (a: A, b: B) => B, private last: B, public parent: Stream<A>) {
     super();
-    source.addListener(this);
+    parent.addListener(this);
+  }
+  semantic(): SemanticStream<B> {
+    const s = (<Stream<A>>this.parent).semantic();
+    let acc = this.last;
+    return s.map(({ time, value }) => {
+      acc = this.fn(value, acc);
+      return { time, value: acc };
+    });
   }
   push(a: A): void {
     const val = this.last = this.fn(a, this.last);
@@ -251,8 +252,12 @@ class SwitchBehaviorStream<A> extends Stream<A> {
   activate(): void {
     this.outerConsumer = new SwitchOuter(this);
     this.b.addListener(this.outerConsumer);
-    const cur = this.currentSource = this.b.at();
-    cur.addListener(this);
+    this.currentSource = this.b.at();
+    this.currentSource.addListener(this);
+  }
+  deactivate(): void {
+    this.currentSource.removeListener(this);
+    this.b.removeListener(this.outerConsumer);
   }
   push(a: A): void {
     this.child.push(a);
@@ -268,18 +273,12 @@ export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
   return new SwitchBehaviorStream(b);
 }
 
-class ChangesStream<A> extends Stream<A> {
-  constructor(private b: Behavior<A>) {
+class ChangesStream<A> extends StatelessStream<A> {
+  constructor(public parent: Behavior<A>) {
     super();
   }
   push(a: A): void {
     this.child.push(a);
-  }
-  activate(): void {
-    this.b.addListener(this);
-  }
-  deactivate(): void {
-    this.b.removeListener(this);
   }
 }
 
@@ -465,9 +464,13 @@ export function snapshotWith<A, B, C>(
   return new SnapshotWithStream(f, b, s);
 }
 
-class DelayStream<A> extends PureStream<A> {
+class DelayStream<A> extends StatelessStream<A> {
   constructor(public parent: Stream<A>, private ms: number) {
     super();
+  }
+  semantic(): SemanticStream<A> {
+    const s = (<Stream<A>>this.parent).semantic();
+    return s.map(({ time, value }) => ({ time: time + this.ms, value }));
   }
   push(a: A): void {
     setTimeout(() => this.child.push(a), this.ms);

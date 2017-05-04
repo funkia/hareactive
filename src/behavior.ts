@@ -11,6 +11,9 @@ import { Stream } from "./stream";
  * be thought of as a function from time to a value. I.e. `type
  * Behavior<A> = (t: Time) => A`.
  */
+
+export type SemanticBehavior<A> = (time: number) => A;
+
 @monad
 export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Monad<A> {
   // Push behaviors cache their last value in `last`.
@@ -93,10 +96,10 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
 
 /** Behaviors that are always active */
 abstract class ActiveBehavior<A> extends Behavior<A> {
-  activate() {
+  activate(): void {
     // noop, behavior is always active
   }
-  deactivate() { }
+  deactivate(): void { }
 }
 
 export abstract class ProducerBehavior<A> extends Behavior<A> {
@@ -142,7 +145,7 @@ export function producerBehavior<A>(activate: ProducerBehaviorFunction<A>, initi
 export class SinkBehavior<A> extends ProducerBehavior<A> {
   constructor(public last: A) {
     super();
-  };
+  }
   push(a: A): void {
     if (this.last === a) {
       return;
@@ -178,7 +181,7 @@ export function at<B>(b: Behavior<B>): B {
   return b.at();
 }
 
-class ConstantBehavior<A> extends ActiveBehavior<A> {
+export class ConstantBehavior<A> extends ActiveBehavior<A> {
   constructor(public last: A) {
     super();
     this.state = State.Push;
@@ -221,7 +224,7 @@ export class MapBehavior<A, B> extends Behavior<B> {
 class ChainOuter<A> extends Behavior<A> {
   constructor(private chainB: ChainBehavior<A, any>) {
     super();
-  };
+  }
   push(a: A): void {
     this.chainB.pushOuter(a);
   }
