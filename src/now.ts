@@ -3,7 +3,7 @@ import { IO, runIO, Monad, monad } from "@funkia/jabz";
 import { State } from "./common";
 import { Future, fromPromise, sinkFuture } from "./future";
 import { Behavior, at } from "./behavior";
-import { ActiveStream, Stream } from "./stream";
+import { StatefulStream, Stream } from "./stream";
 
 @monad
 export abstract class Now<A> implements Monad<A> {
@@ -18,8 +18,8 @@ export abstract class Now<A> implements Monad<A> {
   chain<B>(f: (a: A) => Now<B>): Now<B> {
     return new ChainNow(this, f);
   }
-  static multi = false;
-  multi = false;
+  static multi: boolean = false;
+  multi: boolean = false;
   // Definitions below are inserted by Jabz
   flatten: <B>() => Now<B>;
   map: <B>(f: (a: A) => B) => Now<B>;
@@ -72,7 +72,7 @@ export function sample<A>(b: Behavior<A>): Now<A> {
   return new SampleNow(b);
 }
 
-class PerformIOStream<A> extends ActiveStream<A> {
+class PerformIOStream<A> extends StatefulStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this);
@@ -96,7 +96,7 @@ export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNow(s);
 }
 
-class PerformIOStreamLatest<A> extends ActiveStream<A> {
+class PerformIOStreamLatest<A> extends StatefulStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this);
@@ -135,7 +135,7 @@ export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNowLatest(s);
 }
 
-class PerformIOStreamOrdered<A> extends ActiveStream<A> {
+class PerformIOStreamOrdered<A> extends StatefulStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this);
