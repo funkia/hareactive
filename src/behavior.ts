@@ -199,7 +199,8 @@ export class MapBehavior<A, B> extends Behavior<B> {
     super();
   }
   push(a: A): void {
-    this.child.push(this.f(a));
+    this.last = this.f(a);
+    this.child.push(this.last);
   }
   pull(): B {
     return this.f(this.parent.at());
@@ -293,27 +294,39 @@ class FunctionBehavior<A> extends Behavior<A> {
 /** @private */
 class ApBehavior<A, B> extends Behavior<B> {
   last: B;
-
   constructor(
     private fn: Behavior<(a: A) => B>,
     private val: Behavior<A>
   ) {
     super();
+    /*
     this.state = fn.state && val.state;
     if (this.state) {
       this.last = at(fn)(at(val));
     }
+    */
   }
-
   push(): void {
     const fn = at(this.fn);
     const val = at(this.val);
     this.last = fn(val);
     this.child.push(this.last);
   }
-
   pull(): B {
     return at(this.fn)(at(this.val));
+  }
+  activate(): void {
+    this.fn.addListener(this);
+    this.val.addListener(this);
+    this.state = this.fn.state;
+    if (this.state === State.Push) {
+      this.last = this.pull();
+    }
+  }
+  deactivate(): void {
+    this.fn.removeListener(this);
+    this.val.removeListener(this);
+    this.state = State.Inactive;
   }
 }
 

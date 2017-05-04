@@ -109,8 +109,11 @@ describe("behavior", () => {
       const cb = spy();
       mapped.subscribe(cb);
       publish(1, b);
+      assert.strictEqual(mapped.at(), 2);
       publish(2, b);
+      assert.strictEqual(mapped.at(), 4);
       publish(3, b);
+      assert.strictEqual(mapped.at(), 6);
       assert.deepEqual(cb.args, [[0], [2], [4], [6]]);
     });
     it("maps time function", () => {
@@ -145,6 +148,7 @@ describe("behavior", () => {
         const fnB = sinkBehavior(add(1));
         const numE = sinkBehavior(3);
         const applied = B.ap(fnB, numE);
+        const spy = subscribeSpy(applied);
         assert.equal(B.at(applied), 4);
         fnB.push(add(2));
         assert.equal(B.at(applied), 5);
@@ -152,6 +156,7 @@ describe("behavior", () => {
         assert.equal(B.at(applied), 6);
         fnB.push(double);
         assert.equal(B.at(applied), 8);
+        assert.deepEqual(spy.args, [[4], [5], [6], [8]]);
       });
       it("applies event of functions to event of numbers with pull", () => {
         let n = 1;
