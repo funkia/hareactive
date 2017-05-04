@@ -51,6 +51,10 @@ function install(target: Function, source: Function): void {
 
 function installMethods(): void {
   install(Placeholder, Stream);
+  MapPlaceholder.prototype.map = <any>Placeholder.prototype.map;
+  MapPlaceholder.prototype.mapTo = <any>Placeholder.prototype.mapTo;
+  MapToPlaceholder.prototype.map = <any>Placeholder.prototype.map;
+  MapToPlaceholder.prototype.mapTo = <any>Placeholder.prototype.mapTo;
   install(MapPlaceholder, Stream);
   install(MapToPlaceholder, Behavior);
 }

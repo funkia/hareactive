@@ -57,6 +57,7 @@ describe("placeholder", () => {
       const p = placeholder<number>();
       const mapped = p.mapTo(12);
       assert.isTrue(isBehavior(mapped));
+      assert.isTrue(isBehavior(mapped.mapTo(3)));
       const cb = subscribeSpy(mapped);
       p.replaceWith(sinkBehavior(0));
       assert.deepEqual(cb.args, [[12]]);
