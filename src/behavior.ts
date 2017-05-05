@@ -12,7 +12,7 @@ import { Stream } from "./stream";
  * Behavior<A> = (t: Time) => A`.
  */
 
-export type SemanticBehavior<A> = (time: number) => A;
+export type SemanticBehavior<A> = (time: Time) => A;
 
 @monad
 export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Monad<A> {
@@ -87,6 +87,9 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   }
   changePullers(n: number): void {
     this.nrOfPullers += n;
+  }
+  semantic(): SemanticBehavior<A> {
+    throw new Error("The behavior does not have a semantic representation");
   }
   log(prefix?: string): Behavior<A> {
     this.subscribe(a => console.log(`${prefix || ""} ${a}`));
@@ -173,7 +176,7 @@ export function sinkBehavior<A>(initial: A): SinkBehavior<A> {
   return new SinkBehavior<A>(initial);
 }
 
-/*
+/**
  * Impure function that gets the current value of a behavior. For a
  * pure variant see `sample`.
  */
@@ -188,6 +191,9 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
   }
   pull(): A {
     return this.last;
+  }
+  semantic(): SemanticBehavior<A> {
+    return (_) => this.last;
   }
 }
 
@@ -219,6 +225,10 @@ export class MapBehavior<A, B> extends Behavior<B> {
   changePullers(n: number): void {
     this.nrOfPullers += n;
     this.parent.changePullers(n);
+  }
+  semantic(): SemanticBehavior<B> {
+    const g = this.parent.semantic();
+    return (t) => this.f(g(t));
   }
 }
 
@@ -533,6 +543,19 @@ export function isBehavior(b: any): b is Behavior<any> {
   return typeof b === "object" && ("at" in b);
 }
 
+class TestBehavior<A> extends Behavior<A> {
+  constructor (private semanticBehavior: SemanticBehavior<A>) {
+    super();
+  }
+  semantic(): SemanticBehavior<A> {
+    return this.semanticBehavior;
+  }
+}
+
+export function testBehavior<A>(b: SemanticBehavior<A>): Behavior<A> {
+  return new TestBehavior(b);
+}
+
 class TimeFromBehavior extends Behavior<Time> {
   private startTime: Time;
   constructor() {
@@ -545,12 +568,21 @@ class TimeFromBehavior extends Behavior<Time> {
   }
 }
 
+class TimeBehavior extends FunctionBehavior<Time> {
+  constructor() {
+    super(Date.now);
+  }
+  semantic(): SemanticBehavior<Time> {
+    return (time: Time) => time;
+  }
+}
+
 /**
  * A behavior whose value is the number of milliseconds elapsed in
  * UNIX epoch. I.e. its current value is equal to the value got by
  * calling `Date.now`.
  */
-export const time: Behavior<Time> = fromFunction(Date.now);
+export const time = new TimeBehavior();
 
 /**
  * A behavior giving access to continuous time. When sampled the outer

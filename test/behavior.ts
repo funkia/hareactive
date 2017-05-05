@@ -1,3 +1,4 @@
+import { testBehavior } from "../src/behavior";
 import {
   ProducerBehavior, producerBehavior, publish, sinkBehavior, toggle,
   Future, Behavior, at, switchTo, switcher, scan, timeFrom, observe,
@@ -98,42 +99,62 @@ describe("behavior", () => {
     });
   });
   describe("functor", () => {
-    it("maps over initial value from parent", () => {
-      const b = Behavior.of(3);
-      const mapped = map(double, b);
-      assert.strictEqual(at(mapped), 6);
-    });
-    it("maps constant function", () => {
-      const b = sinkBehavior(0);
-      const mapped = map(double, b);
-      const cb = spy();
-      mapped.subscribe(cb);
-      publish(1, b);
-      assert.strictEqual(mapped.at(), 2);
-      publish(2, b);
-      assert.strictEqual(mapped.at(), 4);
-      publish(3, b);
-      assert.strictEqual(mapped.at(), 6);
-      assert.deepEqual(cb.args, [[0], [2], [4], [6]]);
-    });
-    it("maps time function", () => {
-      let time = 0;
-      const b = B.fromFunction(() => {
-        return time;
+    describe("map", () => {
+      it("maps over initial value from parent", () => {
+        const b = Behavior.of(3);
+        const mapped = map(double, b);
+        assert.strictEqual(at(mapped), 6);
       });
-      const mapped = map(double, b);
-      assert.equal(B.at(mapped), 0);
-      time = 1;
-      assert.equal(B.at(mapped), 2);
-      time = 2;
-      assert.equal(B.at(mapped), 4);
-      time = 3;
-      assert.equal(B.at(mapped), 6);
+      it("maps constant function", () => {
+        const b = sinkBehavior(0);
+        const mapped = map(double, b);
+        const cb = spy();
+        mapped.subscribe(cb);
+        publish(1, b);
+        assert.strictEqual(mapped.at(), 2);
+        publish(2, b);
+        assert.strictEqual(mapped.at(), 4);
+        publish(3, b);
+        assert.strictEqual(mapped.at(), 6);
+        assert.deepEqual(cb.args, [[0], [2], [4], [6]]);
+      });
+      it("maps time function", () => {
+        let time = 0;
+        const b = B.fromFunction(() => {
+          return time;
+        });
+        const mapped = map(double, b);
+        assert.equal(B.at(mapped), 0);
+        time = 1;
+        assert.equal(B.at(mapped), 2);
+        time = 2;
+        assert.equal(B.at(mapped), 4);
+        time = 3;
+        assert.equal(B.at(mapped), 6);
+      });
+      it("has semantic representation", () => {
+        const b = testBehavior((t) => t);
+        const mapped = b.map((t) => t * t);
+        const semantic = mapped.semantic();
+        assert.strictEqual(semantic(1), 1);
+        assert.strictEqual(semantic(2), 4);
+        assert.strictEqual(semantic(3), 9);
+      });
     });
-    it("maps to constant", () => {
-      const b = Behavior.of(1);
-      const b2 = mapTo(2, b);
-      assert.strictEqual(at(b2), 2);
+    describe("mapTo", () => {
+      it("maps to constant", () => {
+        const b = Behavior.of(1);
+        const b2 = mapTo(2, b);
+        assert.strictEqual(at(b2), 2);
+      });
+      it("has semantic representation", () => {
+        const b = testBehavior((t) => { throw new Error("Don't call me"); });
+        const mapped = b.mapTo(7);
+        const semantic = mapped.semantic();
+        assert.strictEqual(semantic(-3), 7);
+        assert.strictEqual(semantic(4), 7);
+        assert.strictEqual(semantic(9), 7);
+      });
     });
   });
   describe("applicative", () => {
@@ -523,6 +544,11 @@ describe("Behavior and Stream", () => {
       const now = Date.now();
       assert(now - 2 <= t && t <= now);
       assert.strictEqual(endPull, false);
+    });
+    it("has semantic representation", () => {
+      const f = time.semantic();
+      assert.strictEqual(f(0), 0);
+      assert.strictEqual(f(1.3), 1.3);
     });
   });
   describe("toggle", () => {
