@@ -182,24 +182,26 @@ describe("Now", () => {
     });
 
     it("runs io actions and ignores outdated results", (done: Function) => {
+      const resolves: ((n: any) => void)[] = [];
       let results: any[] = [];
-      const impure = withEffects((n: number) => {
+      const impure = withEffectsP((n: number) => {
         return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            resolve(n);
-          }, n);
+          resolves[n] = resolve;
         });
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
       performStreamLatest(mappedS).run().subscribe((n) => results.push(n));
-      s.push(60);
-      s.push(20);
-      s.push(30);
+      s.push(0);
+      s.push(1);
+      s.push(2);
+      resolves[1](1);
+      resolves[2](2);
+      resolves[0](0);
       setTimeout(() => {
-        assert.deepEqual(results, [20, 30]);
+        assert.deepEqual(results, [1, 2]);
         done();
-      }, 100);
+      });
     });
   });
 
@@ -219,24 +221,31 @@ describe("Now", () => {
 
     it("runs io actions and makes sure to keep the results in the same order", (done: Function) => {
       let results: any[] = [];
+      const resolves: ((n: any) => void)[] = [];
       const impure = withEffectsP((n: number) => {
         return new Promise((resolve, reject) => {
-          setTimeout(() => resolve(n), n);
+          resolves[n] = resolve;
         });
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
       performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
-      s.push(60);
-      s.push(20);
-      s.push(30);
-      s.push(undefined);
-      s.push(50);
-      s.push(40);
+      s.push(0);
+      s.push(1);
+      s.push(2);
+      s.push(3);
+      s.push(4);
+      s.push(5);
+      resolves[3](3);
+      resolves[1](1);
+      resolves[0]("zero");
+      resolves[4](undefined);
+      resolves[2](2);
+      resolves[5](5);
       setTimeout(() => {
-        assert.deepEqual(results, [60, 20, 30, undefined, 50, 40]);
+        assert.deepEqual(results, ["zero", 1, 2, 3, undefined, 5]);
         done();
-      }, 100);
+      });
     });
 
     it("should support `undefined` as result", (done: MochaDone) => {
