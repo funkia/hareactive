@@ -428,7 +428,8 @@ class SnapshotStream<B> extends Stream<B> {
     this.stream.removeListener(this);
   }
   semantic(): SemanticStream<B> {
-    throw new Error("No semantic representation");
+    const b = this.behavior.semantic();
+    return this.stream.semantic().map(({ time }) => ({ time, value: b(time) }));
   }
 }
 

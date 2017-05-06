@@ -1,7 +1,7 @@
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
 import {
-  Behavior, ProducerBehavior, fromFunction, sinkBehavior
+  Behavior, ProducerBehavior, fromFunction, sinkBehavior, testBehavior
 } from "../src/behavior";
 import { State } from "../src/common";
 import { map, publish } from "../src/index";
@@ -306,7 +306,7 @@ describe("stream", () => {
       assert.deepEqual(
         filtered.semantic(),
         [{ time: 1, value: 3 },
-         { time: 3, value: 4 }]
+        { time: 3, value: 4 }]
       );
     });
     it("should filter the unwanted values", () => {
@@ -517,6 +517,17 @@ describe("stream", () => {
         [0], [1], [3], [5], [6]
       ]);
     });
+    it("has semantic representation", () => {
+      const b = testBehavior((t) => t * t);
+      const s = testStreamFromObject({
+        1: 1, 4: 4, 8: 8
+      });
+      const shot = snapshot(b, s);
+      const expected = testStreamFromObject({
+        1: 1, 4: 16, 8: 8 * 8
+      });
+      assert.deepEqual(shot.semantic(), expected.semantic());
+    });
   });
   describe("changes", () => {
     it("gives changes from pushing behavior", () => {
@@ -544,5 +555,18 @@ describe("stream", () => {
       assert.deepEqual(cb.args, [[1], [2], [3]]);
     });
     */
+  });
+  it("works", () => {
+    function foobar(stream1, stream2) {
+      const isEven = (n) => n % 2 === 0;
+      const a = stream1.filter(isEven).map((n) => n * n);
+      const b = stream2.filter((n) => !isEven(n)).map(Math.sqrt);
+      return a.combine(b);
+    }
+    const a = testStreamFromObject({ 0: 1, 2: 4, 4: 6 });
+    const b = testStreamFromObject({ 1: 9, 3: 8 });
+    const result = foobar(a, b);
+    const expected = testStreamFromObject({ 1: 3, 2: 16, 4: 36 });
+    assert.deepEqual(result.semantic(), expected.semantic());
   });
 });
