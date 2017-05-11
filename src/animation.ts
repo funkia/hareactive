@@ -24,21 +24,27 @@ export function transitionBehavior(
   triggerStream: Stream<number>,
   timeB: Behavior<number> = time
 ): Behavior<Behavior<number>> {
-  return go(function*() {
-    const rangeValueB: Behavior<Range> = yield scan((newV, prev) => (
-      { from: prev.to, to: newV }), {from: 0, to: initial}, triggerStream);
+  return go(function* () {
+    const rangeValueB: Behavior<Range> = yield scan(
+      (newV, prev) => ({ from: prev.to, to: newV }), { from: 0, to: initial },
+      triggerStream
+    );
     const initialStartTime: number = yield timeB;
     const startTimeB = stepper(initialStartTime, snapshot(timeB, triggerStream));
     const transition: Behavior<number> = lift((range, startTime, now) => {
       const endTime = startTime + config.duration;
-      const scaled = scaleNumber(startTime, endTime, 0, 1, roundToRange(startTime, endTime, now - config.delay));
+      const scaled = scaleNumber(
+        startTime, endTime, 0, 1, capToRange(startTime, endTime, now - config.delay)
+      );
       return scaleNumber(0, 1, range.from, range.to, config.timingFunction(scaled));
     }, rangeValueB, startTimeB, timeB);
     return transition;
   });
 }
 
-export function scaleNumber(fromA: number, toA: number, fromB: number, toB: number, a: number): number {
+export function scaleNumber(
+  fromA: number, toA: number, fromB: number, toB: number, a: number
+): number {
   if (a < fromA || a > toA) {
     throw `The number ${a} is not between the bounds [${fromA}, ${toA}]`;
   }
@@ -48,7 +54,7 @@ export function scaleNumber(fromA: number, toA: number, fromB: number, toB: numb
   return relationA * spanB + fromB;
 }
 
-export function roundToRange(lower: number, upper: number, a: number): number {
+export function capToRange(lower: number, upper: number, a: number): number {
   return Math.min(Math.max(lower, a), upper);
 }
 

@@ -34,7 +34,7 @@ describe("animation", () => {
         duration: 100
       };
 
-      const t = transitionBehavior(config, 0, target, time).flatten();
+      const t = transitionBehavior(config, 0, target, time).at();
       t.subscribe(() => "");
       target.push(10);
       assert.strictEqual(t.at(), 0);
@@ -60,7 +60,7 @@ describe("animation", () => {
         duration: 100
       };
 
-      const t = transitionBehavior(config, 0, target, time).flatten();
+      const t = transitionBehavior(config, 0, target, time).at();
       t.subscribe(() => "");
       target.push(10);
       assert.strictEqual(t.at(), 0);
@@ -86,7 +86,7 @@ describe("animation", () => {
         duration: 100
       };
 
-      const t = transitionBehavior(config, 0, target, time).flatten();
+      const t = transitionBehavior(config, 0, target, time).at();
       t.subscribe(() => "");
       target.push(10);
       assert.strictEqual(t.at(), 0);

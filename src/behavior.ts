@@ -284,7 +284,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
     this.child.push(b);
   }
   pull(): B {
-    return at(this.fn(at(this.outer)));
+    return this.fn(this.outer.at()).at();
   }
 }
 
