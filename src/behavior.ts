@@ -63,8 +63,8 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
         )));
     }
   }
-  static multi: boolean = false;
-  multi: boolean = false;
+  static multi: boolean = true;
+  multi: boolean = true;
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new ChainBehavior<A, B>(this, fn);
   }

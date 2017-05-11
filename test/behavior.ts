@@ -8,7 +8,7 @@ import {
 import "mocha";
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
-import { lift, mapTo, map } from "@funkia/jabz";
+import { go, lift, map, mapTo } from "@funkia/jabz";
 
 import * as B from "../src/behavior";
 import * as F from "../src/future";
@@ -323,6 +323,16 @@ describe("behavior", () => {
       );
       assert.equal(beginPullingSpy.callCount, 6);
       assert.equal(endPullingSpy.callCount, 3);
+    });
+    it("works with go-notation", () => {
+      const a = sinkBehavior(1);
+      const b = go(function* (): IterableIterator<any> {
+        const val = yield a;
+        return val * 2;
+      });
+      const spy = subscribeSpy(b);
+      a.push(7);
+      assert.deepEqual(spy.args, [[2], [14]]);
     });
   });
   describe("integrate", () => {
