@@ -98,7 +98,7 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
 }
 
 /** Behaviors that are always active */
-abstract class ActiveBehavior<A> extends Behavior<A> {
+export abstract class StatefulBehavior<A> extends Behavior<A> {
   activate(): void {
     // noop, behavior is always active
   }
@@ -184,7 +184,7 @@ export function at<B>(b: Behavior<B>): B {
   return b.at();
 }
 
-export class ConstantBehavior<A> extends ActiveBehavior<A> {
+export class ConstantBehavior<A> extends StatefulBehavior<A> {
   constructor(public last: A) {
     super();
     this.state = State.Push;
@@ -416,7 +416,7 @@ export function snapshotAt<A>(
 }
 
 /** @private */
-class SwitcherBehavior<A> extends ActiveBehavior<A> {
+class SwitcherBehavior<A> extends StatefulBehavior<A> {
   constructor(
     private b: Behavior<A>,
     next: Future<Behavior<A>> | Stream<Behavior<A>>
@@ -506,7 +506,7 @@ export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
 }
 
 /** @private */
-class ScanBehavior<A, B> extends ActiveBehavior<B> {
+class ScanBehavior<A, B> extends StatefulBehavior<B> {
   constructor(
     initial: B,
     private fn: (a: A, b: B) => B,

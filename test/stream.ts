@@ -479,6 +479,23 @@ describe("stream", () => {
         [0], [0], [1], [2], [2]
       ]);
     });
+    it("snapshots push based Behavior", () => {
+      const b = sinkBehavior(0);
+      const e = sinkStream<number>();
+      const shot = snapshot<number>(b, e);
+      const callback = spy();
+      subscribe(callback, shot);
+      publish(0, e);
+      publish(1, e);
+      b.push(1);
+      publish(2, e);
+      b.push(2);
+      publish(3, e);
+      publish(4, e);
+      assert.deepEqual(callback.args, [
+        [0], [0], [1], [2], [2]
+      ]);
+    });
     it("activates producer", () => {
       const { activate, push, producer } = createTestProducerBehavior(0);
       const mapped = map(addTwo, producer);
