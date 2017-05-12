@@ -127,7 +127,7 @@ function changePullersParents(n: number, parents: Cons<Reactive<any>>): void {
   }
 }
 
-abstract class StatelessBehavior<A> extends Behavior<A> {
+export abstract class StatelessBehavior<A> extends Behavior<A> {
   activate(): void {
     this.state = addListenerParents(this, this.parents, State.Push);
     if (this.state === State.Push) {
