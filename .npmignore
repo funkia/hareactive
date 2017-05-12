@@ -1,0 +1,11 @@
+*.log
+bundle.js
+node_modules/
+*~
+.tern-port
+.#*
+benchmark/hareactive-old
+.nyc_output/
+coverage/
+src/**/*.js
+test/**/*.js
