@@ -1,6 +1,6 @@
 import { lift, go } from "@funkia/jabz";
 import {
-  Behavior, StatefulBehavior, stepper, time, scan,
+  Behavior, ActiveBehavior, stepper, time, scan,
   Stream, snapshot,
   Now, sample
 } from "./";

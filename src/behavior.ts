@@ -80,13 +80,18 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     return this.last;
   }
   activate(): void {
-    throw new Error("The behavior can't activate");
+    this.state = addListenerParents(this, this.parents, State.Push);
+    if (this.state === State.Push) {
+      this.last = this.pull();
+    }
   }
   deactivate(): void {
-    throw new Error("The behavior can't deactivate");
+    removeListenerParents(this, this.parents);
+    this.state = State.Inactive;
   }
   changePullers(n: number): void {
     this.nrOfPullers += n;
+    changePullersParents(n, this.parents);
   }
   semantic(): SemanticBehavior<A> {
     throw new Error("The behavior does not have a semantic representation");
@@ -127,29 +132,12 @@ function changePullersParents(n: number, parents: Cons<Reactive<any>>): void {
   }
 }
 
-export abstract class StatelessBehavior<A> extends Behavior<A> {
-  activate(): void {
-    this.state = addListenerParents(this, this.parents, State.Push);
-    if (this.state === State.Push) {
-      this.last = this.pull();
-    }
-  }
-  deactivate(): void {
-    removeListenerParents(this, this.parents);
-    this.state = State.Inactive;
-  }
-  changePullers(n: number): void {
-    this.nrOfPullers += n;
-    changePullersParents(n, this.parents);
-  }
-}
-
 /** Behaviors that are always active */
-export abstract class StatefulBehavior<A> extends Behavior<A> {
-  activate(): void {
-    // noop, behavior is always active
-  }
+export abstract class ActiveBehavior<A> extends Behavior<A> {
+  // noop methods, behavior is always active
+  activate(): void { }
   deactivate(): void { }
+  changePullers(): void { }
 }
 
 export abstract class ProducerBehavior<A> extends Behavior<A> {
@@ -245,7 +233,7 @@ export function at<B>(b: Behavior<B>): B {
   return b.at();
 }
 
-export class ConstantBehavior<A> extends StatefulBehavior<A> {
+export class ConstantBehavior<A> extends ActiveBehavior<A> {
   constructor(public last: A) {
     super();
     this.state = State.Push;
@@ -258,7 +246,7 @@ export class ConstantBehavior<A> extends StatefulBehavior<A> {
   }
 }
 
-export class MapBehavior<A, B> extends StatelessBehavior<B> {
+export class MapBehavior<A, B> extends Behavior<B> {
   constructor(
     private parent: Behavior<any>,
     private f: (a: A) => B
@@ -279,7 +267,7 @@ export class MapBehavior<A, B> extends StatelessBehavior<B> {
   }
 }
 
-class ApBehavior<A, B> extends StatelessBehavior<B> {
+class ApBehavior<A, B> extends Behavior<B> {
   last: B;
   constructor(
     private fn: Behavior<(a: A) => B>,
@@ -367,7 +355,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
 }
 
 /** @private */
-class FunctionBehavior<A> extends Behavior<A> {
+class FunctionBehavior<A> extends ActiveBehavior<A> {
   constructor(private fn: () => A) {
     super();
     this.state = State.OnlyPull;
@@ -375,8 +363,6 @@ class FunctionBehavior<A> extends Behavior<A> {
   pull(): A {
     return this.fn();
   }
-  activate(): void { }
-  deactivate(): void { }
 }
 
 /** @private */
@@ -444,7 +430,7 @@ export function snapshotAt<A>(
 }
 
 /** @private */
-class SwitcherBehavior<A> extends StatefulBehavior<A> {
+class SwitcherBehavior<A> extends ActiveBehavior<A> {
   constructor(
     private b: Behavior<A>,
     next: Future<Behavior<A>> | Stream<Behavior<A>>
@@ -506,17 +492,12 @@ export function switcher<A>(
 }
 
 /** @private */
-class StepperBehavior<B> extends Behavior<B> {
+class StepperBehavior<B> extends ActiveBehavior<B> {
   constructor(initial: B, private steps: Stream<B>) {
     super();
-    this.last = initial;
-  }
-  activate(): void {
     this.state = State.Push;
+    this.last = initial;
     this.steps.addListener(this);
-  }
-  deactivate(): void {
-    this.steps.removeListener(this);
   }
   push(val: B): void {
     this.last = val;
@@ -534,7 +515,7 @@ export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
 }
 
 /** @private */
-class ScanBehavior<A, B> extends StatefulBehavior<B> {
+class ScanBehavior<A, B> extends ActiveBehavior<B> {
   constructor(
     initial: B,
     private fn: (a: A, b: B) => B,
