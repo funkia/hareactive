@@ -149,7 +149,7 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
   }
   changePullers(n: number): void {
     this.nrOfPullers += n;
-    if (this.nrOfPullers === 1 && this.state === State.Inactive) {
+    if (this.nrOfPullers > 0 && this.state === State.Inactive) {
       this.state = State.Pull;
       this.activateProducer();
     } else if (this.nrOfPullers === 0 && this.state === State.Pull) {

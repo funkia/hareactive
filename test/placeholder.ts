@@ -16,6 +16,8 @@ import {
   throttle
 } from "../src/stream";
 
+import { createTestProducerBehavior } from "./helpers";
+
 describe("placeholder", () => {
   describe("behavior", () => {
     it("subscribers are notified when placeholder is replaced", () => {
@@ -70,6 +72,34 @@ describe("placeholder", () => {
       const b = placeholder();
       const chained = b.chain((n: any) => Behavior.of(n));
       b.replaceWith(Behavior.of(3));
+    });
+    it("should work with consumers that only wants to pull", () => {
+      const { activate, push, producer } = createTestProducerBehavior(0);
+      const pB = placeholder();
+      const s = sinkStream<string>();
+      const shot = snapshot(pB, s);
+      const callback = subscribeSpy(shot);
+      pB.replaceWith(producer);
+      assert.isTrue(activate.calledOnce);
+      publish("a", s);
+      publish("b", s);
+      push(1);
+      publish("c", s);
+      publish("d", s);
+      push(4);
+      publish("e", s);
+      assert.deepEqual(callback.args, [
+        [0], [0], [1], [1], [4]
+      ]);
+    });
+    it("adds puller to the behavior it has been replaced with", () => {
+      const { activate, push, producer } = createTestProducerBehavior(0);
+      const pB = placeholder();
+      const s = sinkStream<string>();
+      pB.replaceWith(producer);
+      const shot = snapshot(pB, s);
+      const callback = subscribeSpy(shot);
+      assert.isTrue(activate.calledOnce);
     });
   });
   describe("stream", () => {

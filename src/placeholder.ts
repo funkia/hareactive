@@ -1,6 +1,6 @@
 import { Reactive, State } from "./common";
 import { Behavior, ConstantBehavior, isBehavior, MapBehavior } from "./behavior";
-import { Stream , MapToStream} from "./stream";
+import { Stream, MapToStream } from "./stream";
 
 export class Placeholder<A> extends Behavior<A> {
   source: Reactive<A>;
@@ -11,6 +11,9 @@ export class Placeholder<A> extends Behavior<A> {
       if (isBehavior(parent) && this.state === State.Push) {
         this.push(parent.at());
       }
+    }
+    if (isBehavior(parent)) {
+      parent.changePullers(this.nrOfPullers);
     }
   }
   push(a: any): void {
@@ -25,6 +28,12 @@ export class Placeholder<A> extends Behavior<A> {
       this.source.addListener(this);
       this.state = this.source.state;
       this.changeStateDown(this.state);
+    }
+  }
+  changePullers(n: number): void {
+    this.nrOfPullers += n;
+    if (this.source !== undefined) {
+      (<Behavior<any>>this.source).changePullers(n);
     }
   }
   map<B>(fn: (a: A) => B): Behavior<B> {

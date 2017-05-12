@@ -4,7 +4,7 @@ import {
   Behavior, ProducerBehavior, fromFunction, sinkBehavior, testBehavior
 } from "../src/behavior";
 import { State } from "../src/common";
-import { map, publish } from "../src/index";
+import { map, publish, placeholder } from "../src/index";
 import {
   apply, changes, debounce, delay, empty, filter, filterApply,
   isStream, keepWhen, producerStream, ProducerStream, scanS, sinkStream, snapshot,
@@ -12,57 +12,10 @@ import {
   testStreamFromObject, throttle
 } from "../src/stream";
 
+import { createTestProducerBehavior, createTestProducer } from "./helpers";
+
 const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
-
-class TestProducer<A> extends ProducerStream<A> {
-  constructor(
-    private activateSpy: sinon.SinonSpy,
-    private deactivateSpy: sinon.SinonSpy
-  ) {
-    super();
-  }
-  activate(): void {
-    this.activateSpy();
-    this.state = State.Pull;
-  }
-  deactivate(): void {
-    this.deactivateSpy();
-  }
-}
-
-function createTestProducer() {
-  const activate = spy();
-  const deactivate = spy();
-  const producer = new TestProducer(activate, deactivate);
-  const push = producer.push.bind(producer);
-  return { activate, deactivate, push, producer };
-}
-
-class TestProducerBehavior<A> extends ProducerBehavior<A> {
-  constructor(
-    public last: A,
-    private activateSpy: sinon.SinonSpy,
-    private deactivateSpy: sinon.SinonSpy
-  ) {
-    super();
-  }
-  activateProducer(): void {
-    this.activateSpy();
-    this.state = State.Pull;
-  }
-  deactivateProducer(): void {
-    this.deactivateSpy();
-  }
-}
-
-function createTestProducerBehavior<A>(initial: A) {
-  const activate = spy();
-  const deactivate = spy();
-  const producer = new TestProducerBehavior(initial, activate, deactivate);
-  const push = producer.push.bind(producer);
-  return { activate, deactivate, push, producer };
-}
 
 describe("stream", () => {
   describe("test streams", () => {
