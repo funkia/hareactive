@@ -114,12 +114,29 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
   }
   changePullers(n: number): void {
     this.nrOfPullers += n;
-    if (this.nrOfPullers === 1 && n === 1) {
-      this.activate();
-    } else if (this.nrOfPullers === 0 && n === -1) {
-      this.deactivate();
+    if (this.nrOfPullers === 1 && this.state === State.Inactive) {
+      this.state = State.Pull;
+      this.activateProducer();
+    } else if (this.nrOfPullers === 0 && this.state === State.Pull) {
+      this.deactivateProducer();
     }
   }
+  activate(): void {
+    if (this.state === State.Inactive) {
+      this.activateProducer();
+    }
+    this.state = State.Push;
+  }
+  deactivate(): void {
+    if (this.nrOfPullers === 0) {
+      this.state = State.Inactive;
+      this.deactivateProducer();
+    } else {
+      this.state = State.Pull;
+    }
+  }
+  abstract activateProducer(): void;
+  abstract deactivateProducer(): void;
 }
 
 export type ProducerBehaviorFunction<A> = (push: (a: A) => void) => () => void;
@@ -130,11 +147,11 @@ class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
     this.last = initial;
   }
   deactivateFn: () => void;
-  activate(): void {
+  activateProducer(): void {
     this.state = State.Push;
     this.deactivateFn = this.activateFn(this.push.bind(this));
   }
-  deactivate(): void {
+  deactivateProducer(): void {
     this.state = State.Inactive;
     this.deactivateFn();
   }
@@ -161,11 +178,9 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
   pull(): A {
     return this.last;
   }
-  activate(): void {
-    this.state = State.Push;
+  activateProducer(): void {
   }
-  deactivate(): void {
-    this.state = State.Inactive;
+  deactivateProducer(): void {
   }
 }
 

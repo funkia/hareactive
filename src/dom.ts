@@ -61,12 +61,10 @@ class DomEventBehavior<A> extends ProducerBehavior<A> {
   handleEvent(event: Event): void {
     this.push(this.extractor(event, this.target));
   }
-  activate(): void {
-    this.state = State.Push;
+  activateProducer(): void {
     this.target.addEventListener(this.eventName, this);
   }
-  deactivate(): void {
-    this.state = State.Inactive;
+  deactivateProducer(): void {
     this.target.removeEventListener(this.eventName, this);
   }
 }

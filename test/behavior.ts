@@ -57,10 +57,10 @@ describe("behavior", () => {
       const activate = spy();
       const deactivate = spy();
       class MyProducer<A> extends ProducerBehavior<A> {
-        activate(): void {
+        activateProducer(): void {
           activate();
         }
-        deactivate(): void {
+        deactivateProducer(): void {
           deactivate();
         }
       }

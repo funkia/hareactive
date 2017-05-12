@@ -47,11 +47,11 @@ class TestProducerBehavior<A> extends ProducerBehavior<A> {
   ) {
     super();
   }
-  activate(): void {
+  activateProducer(): void {
     this.activateSpy();
     this.state = State.Pull;
   }
-  deactivate(): void {
+  deactivateProducer(): void {
     this.deactivateSpy();
   }
 }

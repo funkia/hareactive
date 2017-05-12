@@ -421,10 +421,11 @@ class SnapshotStream<B> extends Stream<B> {
     this.child.push(this.behavior.at());
   }
   activate(): void {
-    this.behavior.subscribe(() => 0); // needed to add a child a activate the behavior
+    this.behavior.changePullers(1);
     this.stream.addListener(this);
   }
   deactivate(): void {
+    this.behavior.changePullers(-1);
     this.stream.removeListener(this);
   }
   semantic(): SemanticStream<B> {
