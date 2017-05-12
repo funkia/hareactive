@@ -1,9 +1,9 @@
 import { testBehavior } from "../src/behavior";
 import {
-  ProducerBehavior, producerBehavior, publish, sinkBehavior, toggle,
-  Future, Behavior, at, switchTo, switcher, scan, timeFrom, observe,
-  time, integrate, stepper, isBehavior, fromFunction, sinkStream,
-  switchStream
+  at, Behavior, fromFunction, Future, integrate, isBehavior, observe,
+  placeholder, ProducerBehavior, producerBehavior, publish, scan,
+  sinkBehavior, sinkStream, stepper, switcher, switchStream, switchTo,
+  time, timeFrom, toggle, snapshot
 } from "../src";
 import "mocha";
 import { assert } from "chai";
@@ -488,6 +488,13 @@ describe("Behavior and Stream", () => {
       e.push(1);
       e.push(2);
       assert.deepEqual(cb.args, [[0], [1], [2]]);
+    });
+    it("saves last occurrence from stream", () => {
+      const s = sinkStream();
+      const t = stepper(1, s);
+      s.push(12);
+      const spy = subscribeSpy(t);
+      assert.deepEqual(spy.args, [[12]]);
     });
   });
   describe("scan", () => {

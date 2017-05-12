@@ -501,7 +501,9 @@ class StepperBehavior<B> extends ActiveBehavior<B> {
   }
   push(val: B): void {
     this.last = val;
-    this.child.push(val);
+    if (this.child !== undefined) {
+      this.child.push(val);
+    }
   }
 }
 
