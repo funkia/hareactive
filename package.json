@@ -14,7 +14,7 @@
     "prepublishOnly": "npm run clean; npm run build",
     "prebench": "npm run build-cmjs",
     "bench": "node benchmark",
-    "clean": "rm -r dist coverage .nyc_output",
+    "clean": "rm -rf dist coverage .nyc_output",
     "test": "./node_modules/.bin/nyc mocha --compilers ts:ts-node/register test/**/*.ts && nyc report",
     "test-watch": "./node_modules/.bin/mocha -R progress --watch --compilers ts:ts-node/register test/**/*.ts",
     "test-browser": "./node_modules/.bin/karma start karma.conf.js",
