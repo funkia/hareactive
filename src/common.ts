@@ -113,7 +113,7 @@ export abstract class Reactive<A> implements Observer<any> {
   observe(
     push: (a: A) => void,
     beginPulling: () => void,
-    endPulling: () => void,
+    endPulling: () => void
   ): CbObserver<A> {
     return new CbObserver(push, beginPulling, endPulling, this);
   }

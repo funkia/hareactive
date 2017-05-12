@@ -1,3 +1,14 @@
+export class Cons<A> {
+  constructor(
+    public value: A,
+    public tail: Cons<A> | undefined
+  ) { }
+}
+
+export function cons<A>(value: A, tail?: Cons<A>): Cons<A> {
+  return new Cons(value, tail);
+}
+
 /**
  * A doubly linked list. Updates are done by mutating. Prepend, append
  * and remove all run in O(1) time.
@@ -39,12 +50,5 @@ export class Node<A> {
     public value: A,
     public prev: Node<A> | undefined,
     public next: Node<A> | undefined
-  ) { }
-}
-
-export class Cons<A> {
-  constructor(
-    public value: A,
-    public tail: Cons<A> | undefined
   ) { }
 }

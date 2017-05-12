@@ -1,4 +1,4 @@
-import { Cons } from "./linkedlist";
+import { Cons, cons } from "./linkedlist";
 import { Monad, monad } from "@funkia/jabz";
 import { Observer, State, Reactive, Time } from "./common";
 
@@ -20,6 +20,7 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   // Pull behaviors do not use `last`.
   last: A;
   nrOfListeners: number;
+  parents: Cons<Reactive<any>>;
   child: Observer<any>;
   // The streams and behaviors that this behavior depends upon
   dependencies: Cons<Reactive<any>>;
@@ -39,7 +40,7 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   }
   static of<A>(v: A): Behavior<A> {
     return new ConstantBehavior(v);
-  };
+  }
   of<A>(v: A): Behavior<A> {
     return new ConstantBehavior(v);
   }
@@ -94,6 +95,53 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   log(prefix?: string): Behavior<A> {
     this.subscribe(a => console.log(`${prefix || ""} ${a}`));
     return this;
+  }
+}
+
+function addListenerParents(
+  child: Observer<any>, parents: Cons<Reactive<any>>, state: State
+): State {
+  const parentState = parents.value.addListener(child);
+  const newState = parentState !== State.Push ? parentState : state;
+  if (parents.tail !== undefined) {
+    return addListenerParents(child, parents.tail, newState);
+  } else {
+    return newState;
+  }
+}
+
+function removeListenerParents(
+  child: Observer<any>, parents: Cons<Reactive<any>>
+): void {
+  parents.value.removeListener(child);
+  if (parents.tail !== undefined) {
+    removeListenerParents(child, parents.tail);
+  }
+}
+
+function changePullersParents(n: number, parents: Cons<Reactive<any>>): void {
+  if (isBehavior(parents.value)) {
+    parents.value.changePullers(n);
+  }
+  if (parents.tail !== undefined) {
+    changePullersParents(n, parents.tail);
+  }
+}
+
+abstract class StatelessBehavior<A> extends Behavior<A> {
+  activate(): void {
+    this.state = addListenerParents(this, this.parents, State.Push);
+    if (this.state === State.Push) {
+      this.last = this.pull();
+    }
+  }
+  deactivate(): void {
+    removeListenerParents(this, this.parents);
+    this.state = State.Inactive;
+  }
+  changePullers(n: number): void {
+    this.nrOfPullers += n;
+    changePullersParents(n, this.parents);
   }
 }
 
@@ -161,7 +209,6 @@ export function producerBehavior<A>(activate: ProducerBehaviorFunction<A>, initi
   return new ProducerBehaviorFromFunction(activate, initial);
 }
 
-
 export class SinkBehavior<A> extends ProducerBehavior<A> {
   constructor(public last: A) {
     super();
@@ -212,12 +259,13 @@ export class ConstantBehavior<A> extends StatefulBehavior<A> {
   }
 }
 
-export class MapBehavior<A, B> extends Behavior<B> {
+export class MapBehavior<A, B> extends StatelessBehavior<B> {
   constructor(
     private parent: Behavior<any>,
     private f: (a: A) => B
   ) {
     super();
+    this.parents = cons(parent);
   }
   push(a: A): void {
     this.last = this.f(a);
@@ -226,25 +274,41 @@ export class MapBehavior<A, B> extends Behavior<B> {
   pull(): B {
     return this.f(this.parent.at());
   }
-  activate(): void {
-    this.parent.addListener(this);
-    this.state = this.parent.state;
-    if (this.state === State.Push) {
-      this.last = this.pull();
-    }
-  }
-  deactivate(): void {
-    this.parent.removeListener(this);
-    this.state = State.Inactive;
-  }
-  changePullers(n: number): void {
-    this.nrOfPullers += n;
-    this.parent.changePullers(n);
-  }
   semantic(): SemanticBehavior<B> {
     const g = this.parent.semantic();
     return (t) => this.f(g(t));
   }
+}
+
+class ApBehavior<A, B> extends StatelessBehavior<B> {
+  last: B;
+  constructor(
+    private fn: Behavior<(a: A) => B>,
+    private val: Behavior<A>
+  ) {
+    super();
+    this.parents = cons<any>(fn, cons(val));
+  }
+  push(): void {
+    const fn = at(this.fn);
+    const val = at(this.val);
+    this.last = fn(val);
+    this.child.push(this.last);
+  }
+  pull(): B {
+    return at(this.fn)(at(this.val));
+  }
+}
+
+/**
+ * Apply a function valued behavior to a value behavior.
+ *
+ * @param fnB behavior of functions from `A` to `B`
+ * @param valB A behavior of `A`
+ * @returns Behavior of the function in `fnB` applied to the value in `valB`
+ */
+export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
+  return valB.ap(fnB);
 }
 
 class ChainOuter<A> extends Behavior<A> {
@@ -314,56 +378,6 @@ class FunctionBehavior<A> extends Behavior<A> {
   }
   activate(): void { }
   deactivate(): void { }
-}
-
-/** @private */
-class ApBehavior<A, B> extends Behavior<B> {
-  last: B;
-  constructor(
-    private fn: Behavior<(a: A) => B>,
-    private val: Behavior<A>
-  ) {
-    super();
-    /*
-    this.state = fn.state && val.state;
-    if (this.state) {
-      this.last = at(fn)(at(val));
-    }
-    */
-  }
-  push(): void {
-    const fn = at(this.fn);
-    const val = at(this.val);
-    this.last = fn(val);
-    this.child.push(this.last);
-  }
-  pull(): B {
-    return at(this.fn)(at(this.val));
-  }
-  activate(): void {
-    this.fn.addListener(this);
-    this.val.addListener(this);
-    this.state = this.fn.state;
-    if (this.state === State.Push) {
-      this.last = this.pull();
-    }
-  }
-  deactivate(): void {
-    this.fn.removeListener(this);
-    this.val.removeListener(this);
-    this.state = State.Inactive;
-  }
-}
-
-/**
- * Apply a function valued behavior to a value behavior.
- *
- * @param fnB behavior of functions from `A` to `B`
- * @param valB A behavior of `A`
- * @returns Behavior of the function in `fnB` applied to the value in `valB`
- */
-export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
-  return valB.ap(fnB);
 }
 
 /** @private */
@@ -559,7 +573,7 @@ export function isBehavior(b: any): b is Behavior<any> {
 }
 
 class TestBehavior<A> extends Behavior<A> {
-  constructor (private semanticBehavior: SemanticBehavior<A>) {
+  constructor(private semanticBehavior: SemanticBehavior<A>) {
     super();
   }
   semantic(): SemanticBehavior<A> {
