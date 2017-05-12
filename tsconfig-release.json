@@ -4,6 +4,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
+    "declarationDir": "./dist/defs",
     "outDir": "./dist",
     "rootDir": "./src",
     "noImplicitAny": false,

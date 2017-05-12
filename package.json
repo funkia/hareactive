@@ -4,8 +4,10 @@
   "description": "Experimental FRP library for building web applications.",
   "main": "dist/index.js",
   "module": "dist/es/index.js",
+  "typings": "dist/defs/index.d.ts",
   "directories": {
-    "test": "test"
+    "test": "test",
+    "dist": "dist"
   },
   "scripts": {
     "build": "npm run build-es6; npm run build-cmjs",
