@@ -11,7 +11,6 @@ import { Stream } from "./stream";
  * be thought of as a function from time to a value. I.e. `type
  * Behavior<A> = (t: Time) => A`.
  */
-
 export type SemanticBehavior<A> = (time: Time) => A;
 
 @monad
@@ -597,7 +596,7 @@ class TimeBehavior extends FunctionBehavior<Time> {
  * UNIX epoch. I.e. its current value is equal to the value got by
  * calling `Date.now`.
  */
-export const time = new TimeBehavior();
+export const time: Behavior<Time> = new TimeBehavior();
 
 /**
  * A behavior giving access to continuous time. When sampled the outer

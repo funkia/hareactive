@@ -2,22 +2,26 @@
   "name": "@funkia/hareactive",
   "version": "0.0.23",
   "description": "Experimental FRP library for building web applications.",
-  "main": "index.js",
+  "main": "dist/index.js",
   "module": "dist/es/index.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "build": "tsc -P ./tsconfig-release.json; tsc -P ./tsconfig-release.json --outDir 'dist/es' --module es6",
-    "prebench": "tsc -P ./tsconfig-release.json",
+    "build": "npm run build-es6; npm run build-cmjs",
+    "build-es6": "./node_modules/.bin/tsc -P ./tsconfig-release.json --outDir 'dist/es' --module es6",
+    "build-cmjs": "./node_modules/.bin/tsc -P ./tsconfig-release.json",
+    "prepublishOnly": "npm run clean; npm run build",
+    "prebench": "npm run build-cmjs",
     "bench": "node benchmark",
-    "test": "nyc mocha --compilers ts:ts-node/register test/**/*.ts && nyc report",
-    "test-watch": "mocha -R progress --watch --compilers ts:ts-node/register test/**/*.ts",
-    "test-browser": "karma start karma.conf.js",
-    "codecov": "codecov -f coverage/coverage-final.json",
-    "release-major": "xyz --repo git@github.com:funkia/hareactive.git --increment major",
-    "release-minor": "xyz --repo git@github.com:funkia/hareactive.git --increment minor",
-    "release-patch": "xyz --repo git@github.com:funkia/hareactive.git --increment patch"
+    "clean": "rm -r dist coverage .nyc_output",
+    "test": "./node_modules/.bin/nyc mocha --compilers ts:ts-node/register test/**/*.ts && nyc report",
+    "test-watch": "./node_modules/.bin/mocha -R progress --watch --compilers ts:ts-node/register test/**/*.ts",
+    "test-browser": "./node_modules/.bin/karma start karma.conf.js",
+    "codecov": "./node_modules/.bin/codecov -f coverage/coverage-final.json",
+    "release-major": "./node_modules/.bin/xyz --repo git@github.com:funkia/hareactive.git --increment major",
+    "release-minor": "./node_modules/.bin/xyz --repo git@github.com:funkia/hareactive.git --increment minor",
+    "release-patch": "./node_modules/.bin/xyz --repo git@github.com:funkia/hareactive.git --increment patch"
   },
   "repository": {
     "type": "git",
@@ -38,6 +42,7 @@
     "@funkia/jabz": "0.0.19"
   },
   "devDependencies": {
+    "@funkia/jabz": "0.0.19",
     "@types/benchmark": "^1.0.30",
     "@types/chai": "^3.5.2",
     "@types/mocha": "^2.2.41",
