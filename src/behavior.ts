@@ -142,8 +142,9 @@ export abstract class ActiveBehavior<A> extends Behavior<A> {
 
 export abstract class ProducerBehavior<A> extends Behavior<A> {
   push(a: A): void {
+    const changed = a !== this.last;
     this.last = a;
-    if (this.state === State.Push) {
+    if (this.state === State.Push && changed) {
       this.child.push(a);
     }
   }
@@ -200,22 +201,8 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
   constructor(public last: A) {
     super();
   }
-  push(a: A): void {
-    if (this.last === a) {
-      return;
-    }
-    this.last = a;
-    if (this.state === State.Push) {
-      this.child.push(a);
-    }
-  }
-  pull(): A {
-    return this.last;
-  }
-  activateProducer(): void {
-  }
-  deactivateProducer(): void {
-  }
+  activateProducer(): void { }
+  deactivateProducer(): void { }
 }
 
 /**
@@ -464,11 +451,6 @@ class SwitcherBehavior<A> extends ActiveBehavior<A> {
     this.state = newState;
     if (this.child !== undefined) {
       this.child.changeStateDown(this.state);
-    }
-  }
-  changeStateDown(state: State): void {
-    if (this.child !== undefined) {
-      this.child.changeStateDown(state);
     }
   }
 }
