@@ -35,7 +35,7 @@ function pushArray(arr, b) {
 module.exports = Suite("map-map-map-behavior")
 
   .add("Behavior old", function(defered) {
-    var b = Bo.sink();
+    var b = Bo.sinkBehavior();
     b.map(add1).map(double).map(sub3).subscribe(function(e) {
       if (e === result) {
         defered.resolve();
@@ -45,7 +45,7 @@ module.exports = Suite("map-map-map-behavior")
   }, {defer: true})
 
   .add("Behavior", function(defered) {
-    var b = B.sink();
+    var b = B.sinkBehavior();
     b.map(add1).map(double).map(sub3).subscribe(function(e) {
       if (e === result) {
         defered.resolve();

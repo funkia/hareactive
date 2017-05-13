@@ -35,7 +35,7 @@ function pushArray(arr, ev) {
 module.exports = Suite("map-map-map-stream")
 
   .add("Stream old", function(defered) {
-    var stream = So.empty();
+    var stream = So.sinkStream();
     stream
       .map(add1).map(double).map(sub3)
       .subscribe(function(e) {

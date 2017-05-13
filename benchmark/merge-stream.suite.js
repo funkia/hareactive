@@ -15,11 +15,11 @@ for (var i = 0; i < a.length; ++i) {
 
 module.exports = Suite("merge-stream")
 
-  .add("Stream old", function(defered) {
-    var s1 = So.empty();
-    var s2 = So.empty();
-    var s3 = So.empty();
-    var s4 = So.empty();
+  .add("Stream old", function (defered) {
+    var s1 = S.sinkStream();
+    var s2 = S.sinkStream();
+    var s3 = S.sinkStream();
+    var s4 = S.sinkStream();
     s1.combine(s2).combine(s3).combine(s4)
       .subscribe(function(v) {
         if (v === n - 1) {

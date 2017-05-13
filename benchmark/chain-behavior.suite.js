@@ -10,9 +10,9 @@ var n = 100000;
 module.exports = Suite("chain-behavior")
 
   .add("Behavior old", function(defered) {
-    var b1 = Bo.sink(true);
-    var b2 = Bo.sink(1);
-    var b3 = Bo.sink(2);
+    var b1 = Bo.sinkBehavior(true);
+    var b2 = Bo.sinkBehavior(1);
+    var b3 = Bo.sinkBehavior(2);
     var b = b1.chain((b) => b ? b2 : b3);
     b.subscribe(function(e) {
       if (e === n - 1) {
@@ -38,9 +38,9 @@ module.exports = Suite("chain-behavior")
   }, {defer: true})
 
   .add("Behavior", function(defered) {
-    var b1 = B.sink(true);
-    var b2 = B.sink(1);
-    var b3 = B.sink(2);
+    var b1 = B.sinkBehavior(true);
+    var b2 = B.sinkBehavior(1);
+    var b3 = B.sinkBehavior(2);
     var b = b1.chain((b) => b ? b2 : b3);
     b.subscribe(function(e) {
       if (e === n - 1) {
