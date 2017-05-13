@@ -1,9 +1,9 @@
 var Suite = require("./default-suite").Suite;
 var most = require("most");
-var B = require("../dist/Behavior");
-var S = require("../dist/Stream");
-var Bo = require("./hareactive-old/dist/Behavior");
-var So = require("./hareactive-old/dist/Stream");
+var B = require("../dist/behavior");
+var S = require("../dist/stream");
+var Bo = require("./hareactive-old/dist/behavior");
+var So = require("./hareactive-old/dist/stream");
 
 var n = 1000000;
 var a = new Array(n);
@@ -47,7 +47,7 @@ module.exports = Suite("filter-map-scan")
   }, { defer: true })
 
   .add("Stream", function(defered) {
-    var ev = S.empty();
+    var ev = S.sinkStream();
     B.at(
       S.filter(even, ev).map(add1).scanS(sum, 0)
     ).subscribe(function(v) {

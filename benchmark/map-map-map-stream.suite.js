@@ -1,9 +1,9 @@
 var Suite = require("./default-suite").Suite;
 var most = require("most");
-var S = require("../dist/Stream");
-var B = require("../dist/Behavior");
-var Bo = require("./hareactive-old/dist/Behavior");
-var So = require("./hareactive-old/dist/Stream");
+var S = require("../dist/stream");
+var B = require("../dist/behavior");
+var Bo = require("./hareactive-old/dist/behavior");
+var So = require("./hareactive-old/dist/stream");
 
 var n = 100000;
 var testData = [];
@@ -47,7 +47,7 @@ module.exports = Suite("map-map-map-stream")
   }, {defer: true})
 
   .add("Stream", function(defered) {
-    var stream = S.empty();
+    var stream = S.sinkStream();
     stream
       .map(add1).map(double).map(sub3)
       .subscribe(function(e) {

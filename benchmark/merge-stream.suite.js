@@ -1,9 +1,9 @@
 var Suite = require("./default-suite").Suite;
 var most = require("most");
-var B = require("../dist/Behavior");
-var S = require("../dist/Stream");
-var Bo = require("./hareactive-old/dist/Behavior");
-var So = require("./hareactive-old/dist/Stream");
+var B = require("../dist/behavior");
+var S = require("../dist/stream");
+var Bo = require("./hareactive-old/dist/behavior");
+var So = require("./hareactive-old/dist/stream");
 
 var n = 1000000;
 var a = new Array(n);
@@ -20,7 +20,7 @@ module.exports = Suite("merge-stream")
     var s2 = So.empty();
     var s3 = So.empty();
     var s4 = So.empty();
-    s1.merge(s2).merge(s3).merge(s4)
+    s1.combine(s2).combine(s3).combine(s4)
       .subscribe(function(v) {
         if (v === n - 1) {
           defered.resolve();
@@ -44,11 +44,11 @@ module.exports = Suite("merge-stream")
     }}, {defer: true})
 
   .add("Stream", function(defered) {
-    var s1 = S.empty();
-    var s2 = S.empty();
-    var s3 = S.empty();
-    var s4 = S.empty();
-    s1.merge(s2).merge(s3).merge(s4)
+    var s1 = S.sinkStream();
+    var s2 = S.sinkStream();
+    var s3 = S.sinkStream();
+    var s4 = S.sinkStream();
+    s1.combine(s2).combine(s3).combine(s4)
       .subscribe(function(v) {
         if (v === n - 1) {
           defered.resolve();
