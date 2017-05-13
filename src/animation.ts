@@ -26,7 +26,7 @@ export function transitionBehavior(
 ): Behavior<Behavior<number>> {
   return go(function* () {
     const rangeValueB: Behavior<Range> = yield scan(
-      (newV, prev) => ({ from: prev.to, to: newV }), { from: 0, to: initial },
+      (newV, prev) => ({ from: prev.to, to: newV }), { from: initial, to: initial },
       triggerStream
     );
     const initialStartTime: number = yield timeB;
@@ -60,6 +60,7 @@ export function capToRange(lower: number, upper: number, a: number): number {
 
 export const linear = t => t;
 export const easeIn = p => t => t ** p;
-export const easeOut = p => t => 1 - (t ** p);
-export const easeInOut = p => t => (t < .5) ? easeIn(p)(t) : easeOut(p)(t);
+export const easeOut = p => t => 1 - ((1 - t) ** p);
+export const easeInOut = p => t => (t < .5) ? easeIn(p)(t * 2) / 2
+: easeOut(p)(t * 2 - 1) / 2 + .5;
 
