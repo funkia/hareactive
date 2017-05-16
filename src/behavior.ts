@@ -286,8 +286,12 @@ export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavio
 }
 
 class ChainOuter<A> extends Behavior<A> {
-  constructor(public child: ChainBehavior<A, any>) {
+  constructor(
+    public child: ChainBehavior<A, any>,
+    public parent: Behavior<any>
+  ) {
     super();
+    this.parents = cons(parent);
   }
   push(a: A): void {
     this.child.pushOuter(a);
@@ -297,20 +301,21 @@ class ChainOuter<A> extends Behavior<A> {
 class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
-  private outerConsumer: Observer<A>;
+  private outerConsumer: Behavior<A>;
   constructor(
     private outer: Behavior<A>,
     private fn: (a: A) => Behavior<B>
   ) {
     super();
+    // Create the outer consumer
+    this.outerConsumer = new ChainOuter(this, outer);
+    this.parents = cons(this.outerConsumer);
   }
   activate(): void {
-    // Create the outer consumer
-    this.outerConsumer = new ChainOuter(this);
     // Make the consumers listen to inner and outer behavior
     this.outer.addListener(this.outerConsumer);
     if (this.outer.state === State.Push) {
-      this.innerB = this.fn(at(this.outer));
+      this.innerB = this.fn(this.outer.at());
       this.innerB.addListener(this);
       this.state = this.innerB.state;
       this.last = at(this.innerB);
