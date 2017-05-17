@@ -1,16 +1,14 @@
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
-import {
-  Behavior, ProducerBehavior, fromFunction, sinkBehavior, testBehavior
-} from "../src/behavior";
 import { State } from "../src/common";
-import { map, publish, placeholder } from "../src/index";
 import {
-  apply, changes, debounce, delay, empty, filter, filterApply,
-  isStream, keepWhen, producerStream, ProducerStream, scanS, sinkStream, snapshot,
-  snapshotWith, split, subscribe, testStreamFromArray,
-  testStreamFromObject, throttle
-} from "../src/stream";
+  map, publish, placeholder, apply, changes, debounce, delay, empty,
+  filter, filterApply, isStream, keepWhen, producerStream,
+  ProducerStream, scanS, Behavior, ProducerBehavior, fromFunction,
+  sinkBehavior, testBehavior, sinkStream, snapshot, snapshotWith,
+  split, subscribe, testStreamFromArray, testStreamFromObject,
+  throttle
+} from "../src/index";
 
 import { createTestProducerBehavior, createTestProducer } from "./helpers";
 

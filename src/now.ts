@@ -3,7 +3,7 @@ import { IO, runIO, Monad, monad } from "@funkia/jabz";
 import { State } from "./common";
 import { Future, fromPromise, sinkFuture } from "./future";
 import { Behavior, at } from "./behavior";
-import { StatefulStream, Stream } from "./stream";
+import { ActiveStream, Stream } from "./stream";
 
 @monad
 export abstract class Now<A> implements Monad<A> {
@@ -72,7 +72,7 @@ export function sample<A>(b: Behavior<A>): Now<A> {
   return new SampleNow(b);
 }
 
-class PerformIOStream<A> extends StatefulStream<A> {
+class PerformIOStream<A> extends ActiveStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this);
@@ -100,7 +100,7 @@ export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNow(s);
 }
 
-class PerformIOStreamLatest<A> extends StatefulStream<A> {
+class PerformIOStreamLatest<A> extends ActiveStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this);
@@ -141,7 +141,7 @@ export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNowLatest(s);
 }
 
-class PerformIOStreamOrdered<A> extends StatefulStream<A> {
+class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this);

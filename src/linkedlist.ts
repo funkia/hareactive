@@ -13,6 +13,7 @@ export function cons<A>(value: A, tail?: Cons<A>): Cons<A> {
  * A doubly linked list. Updates are done by mutating. Prepend, append
  * and remove all run in O(1) time.
  */
+/* Not used yet. The plan is to use it to keep track of subscribed children.
 export class LinkedList<A> {
   size: number;
   head: Node<A> | undefined;
@@ -52,3 +53,4 @@ export class Node<A> {
     public next: Node<A> | undefined
   ) { }
 }
+*/

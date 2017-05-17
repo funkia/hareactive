@@ -1,9 +1,8 @@
-import { testBehavior } from "../src/behavior";
 import {
-  at, Behavior, fromFunction, Future, integrate, isBehavior, observe,
-  placeholder, ProducerBehavior, producerBehavior, publish, scan,
-  sinkBehavior, sinkStream, stepper, switcher, switchStream, switchTo,
-  time, timeFrom, toggle, snapshot
+  testBehavior, at, Behavior, fromFunction, Future, integrate,
+  isBehavior, observe, placeholder, ProducerBehavior,
+  producerBehavior, publish, scan, sinkBehavior, sinkStream, stepper,
+  switcher, switchStream, switchTo, time, timeFrom, toggle, snapshot
 } from "../src";
 import "mocha";
 import { assert } from "chai";
@@ -248,11 +247,13 @@ describe("behavior", () => {
     it("handles changing inner behavior", () => {
       const inner = sinkBehavior(0);
       const b = Behavior.of(1).chain(_ => inner);
+      const spy = subscribeSpy(b);
       assert.strictEqual(at(b), 0);
       inner.push(2);
       assert.strictEqual(at(b), 2);
       inner.push(3);
       assert.strictEqual(at(b), 3);
+      assert.deepEqual(spy.args, [[0], [2], [3]]);
     });
     it("stops subscribing to past inner behavior", () => {
       const inner = sinkBehavior(0);

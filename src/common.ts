@@ -1,3 +1,4 @@
+import { Cons, cons } from "./linkedlist";
 import { Behavior } from "./behavior";
 
 export type Time = number;
@@ -60,10 +61,41 @@ export interface Subscriber<A> extends Observer<A> {
   deactivate(): void;
 }
 
+export function addListenerParents(
+  child: Observer<any>, parents: Cons<Reactive<any>>, state: State
+): State {
+  const parentState = parents.value.addListener(child);
+  const newState = parentState !== State.Push ? parentState : state;
+  if (parents.tail !== undefined) {
+    return addListenerParents(child, parents.tail, newState);
+  } else {
+    return newState;
+  }
+}
+
+export function removeListenerParents(
+  child: Observer<any>, parents: Cons<Reactive<any>>
+): void {
+  parents.value.removeListener(child);
+  if (parents.tail !== undefined) {
+    removeListenerParents(child, parents.tail);
+  }
+}
+
+export function changePullersParents(n: number, parents: Cons<Reactive<any>>): void {
+  if (isBehavior(parents.value)) {
+    parents.value.changePullers(n);
+  }
+  if (parents.tail !== undefined) {
+    changePullersParents(n, parents.tail);
+  }
+}
+
 export abstract class Reactive<A> implements Observer<any> {
   child: Observer<A>;
   nrOfListeners: number;
   state: State;
+  parents: Cons<Reactive<any>>;
   constructor() {
     this.state = State.Inactive;
     this.nrOfListeners = 0;
@@ -118,8 +150,13 @@ export abstract class Reactive<A> implements Observer<any> {
     return new CbObserver(push, beginPulling, endPulling, this);
   }
   abstract push(a: any): void;
-  abstract deactivate(): void;
-  abstract activate(): void;
+  activate(): void {
+    this.state = addListenerParents(this, this.parents, State.Push);
+  }
+  deactivate(): void {
+    removeListenerParents(this, this.parents);
+    this.state = State.Inactive;
+  }
   abstract map<B>(f: (a: A) => B): Reactive<B>;
 }
 

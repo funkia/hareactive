@@ -11,19 +11,19 @@
   },
   "scripts": {
     "build": "npm run build-es6; npm run build-cmjs",
-    "build-es6": "./node_modules/.bin/tsc -P ./tsconfig-release.json --outDir 'dist/es' --module es6",
-    "build-cmjs": "./node_modules/.bin/tsc -P ./tsconfig-release.json",
+    "build-es6": "tsc -P ./tsconfig-release.json --outDir 'dist/es' --module es6",
+    "build-cmjs": "tsc -P ./tsconfig-release.json",
     "prepublishOnly": "npm run clean; npm run build",
     "prebench": "npm run build-cmjs",
     "bench": "node benchmark",
     "clean": "rm -rf dist coverage .nyc_output",
-    "test": "./node_modules/.bin/nyc mocha --compilers ts:ts-node/register test/**/*.ts && nyc report",
-    "test-watch": "./node_modules/.bin/mocha -R progress --watch --compilers ts:ts-node/register test/**/*.ts",
-    "test-browser": "./node_modules/.bin/karma start karma.conf.js",
-    "codecov": "./node_modules/.bin/codecov -f coverage/coverage-final.json",
-    "release-major": "./node_modules/.bin/xyz --repo git@github.com:funkia/hareactive.git --increment major",
-    "release-minor": "./node_modules/.bin/xyz --repo git@github.com:funkia/hareactive.git --increment minor",
-    "release-patch": "./node_modules/.bin/xyz --repo git@github.com:funkia/hareactive.git --increment patch"
+    "test": "nyc mocha --compilers ts:ts-node/register --require source-map-support/register --recursive test/**/*.ts && nyc report",
+    "test-watch": "mocha -R progress --watch --compilers ts:ts-node/register test/**/*.ts",
+    "test-browser": "karma start karma.conf.js",
+    "codecov": "codecov -f coverage/coverage-final.json",
+    "release-major": "xyz --repo git@github.com:funkia/hareactive.git --increment major",
+    "release-minor": "xyz --repo git@github.com:funkia/hareactive.git --increment minor",
+    "release-patch": "xyz --repo git@github.com:funkia/hareactive.git --increment patch"
   },
   "repository": {
     "type": "git",
@@ -63,8 +63,9 @@
     "karma-source-map-support": "^1.2.0",
     "mocha": "^3.3.0",
     "most": "^1.3.0",
-    "nyc": "^10.3.0",
+    "nyc": "10.2.x",
     "sinon": "^2.2.0",
+    "source-map-support": "^0.4.15",
     "ts-node": "^3.0.3",
     "tsify": "^3.0.1",
     "typescript": "^2.3.2",
@@ -75,6 +76,9 @@
   "nyc": {
     "extension": [
       ".ts"
+    ],
+    "require": [
+      "ts-node/register"
     ],
     "reporter": [
       "json",

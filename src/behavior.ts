@@ -1,9 +1,11 @@
 import { Cons, cons } from "./linkedlist";
 import { Monad, monad } from "@funkia/jabz";
-import { Observer, State, Reactive, Time } from "./common";
 
-import { Future, BehaviorFuture } from "./future";
-import * as F from "./future";
+import {
+  Observer, State, Reactive, Time, addListenerParents,
+  removeListenerParents, changePullersParents
+} from "./common";
+import { Future, BehaviorFuture } from "./future"; import * as F from "./future";
 import { Stream } from "./stream";
 
 /**
@@ -19,7 +21,6 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   // Pull behaviors do not use `last`.
   last: A;
   nrOfListeners: number;
-  parents: Cons<Reactive<any>>;
   child: Observer<any>;
   // The streams and behaviors that this behavior depends upon
   dependencies: Cons<Reactive<any>>;
@@ -80,14 +81,10 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     return this.last;
   }
   activate(): void {
-    this.state = addListenerParents(this, this.parents, State.Push);
+    super.activate();
     if (this.state === State.Push) {
       this.last = this.pull();
     }
-  }
-  deactivate(): void {
-    removeListenerParents(this, this.parents);
-    this.state = State.Inactive;
   }
   changePullers(n: number): void {
     this.nrOfPullers += n;
@@ -102,42 +99,8 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
   }
 }
 
-function addListenerParents(
-  child: Observer<any>, parents: Cons<Reactive<any>>, state: State
-): State {
-  const parentState = parents.value.addListener(child);
-  const newState = parentState !== State.Push ? parentState : state;
-  if (parents.tail !== undefined) {
-    return addListenerParents(child, parents.tail, newState);
-  } else {
-    return newState;
-  }
-}
-
-function removeListenerParents(
-  child: Observer<any>, parents: Cons<Reactive<any>>
-): void {
-  parents.value.removeListener(child);
-  if (parents.tail !== undefined) {
-    removeListenerParents(child, parents.tail);
-  }
-}
-
-function changePullersParents(n: number, parents: Cons<Reactive<any>>): void {
-  if (isBehavior(parents.value)) {
-    parents.value.changePullers(n);
-  }
-  if (parents.tail !== undefined) {
-    changePullersParents(n, parents.tail);
-  }
-}
-
-/** Behaviors that are always active */
-export abstract class ActiveBehavior<A> extends Behavior<A> {
-  // noop methods, behavior is always active
-  activate(): void { }
-  deactivate(): void { }
-  changePullers(): void { }
+export function isBehavior(b: any): b is Behavior<any> {
+  return typeof b === "object" && ("at" in b);
 }
 
 export abstract class ProducerBehavior<A> extends Behavior<A> {
@@ -218,19 +181,6 @@ export function sinkBehavior<A>(initial: A): SinkBehavior<A> {
  */
 export function at<B>(b: Behavior<B>): B {
   return b.at();
-}
-
-export class ConstantBehavior<A> extends ActiveBehavior<A> {
-  constructor(public last: A) {
-    super();
-    this.state = State.Push;
-  }
-  pull(): A {
-    return this.last;
-  }
-  semantic(): SemanticBehavior<A> {
-    return (_) => this.last;
-  }
 }
 
 export class MapBehavior<A, B> extends Behavior<B> {
@@ -346,16 +296,6 @@ class ChainBehavior<A, B> extends Behavior<B> {
   }
 }
 
-/** @private */
-class FunctionBehavior<A> extends ActiveBehavior<A> {
-  constructor(private fn: () => A) {
-    super();
-    this.state = State.OnlyPull;
-  }
-  pull(): A {
-    return this.fn();
-  }
-}
 
 /** @private */
 class WhenBehavior extends Behavior<Future<{}>> {
@@ -378,6 +318,7 @@ class WhenBehavior extends Behavior<Future<{}>> {
 export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
 }
+
 
 // FIXME: This can probably be made less ugly.
 /** @private */
@@ -419,6 +360,42 @@ export function snapshotAt<A>(
   b: Behavior<A>, f: Future<any>
 ): Behavior<Future<A>> {
   return new SnapshotBehavior(b, f);
+}
+
+/** Behaviors that are always active */
+export abstract class ActiveBehavior<A> extends Behavior<A> {
+  // noop methods, behavior is always active
+  activate(): void { }
+  deactivate(): void { }
+  changePullers(): void { }
+}
+
+export class ConstantBehavior<A> extends ActiveBehavior<A> {
+  constructor(public last: A) {
+    super();
+    this.state = State.Push;
+  }
+  pull(): A {
+    return this.last;
+  }
+  semantic(): SemanticBehavior<A> {
+    return (_) => this.last;
+  }
+}
+
+/** @private */
+export class FunctionBehavior<A> extends ActiveBehavior<A> {
+  constructor(private fn: () => A) {
+    super();
+    this.state = State.OnlyPull;
+  }
+  pull(): A {
+    return this.fn();
+  }
+}
+
+export function fromFunction<B>(fn: () => B): Behavior<B> {
+  return new FunctionBehavior(fn);
 }
 
 /** @private */
@@ -523,92 +500,16 @@ class ScanBehavior<A, B> extends ActiveBehavior<B> {
   }
 }
 
-export function scan<A, B>(fn: (a: A, b: B) => B, init: B, source: Stream<A>): Behavior<Behavior<B>> {
+export function scan<A, B>(
+  fn: (a: A, b: B) => B, init: B, source: Stream<A>
+): Behavior<Behavior<B>> {
   return fromFunction(() => new ScanBehavior(init, fn, source));
 }
+
+/* Derived combinators */
 
 export function toggle(
   initial: boolean, turnOn: Stream<any>, turnOff: Stream<any>
 ): Behavior<boolean> {
   return stepper(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
-}
-
-export function fromFunction<B>(fn: () => B): Behavior<B> {
-  return new FunctionBehavior(fn);
-}
-
-export function isBehavior(b: any): b is Behavior<any> {
-  return typeof b === "object" && ("at" in b);
-}
-
-class TestBehavior<A> extends Behavior<A> {
-  constructor(private semanticBehavior: SemanticBehavior<A>) {
-    super();
-  }
-  semantic(): SemanticBehavior<A> {
-    return this.semanticBehavior;
-  }
-}
-
-export function testBehavior<A>(b: SemanticBehavior<A>): Behavior<A> {
-  return new TestBehavior(b);
-}
-
-class TimeFromBehavior extends Behavior<Time> {
-  private startTime: Time;
-  constructor() {
-    super();
-    this.startTime = Date.now();
-    this.state = State.Pull;
-  }
-  pull(): Time {
-    return Date.now() - this.startTime;
-  }
-}
-
-class TimeBehavior extends FunctionBehavior<Time> {
-  constructor() {
-    super(Date.now);
-  }
-  semantic(): SemanticBehavior<Time> {
-    return (time: Time) => time;
-  }
-}
-
-/**
- * A behavior whose value is the number of milliseconds elapsed in
- * UNIX epoch. I.e. its current value is equal to the value got by
- * calling `Date.now`.
- */
-export const time: Behavior<Time> = new TimeBehavior();
-
-/**
- * A behavior giving access to continuous time. When sampled the outer
- * behavior gives a behavior with values that contain the difference
- * between the current sample time and the time at which the outer
- * behavior was sampled.
- */
-export const timeFrom: Behavior<Behavior<Time>>
-  = fromFunction(() => new TimeFromBehavior());
-
-class IntegrateBehavior extends Behavior<number> {
-  private lastPullTime: Time;
-  private value: number;
-  constructor(private parent: Behavior<number>) {
-    super();
-    this.lastPullTime = Date.now();
-    this.state = State.Pull;
-    this.value = 0;
-  }
-  pull(): Time {
-    const currentPullTime = Date.now();
-    const deltaSeconds = (currentPullTime - this.lastPullTime) / 1000;
-    this.value += deltaSeconds * at(this.parent);
-    this.lastPullTime = currentPullTime;
-    return this.value;
-  }
-}
-
-export function integrate(behavior: Behavior<number>): Behavior<Behavior<number>> {
-  return fromFunction(() => new IntegrateBehavior(behavior));
 }

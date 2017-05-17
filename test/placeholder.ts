@@ -4,17 +4,13 @@ import { assert } from "chai";
 
 import { placeholder } from "../src/placeholder";
 import { State, observe } from "../src/common";
-import { map, publish } from "../src/index";
 import {
-  isBehavior,
-  Behavior, stepper, fromFunction, sinkBehavior, ap
-} from "../src/behavior";
-import {
-  apply, debounce, delay, empty, filter, filterApply, isStream,
-  keepWhen, ProducerStream, scanS, sinkStream, snapshot, snapshotWith,
-  split, Stream, subscribe, testStreamFromArray, testStreamFromObject,
-  throttle
-} from "../src/stream";
+  isBehavior, Behavior, stepper, fromFunction, sinkBehavior, ap, map,
+  publish, apply, debounce, delay, empty, filter, filterApply,
+  isStream, keepWhen, ProducerStream, scanS, sinkStream, snapshot,
+  snapshotWith, split, Stream, subscribe, testStreamFromArray,
+  testStreamFromObject, throttle
+} from "../src/index";
 
 import { createTestProducerBehavior } from "./helpers";
 
