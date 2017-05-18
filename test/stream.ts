@@ -166,18 +166,22 @@ describe("stream", () => {
     describe("semantics", () => {
       it("interleaves occurrences", () => {
         const s1 = testStreamFromObject({
-          0: "first",
-          2: "third",
-          4: "fifth"
+          0: "#1",
+          2: "#3"
         });
         const s2 = testStreamFromObject({
-          1: "second",
-          3: "fourth"
+          1: "#2",
+          2: "#4",
+          3: "#5"
         });
-        const combined = s1.combine(s2);
+        const combined = s2.combine(s1);
         assert.deepEqual(
           combined.semantic(),
-          testStreamFromArray(["first", "second", "third", "fourth", "fifth"]).semantic()
+          [
+            { time: 0, value: "#1" }, { time: 1, value: "#2" },
+            { time: 2, value: "#3" }, { time: 2, value: "#4" },
+            { time: 3, value: "#5" }
+          ]
         );
       });
     });

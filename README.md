@@ -6,17 +6,47 @@
 
 # Hareactive
 
-A pure FRP library for JavaScript and TypeScript with the following
-features/goals:
+Hareactive is an FRP library for JavaScript and TypeScript. It aims to
+be completely pure, simple to use, powerful, and performant.
 
-* Simple and precise semantics similar to classic FRP. This makes the library
-  simpler to use. (the semantics are WIP see [here](./semantics.md))
-* Supports _continuous time_ for performant and expressive
-  declaration of time-dependent behavior.
-* Great performance.
-* Support for declarative side-effects in a way that is pure,
-  testable and integrates with FRP for powerful handling of asynchronous
+## Key features
+
+* Simple and precise semantics. This makes the library easy to use and
+  free from surprises.
+* Purely functional.
+* Implements classic FRP. This means that the library makes a
+  distinction between behaviors and streams.
+* Supports continuous time for expressive and efficient creation of
+  time-dependent behavior.
+* Integrates with declarative side-effects in a way that is pure,
+  testable and uses FRP for powerful handling of asynchronous
   operations.
+* Great performance.
+
+## Introduction
+
+Hareactive is simple. It aims to have an API that is understandable
+and easy to use. It does that by making a clear distinction by
+semantics and implementation details. This means that the library
+implements a very simple mental model. By understanding this
+conceptual model the entire API can be understood.
+
+This means that to you use Hareactive you do not have to worry about
+things such as "lazy observables", "hot vs cold observables" and
+"unicast vs multicast observables". These are all unfortunate concepts
+that confuses people and makes reactive libraries harder to use. In
+Hareactive we consider such things implementation detail that users
+should never have to think about.
+
+Hareactive implements what is called classic FRP. This means that it
+makes a distinction between two types of time dependent concepts. This
+makes code written in Hareactive more precise and easier to
+understand.
+
+Hareactive is powerful. It features all the typical methods found in
+other FRP libraries. But on top of that it comes with many unique
+features that are rarely found elsewhere. For instance, continuous
+time.
 
 ## Table of contents
 
@@ -28,26 +58,30 @@ features/goals:
 
 # Installation
 
+Hareactive can be installed from npm. The package ships with both
+CommonJS modules and ES6 modules
+
 ```
 npm install @funkia/hareactive
 ```
 
 ## Tutorial
 
-Hareactive contains four key type of things: Future, stream, behavior and
+Hareactive contains four key concepts: Future, stream, behavior and
 now. These are explained below.
 
 ### Future
 
 A future is a _value_ associated with a certain point in _time_. For
-instance, the result of a HTTP-request is a future since it
-occurs at a specific time (when the response is received) and contains
-a value (the response itself).
+instance, the result of a HTTP-request is a future since it occurs at
+a specific time (when the response is received) and contains a value
+(the response itself).
 
 Future has much in common with JavaScript's Promises. However, they
-are simpler. A future has no notion of resolution or
-rejection. That is, a specific future can be understood simply as a
-time and a value. Conceptually one can think of them as being implemented simply like this.
+are simpler. A future has no notion of resolution or rejection. That
+is, a specific future can be understood simply as a time and a value.
+Conceptually one can think of them as being implemented simply like
+this.
 
 ```js
 {time: 22, value: "Foo"}
@@ -59,8 +93,8 @@ A `Stream` is a list of futures. That is, a list of values where the
 values are each associated with a point in time.
 
 An example could be a stream of keypresses that a user makes. Each
-keypress happens at a specific moment in time and with a value indicating
-which key was pressed.
+keypress happens at a specific moment in time and with a value
+indicating which key was pressed.
 
 The relationship between `Future` and `Stream` is the same as the
 relationship between having a variable that is a string and a variable
@@ -78,9 +112,10 @@ A behavior represents a value that changes over time. For instance,
 the current position of the mouse or the value of an input field is a
 behavior.
 
-Conceptually a behavior can be thought of as a function from a point in time to a value.
-A behavior always has a value at any given time. This is the difference between a stream and a behavior.
-A behavior has a value at all points in time where a stream is a series of events
+Conceptually a behavior can be thought of as a function from a point
+in time to a value. A behavior always has a value at any given time.
+This is the difference between a stream and a behavior. A behavior has
+a value at all points in time where a stream is a series of events
 that happens at specific moments in time.
 
 ### Future, stream or behavior?
@@ -89,7 +124,8 @@ At first, the difference between the three things may be tricky to
 understand. Especially if you're used to other libraries where all
 three are represented as a single structure (maybe called "stream" or
 "observable"). The key is to understand that the three types represent
-things that are fundamentally different. And that expressing different things with different structures is beneficial.
+things that are fundamentally different. And that expressing different
+things with different structures is beneficial.
 
 You could forget about future and use a stream where you'd otherwise
 use a future. Because stream is more powerful than future. In the same
@@ -126,14 +162,58 @@ Below are some examples:
 
 ### Now
 
-The `Now` structure represents a computation at a moment in time.
-The computation will always be run in the present—hence the name "now".
-`Now` is perhaps the most difficult concept in Hareactive.
+`Now` represents a computation that will be run in the present. Hence
+the name "now". `Now` is perhaps the most difficult concept in
+Hareactive.
 
-Now is used for two things
+Inside a `Now`-computation we can do two things.
 
-* Creating stateful behaviors
-* Running side-effects
+* Get the current value of behavior. This is done with the `sample`
+  function.
+* Run side-effects.
+
+We can do both of these in a completely pure way.
+
+### How stateful behaviors work
+
+A notorious problem in FRP is how to implement stateful behaviors in a
+pure way.
+
+## Understanding stateful behaviors
+
+FRP has a notorious problem with regards to functions that return
+behaviors or streams that depends on the past. Such behaviors or
+streams are sometimes called "stateful". For instance `scan` creates a
+behavior that accumulates values over time. Clearly such a behavior
+depends on the past. Thus we say that `scan` returns a stateful
+behavior.
+
+Implementing stateful methods such as `scan` in a way that is both
+intuitive to use, pure and memory safe is very tricky.
+
+When implementing functions such as `scan` most reactive libraries in
+JavaScript does one of these two things:
+
+* Calling `scan` doesn't begin accumulating state at all. Only when
+  someone starts observing the result of `scan` is state accumulated.
+  This is very counter intuitive behavior.
+* Calling `scan` starts accumulating state from when `scan` is called.
+  This is pretty easy to understand. But it makes `scan` impure as it
+  will not return the same behavior when called at different time.
+
+To solve this problem Hareactive uses a solution invented by Atze van
+der Ploeg and presented in his paper "Principled Practical FRP". His
+brilliant idea gives Hareactive the best of both worlds. Intuitive
+behavior and purity.
+
+In Hareactive some functions returns a value that, compared to what
+you might expect, is wrapped in an "extra" behavior.
+
+This "behavior wrapping" is applied to all functions that returns a
+result that depends on the past. For instance `scan` creates a
+behavior that accumulates values over time. Clearly such a behavior
+depends on the past. When implementing a function such as `scan` most
+reactive libraries does one of these two:
 
 ## API
 
@@ -161,11 +241,24 @@ the behavior.
 Returns a stream with all the occurrences from `s` for which
 `predicate` returns `true`.
 
+```js
+const stream = testStreamFromArray([1, 3, 2, 4, 1]);
+const filtered = stream.filter((n) => n > 2);
+filtered.semantic() //=> [{ time: 1, value: 3 }, { time: 3, value: 4 }]
+```
+
 #### `split<A>(predicate: (a: A) => boolean, stream: Stream<A>): [Stream<A>, Stream<A>]`
 
 Returns a pair of streams. The first contains all occurrences from
 `stream` for which `predicate` returns `true` and the other the
 occurrences for which `predicate` returns `false`.
+
+```js
+const whereTrue = stream.filter(predicate);
+const whereFalse = stream.filter((v) => !predicate(v));
+// is equivalent to 
+const [whereTrue, whereFalse] = split(predicate, stream);
+```
 
 #### `filterApply<A>(predicate: Behavior<(a: A) => boolean>, stream: Stream<A>): Stream<A>`
 
@@ -185,8 +278,20 @@ A stateful scan.
 
 #### `snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B>`
 
-Returns a stream that occurs whenever `s` occurs. The value of the
-occurrence is `b`s value at the time.
+Creates a streams that occurs exactly when `s` occurs. Every time the
+stream `s` has an occurrence the current value of `b` is sampled. The
+value in the occurrence is then replaced with the sampled value.
+
+```js
+const stream = testStreamFromObject({
+  1: 0, 4: 0, 8: 0, 12: 0
+});
+const shot = snapshot(time, stream);
+const result = testStreamFromObject({
+  1: 1, 4: 4, 8: 8, 12: 12
+});
+// short == result
+```
 
 #### `snapshotWith<A, B, C>(f: (a: A, b: B) => C, b: Behavior<B>, s: Stream<A>): Stream<C>`
 
@@ -207,12 +312,33 @@ the behavior changes.
 
 #### `combine<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)>`
 
-Combines two streams into a single stream that contains the occurrences
-of both `a` and `b`.
+Combines two streams into a single stream that contains the
+occurrences of both `a` and `b` sorted by the time of their
+occurrences. If two occurrences happens at the exactly same time then
+the occurrence from `a` comes first.
+
+```js
+const s1 = testStreamFromObject({ 0: "#1", 2: "#3" });
+const s2 = testStreamFromObject({ 1: "#2", 2: "#4", 3: "#5" });
+const combined = combine(s1, s2);
+assert.deepEqual(
+  combined.semantic(),
+  [
+    { time: 0, value: "#1" }, { time: 1, value: "#2" },
+    { time: 2, value: "#3" }, { time: 2, value: "#4" },
+    { time: 3, value: "#5" }
+  ]
+);
+```
 
 #### `isStream(obj: any): boolean`
 
 Returns `true` if `obj` is a stream and `false` otherwise.
+
+```js
+isStream(empty); //=> true
+isStream(12); //=> false
+```
 
 #### `delay<A>(ms: number, s: Stream<A>): Stream<A>`
 
@@ -220,8 +346,8 @@ Returns a stream that occurs `ms` milliseconds after `s` occurs.
 
 #### `throttle<A>(ms: number, s: Stream<A>): Stream<A>`
 
-Returns a stream that after occuring, ignores the next occurences in `ms` milliseconds.
-
+Returns a stream that after occurring, ignores the next occurrences in
+`ms` milliseconds.
 
 ### Behavior
 
