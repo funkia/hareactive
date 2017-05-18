@@ -1,13 +1,13 @@
-import {
-  testBehavior, at, Behavior, fromFunction, Future, integrate,
-  isBehavior, observe, placeholder, ProducerBehavior,
-  producerBehavior, publish, scan, sinkBehavior, sinkStream, stepper,
-  switcher, switchStream, switchTo, time, timeFrom, toggle, snapshot
-} from "../src";
 import "mocha";
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
 import { go, lift, map, mapTo } from "@funkia/jabz";
+import {
+  testBehavior, at, Behavior, fromFunction, Future, integrate,
+  isBehavior, observe, placeholder, ProducerBehavior, testStreamFromObject,
+  producerBehavior, publish, scan, sinkBehavior, sinkStream, stepper,
+  switcher, switchStream, switchTo, time, timeFrom, toggle, snapshot
+} from "../src";
 
 import * as B from "../src/behavior";
 import * as F from "../src/future";
@@ -489,7 +489,7 @@ describe("Behavior and Stream", () => {
   describe("stepper", () => {
     it("steps to the last event value", () => {
       const e = sinkStream();
-      const b = stepper(0, e);
+      const b = stepper(0, e).at();
       const cb = subscribeSpy(b);
       e.push(1);
       e.push(2);
@@ -497,7 +497,7 @@ describe("Behavior and Stream", () => {
     });
     it("saves last occurrence from stream", () => {
       const s = sinkStream();
-      const t = stepper(1, s);
+      const t = stepper(1, s).at();
       s.push(12);
       const spy = subscribeSpy(t);
       assert.deepEqual(spy.args, [[12]]);
@@ -518,6 +518,27 @@ describe("Behavior and Stream", () => {
       assert.strictEqual(at(b1), 7);
       assert.strictEqual(at(b2), 5);
       assert.deepEqual(spy.args, [[1], [3], [7]]);
+    });
+    it("has semantic representation", () => {
+      const s = testStreamFromObject({
+        1: 1, 2: 1, 4: 2, 6: 3, 7: 1
+      });
+      const scanned = scan((n, m) => n + m, 0, s);
+      const semantic = scanned.semantic();
+
+      const from0 = semantic(0).semantic();
+      assert.strictEqual(from0(0), 0);
+      assert.strictEqual(from0(1), 1);
+      assert.strictEqual(from0(2), 2);
+      assert.strictEqual(from0(3), 2);
+      assert.strictEqual(from0(4), 4);
+
+      const from3 = semantic(3).semantic();
+      assert.strictEqual(from3(3), 0);
+      assert.strictEqual(from3(4), 2);
+      assert.strictEqual(from3(5), 2);
+      assert.strictEqual(from3(6), 5);
+      assert.strictEqual(from3(7), 6);
     });
   });
   describe("switchStream", () => {
@@ -578,15 +599,15 @@ describe("Behavior and Stream", () => {
     it("has correct initial value", () => {
       const s1 = sinkStream();
       const s2 = sinkStream();
-      const flipper1 = toggle(true, s1, s2);
+      const flipper1 = toggle(true, s1, s2).at();
       assert.strictEqual(at(flipper1), true);
-      const flipper2 = toggle(false, s1, s2);
+      const flipper2 = toggle(false, s1, s2).at();
       assert.strictEqual(at(flipper2), false);
     });
     it("flips properly", () => {
       const s1 = sinkStream();
       const s2 = sinkStream();
-      const flipper = toggle(false, s1, s2);
+      const flipper = toggle(false, s1, s2).at();
       const cb = subscribeSpy(flipper);
       s1.push(1);
       s2.push(2);

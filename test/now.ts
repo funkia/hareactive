@@ -1,13 +1,15 @@
-import { Behavior, switchTo, when } from "../src/behavior";
+import { testStreamFromObject } from "../src";
+import { testStreamFromArray } from "../benchmark/hareactive-old/src";
+import { Behavior, switchTo, when, scan } from "../src/behavior";
 import { Future } from "../src/future";
 import {
   async, Now, performStream, performStreamLatest,
-  performStreamOrdered, plan, runNow, sample
+  performStreamOrdered, plan, runNow, sample, testNow
 } from "../src/now";
-import { sinkStream } from "../src/stream";
+import { Stream, sinkStream } from "../src/stream";
 import { assert } from "chai";
 import {
-  lift, Either, callP, IO, withEffects, withEffectsP, go
+  lift, Either, callP, IO, withEffects, withEffectsP, go, fgo
 } from "@funkia/jabz";
 
 // A reference that can be mutated
@@ -20,6 +22,54 @@ function createRef<A>(a: A): Ref<A> {
 const mutateRef: <A>(a: A, r: Ref<A>) => IO<{}> = withEffects((a: any, r: Ref<any>) => r.ref = a);
 
 describe("Now", () => {
+  describe("of", () => {
+    it("can be tested", () => {
+      assert.strictEqual(testNow(Now.of(12)), 12);
+    });
+  });
+  describe("functor", () => {
+    it("mapTo", () => {
+      assert.strictEqual(Now.of(12).mapTo(4).run(), 4);
+    });
+  });
+  describe("applicative", () => {
+    it("lifts over constant now", () => {
+      const now = Now.of(1);
+      assert.strictEqual(lift((n) => n * n, now.of(3)).run(), 9);
+      assert.strictEqual(
+        lift((n, m) => n + m, now.of(1), now.of(3)).run(),
+        4
+      );
+      assert.strictEqual(
+        lift((n, m, p) => n + m + p, now.of(1), now.of(3), now.of(5)).run(),
+        9
+      );
+    });
+  });
+  describe("chain", () => {
+    it("can be tested", () => {
+      const now = Now.of(3).chain((n) => Now.of(n * 4));
+      assert.strictEqual(testNow(now), 12);
+    });
+    it("executes several `async`s in succession", () => {
+      const ref1 = createRef(1);
+      const ref2 = createRef("Hello");
+      const comp =
+        async(mutateRef(2, ref1)).chain(
+          (_: any) => async(mutateRef("World", ref2)).chain(
+            (__: any) => Now.of(Future.of(true))
+          )
+        );
+      return runNow(comp).then((result: boolean) => {
+        assert.strictEqual(result, true);
+        assert.strictEqual(ref1.ref, 2);
+        assert.strictEqual(ref2.ref, "World");
+      });
+    });
+    it("can flatten pure nows", () => {
+      assert.strictEqual(Now.of(Now.of(12)).flatten().run(), 12);
+    });
+  });
   describe("async", () => {
     it("works with runNow", () => {
       let resolve: (n: number) => void;
@@ -39,6 +89,31 @@ describe("Now", () => {
       return runNow(comp).then((result: number) => {
         assert.strictEqual(result, 6);
       });
+    });
+    it("can be tested", () => {
+      const stream = testStreamFromObject({ 1: 1, 2: 3, 4: 2 });
+      const now = sample(scan((n, m) => n + m, 0, stream));
+      const result = testNow(now);
+      const fn = result.semantic();
+      assert.deepEqual(
+        [fn(0), fn(1), fn(2), fn(3), fn(4)],
+        [0, 1, 4, 4, 6]
+      );
+    });
+    it("it can test with go", () => {
+      const model = fgo(function* (incrementClick: Stream<any>): Iterator<any> {
+        const increment = incrementClick.mapTo(1);
+        const count = yield sample(scan((n, m) => n + m, 0, increment));
+        return count;
+      });
+      const stream = testStreamFromObject({ 1: 0, 2: 0, 4: 0 });
+      const result = testNow<Behavior<number>>(model(stream));
+      const fn = result.semantic();
+      assert.strictEqual(fn(0), 0);
+      assert.strictEqual(fn(1), 1);
+      assert.strictEqual(fn(2), 2);
+      assert.strictEqual(fn(3), 2);
+      assert.strictEqual(fn(4), 3);
     });
   });
   describe("plan", () => {
@@ -66,45 +141,6 @@ describe("Now", () => {
         done = true;
         assert.strictEqual(res, 22);
       });
-    });
-  });
-  describe("functor", () => {
-    it("mapTo", () => {
-      assert.strictEqual(Now.of(12).mapTo(4).run(), 4);
-    });
-  });
-  describe("applicative", () => {
-    it("lifts over constant now", () => {
-      const n = Now.of(1);
-      assert.strictEqual(lift((n) => n * n, n.of(3)).run(), 9);
-      assert.strictEqual(
-        lift((n, m) => n + m, n.of(1), n.of(3)).run(),
-        4
-      );
-      assert.strictEqual(
-        lift((n, m, p) => n + m + p, n.of(1), n.of(3), n.of(5)).run(),
-        9
-      );
-    });
-  });
-  describe("monad", () => {
-    it("executes several `async`s in succession", () => {
-      const ref1 = createRef(1);
-      const ref2 = createRef("Hello");
-      const comp =
-        async(mutateRef(2, ref1)).chain(
-          (_: any) => async(mutateRef("World", ref2)).chain(
-            (__: any) => Now.of(Future.of(true))
-          )
-        );
-      return runNow(comp).then((result: boolean) => {
-        assert.strictEqual(result, true);
-        assert.strictEqual(ref1.ref, 2);
-        assert.strictEqual(ref2.ref, "World");
-      });
-    });
-    it("can flatten pure nows", () => {
-      assert.strictEqual(Now.of(Now.of(12)).flatten().run(), 12);
     });
   });
   it("handles recursively defined behavior", () => {

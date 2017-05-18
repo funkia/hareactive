@@ -1,11 +1,11 @@
 import { Cons, cons } from "./linkedlist";
 import { Monad, monad } from "@funkia/jabz";
-
 import {
   Observer, State, Reactive, Time, addListenerParents,
   removeListenerParents, changePullersParents
 } from "./common";
-import { Future, BehaviorFuture } from "./future"; import * as F from "./future";
+import { Future, BehaviorFuture } from "./future";
+import * as F from "./future";
 import { Stream } from "./stream";
 
 /**
@@ -296,7 +296,6 @@ class ChainBehavior<A, B> extends Behavior<B> {
   }
 }
 
-
 /** @private */
 class WhenBehavior extends Behavior<Future<{}>> {
   constructor(private parent: Behavior<boolean>) {
@@ -368,6 +367,13 @@ export abstract class ActiveBehavior<A> extends Behavior<A> {
   activate(): void { }
   deactivate(): void { }
   changePullers(): void { }
+}
+
+export abstract class StatefulBehavior<A> extends ActiveBehavior<A> {
+  constructor(protected a: any, protected b: any, protected c: any) {
+    super();
+    this.state = State.OnlyPull;
+  }
 }
 
 export class ConstantBehavior<A> extends ActiveBehavior<A> {
@@ -455,61 +461,77 @@ export function switcher<A>(
   return fromFunction(() => new SwitcherBehavior(init, stream));
 }
 
-/** @private */
-class StepperBehavior<B> extends ActiveBehavior<B> {
-  constructor(initial: B, private steps: Stream<B>) {
+class TestBehavior<A> extends Behavior<A> {
+  constructor(private semanticBehavior: SemanticBehavior<A>) {
     super();
-    this.state = State.Push;
-    this.last = initial;
-    this.steps.addListener(this);
   }
-  push(val: B): void {
-    this.last = val;
-    if (this.child !== undefined) {
-      this.child.push(val);
-    }
+  semantic(): SemanticBehavior<A> {
+    return this.semanticBehavior;
   }
 }
 
-/**
- * Creates a Behavior whose value is the last occurrence in the stream.
- * @param initial - the initial value that the behavior has
- * @param steps - the stream that will change the value of the behavior
- */
-export function stepper<B>(initial: B, steps: Stream<B>): Behavior<B> {
-  return new StepperBehavior(initial, steps);
+export function testBehavior<A>(b: SemanticBehavior<A>): Behavior<A> {
+  return new TestBehavior(b);
 }
 
 /** @private */
-class ScanBehavior<A, B> extends ActiveBehavior<B> {
+class ActiveScanBehavior<A, B> extends ActiveBehavior<B> {
   constructor(
-    initial: B,
-    private fn: (a: A, b: B) => B,
-    private source: Stream<A>
+    private f: (a: A, b: B) => B, initial: B, private parent: Stream<A>
   ) {
     super();
     this.state = State.Push;
     this.last = initial;
-    source.addListener(this);
+    parent.addListener(this);
   }
   push(val: A): void {
-    this.last = this.fn(val, this.last);
+    this.last = this.f(val, this.last);
     if (this.child) {
       this.child.push(this.last);
     }
   }
 }
 
-export function scan<A, B>(
-  fn: (a: A, b: B) => B, init: B, source: Stream<A>
-): Behavior<Behavior<B>> {
-  return fromFunction(() => new ScanBehavior(init, fn, source));
+class ScanBehavior<A, B> extends StatefulBehavior<Behavior<B>> {
+  pull(): Behavior<B> {
+    return new ActiveScanBehavior(this.a, this.b, this.c);
+  }
+  semantic(): SemanticBehavior<Behavior<B>> {
+    const stream = this.c.semantic();
+    return (t1) => testBehavior<B>((t2) =>
+      stream
+        .filter(({ time }) => t1 <= time && time <= t2)
+        .map((o) => o.value)
+        .reduce((acc, cur) => this.a(cur, acc), this.b)
+    );
+  }
 }
 
-/* Derived combinators */
+export function scan<A, B>(
+  f: (a: A, b: B) => B, initial: B, source: Stream<A>
+): Behavior<Behavior<B>> {
+  return new ScanBehavior<A, B>(f, initial, source);
+}
 
+const firstArg = (a, b) => a;
+
+/**
+ * Creates a Behavior whose value is the last occurrence in the stream.
+ * @param initial - the initial value that the behavior has
+ * @param steps - the stream that will change the value of the behavior
+ */
+export function stepper<B>(initial: B, steps: Stream<B>): Behavior<Behavior<B>> {
+  return scan(firstArg, initial, steps);
+}
+
+/**
+ *
+ * @param initial the initial value
+ * @param turnOn the streams that turn the behavior on
+ * @param turnOff the streams that turn the behavior off
+ */
 export function toggle(
   initial: boolean, turnOn: Stream<any>, turnOff: Stream<any>
-): Behavior<boolean> {
+): Behavior<Behavior<boolean>> {
   return stepper(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
 }

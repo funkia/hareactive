@@ -32,16 +32,3 @@ export function testStreamFromObject<A>(object: { [time: number]: A }): Stream<A
     Object.keys(object).map((key) => ({ time: parseFloat(key), value: object[key] }));
   return new TestStream(semanticStream);
 }
-
-class TestBehavior<A> extends Behavior<A> {
-  constructor(private semanticBehavior: SemanticBehavior<A>) {
-    super();
-  }
-  semantic(): SemanticBehavior<A> {
-    return this.semanticBehavior;
-  }
-}
-
-export function testBehavior<A>(b: SemanticBehavior<A>): Behavior<A> {
-  return new TestBehavior(b);
-}

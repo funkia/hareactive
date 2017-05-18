@@ -1,6 +1,6 @@
 import { IO, runIO, Monad, monad } from "@funkia/jabz";
 
-import { State } from "./common";
+import { State, Time } from "./common";
 import { Future, fromPromise, sinkFuture } from "./future";
 import { Behavior, at } from "./behavior";
 import { ActiveStream, Stream } from "./stream";
@@ -20,6 +20,9 @@ export abstract class Now<A> implements Monad<A> {
   }
   static multi: boolean = false;
   multi: boolean = false;
+  test(t: Time): A {
+    throw new Error("The Now computation does not support testing yet");
+  }
   // Definitions below are inserted by Jabz
   flatten: <B>() => Now<B>;
   map: <B>(f: (a: A) => B) => Now<B>;
@@ -32,18 +35,40 @@ class OfNow<A> extends Now<A> {
   constructor(private value: A) {
     super();
   }
-  run() {
+  run(): A {
+    return this.value;
+  }
+  test(_: Time): A {
     return this.value;
   }
 }
 
-class ChainNow<B> extends Now<B> {
-  constructor(private first: Now<any>, private f: (a: any) => Now<B>) {
+class ChainNow<A, B> extends Now<B> {
+  constructor(private first: Now<A>, private f: (a: A) => Now<B>) {
     super();
   }
-  run() {
+  run(): B {
     return this.f(this.first.run()).run();
   }
+  test(t: Time): B {
+    return this.f(this.first.test(t)).test(t);
+  }
+}
+
+class SampleNow<A> extends Now<A> {
+  constructor(private b: Behavior<A>) {
+    super();
+  }
+  run(): A {
+    return at(this.b);
+  }
+  test(t: Time): A {
+    return this.b.semantic()(t);
+  }
+}
+
+export function sample<A>(b: Behavior<A>): Now<A> {
+  return new SampleNow(b);
 }
 
 class AsyncNow<A> extends Now<Future<A>> {
@@ -57,19 +82,6 @@ class AsyncNow<A> extends Now<Future<A>> {
 
 export function async<A>(comp: IO<A>): Now<Future<A>> {
   return new AsyncNow(comp);
-}
-
-class SampleNow<A> extends Now<A> {
-  constructor(private b: Behavior<A>) {
-    super();
-  }
-  run(): A {
-    return at(this.b);
-  }
-}
-
-export function sample<A>(b: Behavior<A>): Now<A> {
-  return new SampleNow(b);
 }
 
 class PerformIOStream<A> extends ActiveStream<A> {
@@ -153,7 +165,7 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
     const id = this.nextId++;
     runIO(io).then((a: A) => {
       if (id === this.next) {
-        this.buffer[0] = { value: a }
+        this.buffer[0] = { value: a };
         this.pushFromBuffer();
       } else {
         this.buffer[id - this.next] = { value: a };
@@ -205,4 +217,14 @@ export function runNow<A>(now: Now<Future<A>>): Promise<A> {
   return new Promise((resolve, reject) => {
     now.run().subscribe(resolve);
   });
+}
+
+/**
+ * Test run a now computation without executing its side-effects.
+ * @param now The now computation to test.
+ * @param time The point in time at which the now computation should
+ * be run. Defaults to 0.
+ */
+export function testNow<A>(now: Now<A>, time: Time = 0): A {
+  return (<any>now).test(time);
 }

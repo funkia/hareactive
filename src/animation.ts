@@ -30,7 +30,7 @@ export function transitionBehavior(
       triggerStream
     );
     const initialStartTime: number = yield timeB;
-    const startTimeB = stepper(initialStartTime, snapshot(timeB, triggerStream));
+    const startTimeB: Behavior<number> = yield stepper(initialStartTime, snapshot(timeB, triggerStream));
     const transition: Behavior<number> = lift((range, startTime, now) => {
       const endTime = startTime + config.duration;
       const scaled = scaleNumber(

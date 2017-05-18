@@ -41,7 +41,7 @@ describe("placeholder", () => {
     });
     it("pushes if replaced with pushing behavior", () => {
       const stream = sinkStream();
-      const b = stepper(0, stream);
+      const b = stepper(0, stream).at();
       const p = placeholder();
       // We replace with a behavior that does not support pulling
       p.replaceWith(b);
