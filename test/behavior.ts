@@ -49,6 +49,7 @@ describe("behavior", () => {
       assert.isFalse(isBehavior(B.isBehavior));
       // A stream is not a behavior
       assert.isFalse(isBehavior(sinkStream()));
+      assert.isFalse(Behavior.is(1));
     });
   });
   describe("producer", () => {

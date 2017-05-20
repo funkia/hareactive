@@ -32,6 +32,9 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     super();
     this.nrOfPullers = 0;
   }
+  static is(a: any): a is Behavior<any> {
+     return isBehavior(a);
+  }
   map<B>(fn: (a: A) => B): Behavior<B> {
     return new MapBehavior<A, B>(this, fn);
   }

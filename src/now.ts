@@ -8,6 +8,13 @@ import { ActiveStream, Stream } from "./stream";
 @monad
 export abstract class Now<A> implements Monad<A> {
   // Impurely run the now computation
+  isNow: true;
+  constructor() {
+    this.isNow = true;
+  }
+  static is(a: any): a is Now<any> {
+    return typeof a === "object" && a.isNow === true;
+  }
   abstract run(): A;
   of<B>(b: B): Now<B> {
     return new OfNow(b);

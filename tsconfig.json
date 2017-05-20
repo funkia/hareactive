@@ -4,6 +4,7 @@
     "module": "commonjs",
     "noImplicitAny": false,
     "experimentalDecorators": true,
+    "importHelpers": true,
     "sourceMap": true
   },
   "exclude": [

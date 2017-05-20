@@ -4,7 +4,7 @@
   "description": "Experimental FRP library for building web applications.",
   "main": "dist/index.js",
   "module": "dist/es/index.js",
-  "typings": "dist/defs/index.d.ts",
+  "types": "dist/defs/index.d.ts",
   "directories": {
     "test": "test",
     "dist": "dist"
@@ -13,7 +13,7 @@
     "build": "npm run build-es6; npm run build-cmjs",
     "build-es6": "tsc -P ./tsconfig-release.json --outDir 'dist/es' --target es2015 --module es2015",
     "build-cmjs": "tsc -P ./tsconfig-release.json",
-    "prepublishOnly": "npm run clean; npm run build",
+    "prepare": "npm run clean; npm run build",
     "prebench": "npm run build-cmjs",
     "bench": "node benchmark",
     "clean": "rm -rf dist coverage .nyc_output",
@@ -32,7 +32,8 @@
   "keywords": [
     "frp",
     "functional reactive programming",
-    "pure"
+    "pure",
+    "funkia"
   ],
   "author": "Funkia",
   "license": "MIT",
@@ -41,10 +42,10 @@
   },
   "homepage": "https://github.com/paldepind/hareactive#readme",
   "dependencies": {
-    "@funkia/jabz": "0.0.19"
+    "@funkia/jabz": "0.0.21",
+    "tslib": "^1.7.1"
   },
   "devDependencies": {
-    "@funkia/jabz": "0.0.19",
     "@types/benchmark": "^1.0.30",
     "@types/chai": "^3.5.2",
     "@types/mocha": "^2.2.41",

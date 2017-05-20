@@ -26,6 +26,14 @@ describe("Now", () => {
       assert.strictEqual(testNow(Now.of(12)), 12);
     });
   });
+  describe("is", () => {
+    it("can check if value is Now", () => {
+      assert.isTrue(Now.is(Now.of(12)));
+      assert.isFalse(Now.is(12));
+      assert.isFalse(Now.is(Behavior.of(12)));
+      assert.isFalse(Now.is({ foo: "bar" }));
+    });
+  });
   describe("functor", () => {
     it("mapTo", () => {
       assert.strictEqual(Now.of(12).mapTo(4).run(), 4);
@@ -68,6 +76,15 @@ describe("Now", () => {
     it("can flatten pure nows", () => {
       assert.strictEqual(Now.of(Now.of(12)).flatten().run(), 12);
     });
+    it("throws in go if incorrect monad is yielded", (done) => {
+      const now = go(function* () {
+        const a = yield Now.of(1);
+        console.log("hello");
+        const b = yield Behavior.of(2);
+        return 3;
+      }, Now);
+      runNow(now).catch(() => done());
+    });
   });
   describe("async", () => {
     it("works with runNow", () => {
@@ -100,7 +117,7 @@ describe("Now", () => {
       );
     });
     it("it can test with go", () => {
-      const model = fgo(function* (incrementClick: Stream<any>): Iterator<any> {
+      const model = fgo(function* (incrementClick: Stream<any>) {
         const increment = incrementClick.mapTo(1);
         const count = yield sample(scan((n, m) => n + m, 0, increment));
         return count;
@@ -127,7 +144,7 @@ describe("Now", () => {
       function comp(n: number): Now<number> {
         return Now.of(n * 2);
       }
-      const prog = go(function* (): Iterator<Now<any>> {
+      const prog = go(function* () {
         const e: Future<number> = yield async(fn(1));
         const e2 = yield plan(e.map((r) => comp(r)));
         return e2;
@@ -150,14 +167,14 @@ describe("Now", () => {
       });
     });
     function loop(n: number): Now<Behavior<number>> {
-      return go(function* (): Iterator<Now<any>> {
+      return go(function* () {
         const e = yield async(getNextNr(1));
         const e1 = yield plan(e.map(loop));
         return switchTo(Behavior.of(n), e1);
       });
     }
     function main(): Now<Future<number>> {
-      return go(function* (): Iterator<Now<any>> {
+      return go(function* () {
         const b: Behavior<number> = yield loop(0);
         const e = yield sample(when(b.map((n: number) => {
           return n === 3;
