@@ -12,3 +12,4 @@ benchmark/hareactive-old
 coverage/
 src/**/*.js
 test/**/*.js
+yarn.lock

@@ -1,5 +1,4 @@
 import { testStreamFromObject } from "../src";
-import { testStreamFromArray } from "../benchmark/hareactive-old/src";
 import { Behavior, switchTo, when, scan } from "../src/behavior";
 import { Future } from "../src/future";
 import {
