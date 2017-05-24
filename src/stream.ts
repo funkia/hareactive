@@ -12,7 +12,7 @@ export type SemanticStream<A> = Occurrence<A>[];
 
 /**
  * A stream is a list of occurrences over time. Each occurrence
- * happens at a discrete point in time and has an associated value.
+ * happens at a point in time and has an associated value.
  */
 export abstract class Stream<A> extends Reactive<A> {
   constructor() {
@@ -40,6 +40,7 @@ export abstract class Stream<A> extends Reactive<A> {
     this.subscribe(a => console.log(`${prefix || ""} ${a}`));
     return this;
   }
+  /* istanbul ignore next */
   semantic(): SemanticStream<A> {
     throw new Error("The stream does not have a semantic representation");
   }
@@ -131,8 +132,8 @@ class EmptyStream extends ActiveStream<any> {
   semantic(): SemanticStream<any> {
     return [];
   }
+  /* istanbul ignore next */
   push(a: any): void {
-    /* istanbul ignore next */
     throw new Error("You cannot push to an empty stream");
   }
 }
@@ -223,11 +224,6 @@ class ChangesStream<A> extends Stream<A> {
 
 export function changes<A>(b: Behavior<A>): Stream<A> {
   return new ChangesStream(b);
-}
-
-export function combineList<A>(ss: Stream<A>[]): Stream<A> {
-  // FIXME: More performant implementation with benchmark
-  return ss.reduce((s1, s2) => s1.combine(s2), empty);
 }
 
 class CombineStream<A, B> extends Stream<A | B> {
@@ -355,9 +351,6 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
   deactivate(): void {
     this.stream.removeListener(this);
   }
-  semantic(): SemanticStream<C> {
-    throw new Error("No semantic representation");
-  }
 }
 
 export function snapshotWith<A, B, C>(
@@ -366,8 +359,9 @@ export function snapshotWith<A, B, C>(
   return new SnapshotWithStream(f, b, s);
 }
 
-export function combine<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A | B)> {
-  return a.combine(b);
+export function combine<A>(...streams: Stream<A>[]): Stream<A> {
+  // FIXME: More performant implementation with benchmark
+  return streams.reduce((s1, s2) => s1.combine(s2), empty);
 }
 
 export function isStream(s: any): s is Stream<any> {

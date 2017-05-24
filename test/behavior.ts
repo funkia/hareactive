@@ -6,7 +6,7 @@ import {
   testBehavior, at, Behavior, fromFunction, Future, integrate,
   isBehavior, observe, placeholder, ProducerBehavior, testStreamFromObject,
   producerBehavior, publish, scan, sinkBehavior, sinkStream, stepper,
-  switcher, switchStream, switchTo, time, timeFrom, toggle, snapshot
+  switcher, switchStream, switchTo, time, timeFrom, toggle, snapshot, empty
 } from "../src";
 
 import * as B from "../src/behavior";
@@ -504,6 +504,9 @@ describe("Behavior and Stream", () => {
     });
   });
   describe("scan", () => {
+    it("has scan as method on stream", () => {
+      const scanned = empty.scan(sum, 0);
+    });
     it("accumulates in a pure way", () => {
       const s = sinkStream<number>();
       const scanned = scan(sum, 1, s);

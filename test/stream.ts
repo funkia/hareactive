@@ -7,10 +7,10 @@ import {
   ProducerStream, scanS, Behavior, ProducerBehavior, fromFunction,
   sinkBehavior, testBehavior, sinkStream, snapshot, snapshotWith,
   split, subscribe, testStreamFromArray, testStreamFromObject,
-  throttle
+  throttle, combine
 } from "../src/index";
 
-import { createTestProducerBehavior, createTestProducer } from "./helpers";
+import { createTestProducer, createTestProducerBehavior, subscribeSpy } from "./helpers";
 
 const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
@@ -192,6 +192,17 @@ describe("stream", () => {
       publish(1, stream1);
       publish("2", stream2);
       assert.deepEqual(callback.args, [[1], ["2"]]);
+    });
+    it("should combine three streams", () => {
+      const stream1 = sinkStream();
+      const stream2 = sinkStream();
+      const stream3 = sinkStream();
+      const combinedS = combine(stream1, stream2, stream3);
+      const callback = subscribeSpy(combinedS);
+      publish(1, stream1);
+      publish(2, stream2);
+      publish(3, stream2);
+      assert.deepEqual(callback.args, [[1], [2], [3]]);
     });
   });
   describe("map", () => {

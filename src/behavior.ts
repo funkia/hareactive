@@ -205,7 +205,6 @@ export class MapBehavior<A, B> extends Behavior<B> {
 }
 
 class ApBehavior<A, B> extends Behavior<B> {
-  last: B;
   constructor(
     private fn: Behavior<(a: A) => B>,
     private val: Behavior<A>
