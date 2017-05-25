@@ -6,16 +6,18 @@
 
 # Hareactive
 
-Hareactive is an FRP library for JavaScript and TypeScript. It aims to
-be completely pure, simple to use, powerful, and performant.
+Hareactive is a purely functional reactive programming library for
+JavaScript and TypeScript. It is simple to use, powerful, and
+performant.
 
 ## Key features
 
-* Simple and precise semantics. This makes the library easy to use and
-  free from surprises.
+* Simple and precise semantics. This means that everything in the
+  library can be understood based on a very simple mental model. This
+  makes the library easy to use and free from surprises.
 * Purely functional.
-* Implements classic FRP. This means that the library makes a
-  distinction between behaviors and streams.
+* Uses classic FRP. This means that the library makes a distinction
+  between behaviors and streams.
 * Supports continuous time for expressive and efficient creation of
   time-dependent behavior.
 * Integrates with declarative side-effects in a way that is pure,
@@ -26,7 +28,7 @@ be completely pure, simple to use, powerful, and performant.
 ## Introduction
 
 Hareactive is simple. It aims to have an API that is understandable
-and easy to use. It does that by making a clear distinction by
+and easy to use. It does that by making a clear distinction between
 semantics and implementation details. This means that the library
 implements a very simple mental model. By understanding this
 conceptual model the entire API can be understood.
@@ -68,12 +70,62 @@ npm install @funkia/hareactive
 ## Tutorial
 
 Hareactive contains four key concepts: Future, stream, behavior and
-now. These are explained below.
+now.
+
+### Behavior
+
+A behavior is a value that changes over time. For instance, the
+current position of the mouse or the value of an input field is a
+behavior. Conceptually a behavior is a function from a point in time
+to a value. A behavior always has a value at any given time.
+
+Since a behavior is a function of time we can visualize it by plotting
+it as a graph. The figure below shows two examples of behaviors. The
+left behavior is what we call a _continuous_ behavior since it changes
+infinitely often. The right behavior only changes at specific moments,
+but it's still a function from time. Hareactive is implemented so that
+both types of behaviors can be represented efficiently.
+
+![behavior figure](https://rawgit.com/funkia/hareactive/master/figures/behavior.svg)
+
+It is important to understand that behaviors are not implemented as
+functions. Although, in theory, they could be. All operations that
+Hareactive offers on behaviors can be explained and defined based on
+the understanding that a behavior is a function from time. It is a
+mental model that can be used to understand the library.
+
+### Stream
+
+A `Stream` is a series of values that arrive over time. Conceptually
+it is a list of values where each value is associated with a moment in
+time.
+
+An example could be a stream of keypresses that a user makes. Each
+keypress happens at a specific moment in time and with a value
+indicating which key was pressed.
+
+Similarily to behaviors a stream can be visualized. But, in this case
+we wont get a graph. Instead we will get some points in time. The
+value of an occurrence can be anything. For instance, the figure to
+the left may represent a stream of booleans where all the "low" stars
+represents an occurrence with the value `false` and the "high" stars
+represents `true`.
+
+![stream figure](https://rawgit.com/funkia/hareactive/master/figures/stream.svg)
+
+The difference between a stream and a behavior is pretty clear when we
+see them visually. A behavior has a value at all points in time where
+a stream is a series of events that happens at specific moments in
+time.
+
+To understand why Hareactive features both behavior and stream you may
+want to read the blog post [Behaviors and streams, why
+both?](http://vindum.io/blog/behaviors-and-streams-why-both/).
 
 ### Future
 
 A future is a _value_ associated with a certain point in _time_. For
-instance, the result of a HTTP-request is a future since it occurs at
+instance, the result of an HTTP-request is a future since it occurs at
 a specific time (when the response is received) and contains a value
 (the response itself).
 
@@ -87,36 +139,15 @@ this.
 {time: 22, value: "Foo"}
 ```
 
-### Stream
-
-A `Stream` is a list of futures. That is, a list of values where the
-values are each associated with a point in time.
-
-An example could be a stream of keypresses that a user makes. Each
-keypress happens at a specific moment in time and with a value
-indicating which key was pressed.
-
 The relationship between `Future` and `Stream` is the same as the
-relationship between having a variable that is a string and a variable
-that is a list of strings. You wouldn't store a username as `["username"]`
-because there is always exactly one username.
+relationship between having a variable of a type and a variable that
+is a list of that type. You wouldn't store a username as
+`["username"]` because there is always exactly one username.
 
 Similarly in Hareactive we don't use `Stream` to express the result of
 a HTTP-request since a HTTP-request only delivers a response exactly
-once. Use a `Future` for things where there is exactly one occurrence
-and `Stream` where there may be zero or more.
-
-### Behavior
-
-A behavior represents a value that changes over time. For instance,
-the current position of the mouse or the value of an input field is a
-behavior.
-
-Conceptually a behavior can be thought of as a function from a point
-in time to a value. A behavior always has a value at any given time.
-This is the difference between a stream and a behavior. A behavior has
-a value at all points in time where a stream is a series of events
-that happens at specific moments in time.
+once. It is more precise to use a `Future` for things where there is
+exactly one occurrence and `Stream` where there may be zero or more.
 
 ### Future, stream or behavior?
 
@@ -162,31 +193,35 @@ Below are some examples:
 
 ### Now
 
-`Now` represents a computation that will be run in the present. Hence
-the name "now". `Now` is perhaps the most difficult concept in
-Hareactive.
+`Now` represents a computation that should be run in the present
+moment. Hence the name "now". `Now` is perhaps the most difficult
+concept in Hareactive.
 
 Inside a `Now`-computation we can do two things.
 
 * Get the current value of behavior. This is done with the `sample`
   function.
-* Run side-effects.
+* Describe side-effects. This is done with functions such as `async`
+  and `performStream`.
 
-We can do both of these in a completely pure way.
+A `Now`-value can be thought of as function that has access to the
+current time. This means that it can do things that functions normally
+can't. Namely things that depend on the current time. For instance,
+getting the current value of a behavior requires that you know what
+"current" is.
 
-### How stateful behaviors work
+`Now` is closely tied to the concept of stateful behaviors which is
+the topic of the next section.
 
-A notorious problem in FRP is how to implement stateful behaviors in a
-pure way.
+### Stateful behaviors work
 
-## Understanding stateful behaviors
-
-FRP has a notorious problem with regards to functions that return
+A notorious problem in FRP is how to implement functions that return
 behaviors or streams that depends on the past. Such behaviors or
-streams are sometimes called "stateful". For instance `scan` creates a
-behavior that accumulates values over time. Clearly such a behavior
-depends on the past. Thus we say that `scan` returns a stateful
-behavior.
+streams are sometimes called "stateful"
+
+For instance `scan` creates a behavior that accumulates values over
+time. Clearly such a behavior depends on the past. Thus we say that
+`scan` returns a stateful behavior.
 
 Implementing stateful methods such as `scan` in a way that is both
 intuitive to use, pure and memory safe is very tricky.
@@ -206,14 +241,30 @@ der Ploeg and presented in his paper "Principled Practical FRP". His
 brilliant idea gives Hareactive the best of both worlds. Intuitive
 behavior and purity.
 
-In Hareactive some functions returns a value that, compared to what
-you might expect, is wrapped in an "extra" behavior.
+The solution means that some functions returns a value that, compared
+to what one might expect, is wrapped in an "extra" behavior. This
+"behavior wrapping" is applied to all functions that returns a result
+that depends on the past. The before mentioned `scan`, for instance,
+returns a value of type `Behavior<Behavior<A>>`.
 
-This "behavior wrapping" is applied to all functions that returns a
-result that depends on the past. For instance `scan` creates a
-behavior that accumulates values over time. Clearly such a behavior
-depends on the past. When implementing a function such as `scan` most
-reactive libraries does one of these two:
+Remember that a behavior is a value that depends on time. It is a
+function from time. Therefore a behavior of a behavior is like a value
+that depends on _two_ moments in time. This makes sense for `scan`
+because the result of accumulating depends both on when we _start_
+accumulating and where we are now.
+
+To get rid of the extra layer of nesting we often use `sample`. The
+`sample` function returns a `Now`-computation that asks for the
+current value of a behavior. It has the type `(b: Behavior<A>) =>
+Now<A>`. Using `sample` with `scan` looks like this.
+
+```js
+const count = sample(scan((acc, inc) => acc + inc, 0, incrementStream));
+```
+
+Here `count` has type `Now<Behavior<A>>` and it represents a
+`Now`-computation that will start accumulating from the present
+moment.
 
 ## API
 
