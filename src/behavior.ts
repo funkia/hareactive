@@ -172,7 +172,7 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
 }
 
 /**
- * Creates a behavior for imperative impure pushing.
+ * Creates a behavior for imperative pushing.
  */
 export function sinkBehavior<A>(initial: A): SinkBehavior<A> {
   return new SinkBehavior<A>(initial);
@@ -187,10 +187,7 @@ export function at<B>(b: Behavior<B>): B {
 }
 
 export class MapBehavior<A, B> extends Behavior<B> {
-  constructor(
-    private parent: Behavior<any>,
-    private f: (a: A) => B
-  ) {
+  constructor(private parent: Behavior<any>, private f: (a: A) => B) {
     super();
     this.parents = cons(parent);
   }
@@ -222,7 +219,7 @@ class ApBehavior<A, B> extends Behavior<B> {
     this.child.push(this.last);
   }
   pull(): B {
-    return at(this.fn)(at(this.val));
+    return this.fn.at()(this.val.at());
   }
 }
 
@@ -320,14 +317,13 @@ export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
 }
 
-
 // FIXME: This can probably be made less ugly.
 /** @private */
 class SnapshotBehavior<A> extends Behavior<Future<A>> {
   private afterFuture: boolean;
   constructor(private parent: Behavior<A>, future: Future<any>) {
     super();
-    if (future.occurred === true) {
+    if (future.state === State.Done) {
       // Future has occurred at some point in the past
       this.afterFuture = true;
       this.state = parent.state;
@@ -337,7 +333,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
       this.afterFuture = false;
       this.state = State.Push;
       this.last = F.sinkFuture<A>();
-      future.listen(this);
+      future.addListener(this);
     }
   }
   push(val: any): void {
@@ -382,9 +378,6 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
   constructor(public last: A) {
     super();
     this.state = State.Push;
-  }
-  pull(): A {
-    return this.last;
   }
   semantic(): SemanticBehavior<A> {
     return (_) => this.last;

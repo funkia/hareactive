@@ -9,6 +9,14 @@ export function cons<A>(value: A, tail?: Cons<A>): Cons<A> {
   return new Cons(value, tail);
 }
 
+export function fromArray<A>(values: A[]): Cons<A> {
+  let list = cons(values[0]);
+  for (let i = 1; i < values.length; ++i) {
+    list = cons(values[i], list);
+  }
+  return list;
+}
+
 /**
  * A doubly linked list. Updates are done by mutating. Prepend, append
  * and remove all run in O(1) time.

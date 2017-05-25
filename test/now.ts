@@ -79,7 +79,6 @@ describe("Now", () => {
     it("throws in go if incorrect monad is yielded", (done) => {
       const now = go(function* () {
         const a = yield Now.of(1);
-        console.log("hello");
         const b = yield Behavior.of(2);
         return 3;
       }, Now);

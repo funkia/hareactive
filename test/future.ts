@@ -1,8 +1,6 @@
-import {assert} from "chai";
-
-import {lift} from "@funkia/jabz";
-
-import {Future, sinkFuture, fromPromise} from "../src/future";
+import { assert } from "chai";
+import { lift } from "@funkia/jabz";
+import { Future, sinkFuture, fromPromise } from "../src/future";
 
 describe("Future", () => {
   describe("sink", () => {
@@ -15,6 +13,17 @@ describe("Future", () => {
       assert.strictEqual(result, undefined);
       s.resolve(2);
       assert.strictEqual(result, 2);
+    });
+    it("notifies subscriber several layers down", () => {
+      let result: number;
+      const s = sinkFuture<number>();
+      const s2 = s.map((n) => n + 2).mapTo(9);
+      s2.subscribe((x: number) => {
+        result = x;
+      });
+      assert.strictEqual(result, undefined);
+      s.resolve(1);
+      assert.strictEqual(result, 9);
     });
   });
   describe("Functor", () => {
@@ -45,10 +54,10 @@ describe("Future", () => {
     it("of gives future that has occurred", () => {
       let result: number;
       const o = Future.of(12);
-      o.subscribe((x: number) => {
-        result = x;
-      });
+      o.subscribe((x) => result = x);
       assert.strictEqual(result, 12);
+      o.of(7).subscribe((x) => result = x);
+      assert.strictEqual(result, 7);
     });
     it("lifts a function of one argument", () => {
       let result: string;

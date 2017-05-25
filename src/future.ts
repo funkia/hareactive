@@ -1,6 +1,7 @@
 import { monad, Monad } from "@funkia/jabz";
 import { State } from "./common";
-import { Observer } from "./common";
+import { Observer, Reactive } from "./common";
+import { cons, fromArray } from "./linkedlist";
 import { Behavior } from "./behavior";
 
 export interface Consumer<A> {
@@ -14,36 +15,26 @@ export interface Consumer<A> {
  * promise.
  */
 @monad
-export abstract class Future<A> implements Monad<A>, Consumer<any> {
-  // Flag indicating whether or not this future has occurred.
-  occurred: boolean;
+export abstract class Future<A> extends Reactive<A> implements Monad<A> {
   // The value of the future. Often `undefined` until occurrence.
   value: A;
-  // The consumers that depends on this producer. These should be
-  // notified when the producer has a value.
-  protected listeners: Consumer<A>[];
   constructor() {
-    this.listeners = [];
+    super();
   }
-  listen(o: Consumer<A>): void {
-    if (this.occurred !== true) {
-      this.listeners.push(o);
-    } else {
-      o.push(this.value);
-    }
-  }
-  subscribe(f: (a: A) => void): void {
-    new Subscription(f, this);
-  }
-  // `push` is called by the parent of a future once it resolves with
-  // a value.
   abstract push(val: any): void;
   resolve(val: A): void {
-    this.occurred = true;
+    this.deactivate(true);
     this.value = val;
-    const listeners = this.listeners;
-    for (let i = 0, l = listeners.length; i < l; ++i) {
-      listeners[i].push(val);
+    if (this.child !== undefined) {
+      this.child.push(val);
+    }
+  }
+  addListener(c: Observer<A>): State {
+    if (this.state === State.Done) {
+      c.push(this.value);
+      return State.Done;
+    } else {
+      return super.addListener(c);
     }
   }
   // A future is a functor, when the future occurs we can feed its
@@ -57,10 +48,10 @@ export abstract class Future<A> implements Monad<A>, Consumer<any> {
   // A future is an applicative. `of` gives a future that has always
   // occurred at all points in time.
   static of<B>(b: B): Future<B> {
-    return new PureFuture(b);
+    return new OfFuture(b);
   }
   of<B>(b: B): Future<B> {
-    return new PureFuture(b);
+    return new OfFuture(b);
   }
   ap: <B>(f: Future<(a: A) => B>) => Future<B>;
   lift<T1, R>(f: (t: T1) => R, m: Future<T1>): Future<R>;
@@ -71,7 +62,7 @@ export abstract class Future<A> implements Monad<A>, Consumer<any> {
       : new LiftFuture(f, args);
   }
   static multi: false;
-  multi = false;
+  multi: false = false;
   // A future is a monad. Once the first future occurs `chain` passes
   // its value through the chain function and the future it returns is
   // the one returned by `chain`.
@@ -82,9 +73,9 @@ export abstract class Future<A> implements Monad<A>, Consumer<any> {
 }
 
 class MapFuture<A, B> extends Future<B> {
-  constructor(private f: (a: A) => B, private parent: Future<A>) {
+  constructor(private f: (a: A) => B, parent: Future<A>) {
     super();
-    parent.listen(this);
+    this.parents = cons(parent);
   }
   push(val: any): void {
     this.resolve(this.f(val));
@@ -92,40 +83,37 @@ class MapFuture<A, B> extends Future<B> {
 }
 
 class MapToFuture<A> extends Future<A> {
-  constructor(public value: A, private parent: Future<any>) {
+  constructor(public value: A, parent: Future<any>) {
     super();
-    parent.listen(this);
+    this.parents = cons(parent);
   }
   push(_: any): void {
     this.resolve(this.value);
   }
 }
 
-class PureFuture<A> extends Future<A> {
+class OfFuture<A> extends Future<A> {
   constructor(public value: A) {
     super();
-    this.occurred = true;
+    this.state = State.Done;
   }
+  /* istanbul ignore next */
   push(_: any): void {
     throw new Error("A PureFuture should never be pushed to.");
   }
 }
 
 class LiftFuture<A> extends Future<A> {
-  private delivered: number = 0;
-  private dependencies: number;
+  private missing: number;
   constructor(private f: Function, private futures: Future<any>[]) {
     super();
-    const l = this.dependencies = futures.length;
-    for (let i = 0; i < l; ++i) {
-      futures[i].listen(this);
-    }
+    this.missing = futures.length;
+    this.parents = fromArray(futures);
   }
   push(_: any): void {
-    const l = this.dependencies;
-    if (++this.delivered === l) {
+    if (--this.missing === 0) {
       // All the dependencies have occurred.
-      for (let i = 0; i < l; ++i) {
+      for (let i = 0; i < this.futures.length; ++i) {
         this.futures[i] = this.futures[i].value;
       }
       this.resolve(this.f.apply(undefined, this.futures));
@@ -137,7 +125,7 @@ class ChainFuture<A, B> extends Future<B> {
   private parentOccurred: boolean = false;
   constructor(private f: (a: A) => Future<B>, private parent: Future<A>) {
     super();
-    parent.listen(this);
+    this.parents = cons(parent);
   }
   push(val: any): void {
     if (this.parentOccurred === false) {
@@ -145,7 +133,7 @@ class ChainFuture<A, B> extends Future<B> {
       // and listen to the future it returns.
       this.parentOccurred = true;
       const newFuture = this.f(val);
-      newFuture.listen(this);
+      newFuture.addListener(this);
     } else {
       this.resolve(val);
     }
@@ -153,24 +141,17 @@ class ChainFuture<A, B> extends Future<B> {
 }
 
 // A Sink is a producer that one can imperatively resolve.
-class FutureSink<A> extends Future<A> {
+class SinkFuture<A> extends Future<A> {
+  /* istanbul ignore next */
   push(val: any): void {
-    throw new Error("A sink should never be pushed to.");
+    throw new Error("A sink should not be pushed to.");
   }
+  activate(): void { }
+  deactivate(): void { }
 }
 
 export function sinkFuture<A>(): Future<A> {
-  return new FutureSink<A>();
-}
-
-// A subscription is a consumer that performs a side-effect
-class Subscription<A> implements Consumer<A> {
-  constructor(private f: (a: A) => void, private parent: Future<A>) {
-    parent.listen(this);
-  }
-  push(a: A): void {
-    this.f(a); // let `f` perform its side-effect.
-  }
+  return new SinkFuture<A>();
 }
 
 export function fromPromise<A>(p: Promise<A>): Future<A> {
@@ -185,11 +166,12 @@ export function fromPromise<A>(p: Promise<A>): Future<A> {
  * impure and should not be done directly.
  * @private
  */
-export class BehaviorFuture<A> extends Future<A> implements Observer<A> {
+export class BehaviorFuture<A> extends SinkFuture<A> implements Observer<A> {
   constructor(private b: Behavior<A>) {
     super();
     b.addListener(this);
   }
+  /* istanbul ignore next */
   changeStateDown(): void {
     throw new Error("Behavior future does not support pushing behavior");
   }

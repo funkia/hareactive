@@ -16,7 +16,9 @@ export const enum State {
   // state to `Push`
   OnlyPull,
   // Most, but not all, reactives start in this state
-  Inactive
+  Inactive,
+  // The reactive value will never update again
+  Done
 }
 
 export interface Observer<A> {
@@ -116,7 +118,9 @@ export abstract class Reactive<A> implements Observer<any> {
     const nr = --this.nrOfListeners;
     if (nr === 0) {
       this.child = undefined;
-      this.deactivate();
+      if (this.state !== State.Done) {
+        this.deactivate();
+      }
     } else if (nr === 1) {
       const l = (<MultiObserver<A>>this.child).listeners;
       this.child = l[l[0] === listener ? 1 : 0];
@@ -153,9 +157,9 @@ export abstract class Reactive<A> implements Observer<any> {
   activate(): void {
     this.state = addListenerParents(this, this.parents, State.Push);
   }
-  deactivate(): void {
+  deactivate(done = false): void {
     removeListenerParents(this, this.parents);
-    this.state = State.Inactive;
+    this.state = done === true ? State.Done : State.Inactive;
   }
   abstract map<B>(f: (a: A) => B): Reactive<B>;
 }

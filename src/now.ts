@@ -83,7 +83,7 @@ class AsyncNow<A> extends Now<Future<A>> {
     super();
   }
   run(): Future<A> {
-    return fromPromise<A>(runIO(this.comp));
+    return fromPromise(runIO(this.comp));
   }
 }
 
