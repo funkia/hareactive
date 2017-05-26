@@ -191,14 +191,20 @@ export class CbObserver<A> implements Observer<A> {
 }
 
 /**
- * Observe a behavior for the purpose of executing imperative actions
- * based on the value of the behavior.
+ * Observe a behavior for the purpose of running side-effects based on
+ * the value of the behavior.
+ * @param push Called with all values that the behavior pushes
+ * through.
+ * @param beginPulling Called when the consumer should begin pulling
+ * values from the behavior.
+ * @param endPulling Called when the consumer should stop pulling.
+ * @param behavior The behavior to consume.
  */
 export function observe<A>(
   push: (a: A) => void,
   beginPulling: () => void,
   endPulling: () => void,
-  b: Reactive<A>
+  behavior: Behavior<A>
 ): CbObserver<A> {
-  return b.observe(push, beginPulling, endPulling);
+  return behavior.observe(push, beginPulling, endPulling);
 }
