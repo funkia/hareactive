@@ -187,6 +187,8 @@ export function at<B>(b: Behavior<B>): B {
 }
 
 export class MapBehavior<A, B> extends Behavior<B> {
+  private oldVal: A;
+  private cached: B;
   constructor(private parent: Behavior<any>, private f: (a: A) => B) {
     super();
     this.parents = cons(parent);
@@ -196,7 +198,12 @@ export class MapBehavior<A, B> extends Behavior<B> {
     this.child.push(this.last);
   }
   pull(): B {
-    return this.f(this.parent.at());
+    const newVal = this.parent.at();
+    if (this.oldVal !== newVal) {
+      this.oldVal = newVal;
+      this.cached = this.f(newVal);
+    }
+    return this.cached;
   }
   semantic(): SemanticBehavior<B> {
     const g = this.parent.semantic();
