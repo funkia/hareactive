@@ -1,5 +1,5 @@
 import { IO, runIO, Monad, monad } from "@funkia/jabz";
-
+import { placeholder, Placeholder } from "./placeholder";
 import { State, Time } from "./common";
 import { Future, fromPromise, sinkFuture } from "./future";
 import { Behavior, at } from "./behavior";
@@ -234,4 +234,45 @@ export function runNow<A>(now: Now<Future<A>>): Promise<A> {
  */
 export function testNow<A>(now: Now<A>, time: Time = 0): A {
   return (<any>now).test(time);
+}
+
+export interface ReactivesObject {
+  [a: string]: Behavior<any> | Stream<any>;
+}
+
+const placeholderProxyHandler = {
+  get: function (target: any, name: string): Behavior<any> | Stream<any> {
+    if (!(name in target)) {
+      target[name] = placeholder();
+    }
+    return target[name];
+  }
+};
+
+class LoopNow<A extends ReactivesObject> extends Now<A> {
+  constructor(private fn: (a: A) => Now<A>, private placeholderNames?: string[]) {
+    super();
+  }
+  run(): A {
+    let placeholderObject: any;
+    if (this.placeholderNames === undefined) {
+      placeholderObject = new Proxy({}, placeholderProxyHandler);
+    } else {
+      placeholderObject = {};
+      for (const name of this.placeholderNames) {
+        placeholderObject[name] = placeholder();
+      }
+    }
+
+    const result = this.fn(placeholderObject).run();
+    const returned: (keyof A)[] = <any>Object.keys(result);
+    for (const name of returned) {
+      placeholderObject[name].replaceWith(result[name]);
+    }
+    return result;
+  }
+}
+
+export function loopNow<A extends ReactivesObject>(fn: (a: A) => Now<A>, names?: string[]): Now<A> {
+  return new LoopNow(fn, names);
 }

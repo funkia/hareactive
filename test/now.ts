@@ -3,7 +3,7 @@ import { Behavior, switchTo, when, scan } from "../src/behavior";
 import { Future } from "../src/future";
 import {
   async, Now, performStream, performStreamLatest,
-  performStreamOrdered, plan, runNow, sample, testNow
+  performStreamOrdered, plan, runNow, sample, testNow, loopNow
 } from "../src/now";
 import { Stream, sinkStream } from "../src/stream";
 import { assert } from "chai";
@@ -312,6 +312,39 @@ describe("Now", () => {
         assert.deepEqual(results, [60, undefined, 20]);
         done();
       });
+    });
+  });
+  describe("loopNow", () => {
+    it("should loop the reactives", () => {
+      let result = [];
+      let s;
+      const now = loopNow(({stream}) => {
+        stream.subscribe((a) => result.push(a));
+        s = sinkStream();
+        return Now.of({stream: s});
+      });
+      now.run();
+      s.push("a");
+      s.push("b");
+      s.push("c");
+
+      assert.deepEqual(result, ["a", "b", "c"]);
+    });
+    it("should return the reactives", () => {
+      let result = [];
+      let s;
+      const now = loopNow(({stream}) => {
+        stream.subscribe((a) => a);
+        s = sinkStream();
+        return Now.of({stream: s});
+      });
+      const {stream} = now.run();
+      stream.subscribe((a) => result.push(a));
+      s.push("a");
+      s.push("b");
+      s.push("c");
+
+      assert.deepEqual(result, ["a", "b", "c"]);
     });
   });
 });
