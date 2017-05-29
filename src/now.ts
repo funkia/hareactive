@@ -78,7 +78,7 @@ export function sample<A>(b: Behavior<A>): Now<A> {
   return new SampleNow(b);
 }
 
-class AsyncNow<A> extends Now<Future<A>> {
+class PerformNow<A> extends Now<Future<A>> {
   constructor(private comp: IO<A>) {
     super();
   }
@@ -87,8 +87,8 @@ class AsyncNow<A> extends Now<Future<A>> {
   }
 }
 
-export function async<A>(comp: IO<A>): Now<Future<A>> {
-  return new AsyncNow(comp);
+export function perform<A>(comp: IO<A>): Now<Future<A>> {
+  return new PerformNow(comp);
 }
 
 class PerformIOStream<A> extends ActiveStream<A> {

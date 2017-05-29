@@ -2,7 +2,7 @@ import { testStreamFromObject } from "../src";
 import { Behavior, switchTo, when, scan } from "../src/behavior";
 import { Future } from "../src/future";
 import {
-  async, Now, performStream, performStreamLatest,
+  perform, Now, performStream, performStreamLatest,
   performStreamOrdered, plan, runNow, sample, testNow, loopNow
 } from "../src/now";
 import { Stream, sinkStream } from "../src/stream";
@@ -62,8 +62,8 @@ describe("Now", () => {
       const ref1 = createRef(1);
       const ref2 = createRef("Hello");
       const comp =
-        async(mutateRef(2, ref1)).chain(
-          (_: any) => async(mutateRef("World", ref2)).chain(
+        perform(mutateRef(2, ref1)).chain(
+          (_: any) => perform(mutateRef("World", ref2)).chain(
             (__: any) => Now.of(Future.of(true))
           )
         );
@@ -89,7 +89,7 @@ describe("Now", () => {
     it("works with runNow", () => {
       let resolve: (n: number) => void;
       const promise = runNow(
-        async(callP((n: number) => new Promise((res) => resolve = res), 0))
+        perform(callP((n: number) => new Promise((res) => resolve = res), 0))
       );
       setTimeout(() => { resolve(12); });
       return promise.then((result: number) => {
@@ -144,7 +144,7 @@ describe("Now", () => {
         return Now.of(n * 2);
       }
       const prog = go(function* () {
-        const e: Future<number> = yield async(fn(1));
+        const e: Future<number> = yield perform(fn(1));
         const e2 = yield plan(e.map((r) => comp(r)));
         return e2;
       });
@@ -167,7 +167,7 @@ describe("Now", () => {
     });
     function loop(n: number): Now<Behavior<number>> {
       return go(function* () {
-        const e = yield async(getNextNr(1));
+        const e = yield perform(getNextNr(1));
         const e1 = yield plan(e.map(loop));
         return switchTo(Behavior.of(n), e1);
       });
