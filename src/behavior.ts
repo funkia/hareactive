@@ -97,7 +97,7 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     throw new Error("The behavior does not have a semantic representation");
   }
   log(prefix?: string): Behavior<A> {
-    this.subscribe(a => console.log(`${prefix || ""} ${a}`));
+    this.subscribe(a => console.log(`${prefix || ""} `, a));
     return this;
   }
 }

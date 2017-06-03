@@ -37,7 +37,7 @@ export abstract class Stream<A> extends Reactive<A> {
     return scan(fn, init, this);
   }
   log(prefix?: string): Stream<A> {
-    this.subscribe(a => console.log(`${prefix || ""} ${a}`));
+    this.subscribe(a => console.log(`${prefix || ""} `, a));
     return this;
   }
   /* istanbul ignore next */
