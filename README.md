@@ -6,8 +6,8 @@
 
 # Hareactive
 
-Hareactive is a purely functional reactive programming library for
-JavaScript and TypeScript. It is simple to use, powerful, and
+Hareactive is a purely functional reactive programming (FRP) library
+for JavaScript and TypeScript. It is simple to use, powerful, and
 performant.
 
 ## Key features
@@ -15,14 +15,16 @@ performant.
 * Simple and precise semantics. This means that everything in the
   library can be understood based on a very simple mental model. This
   makes the library easy to use and free from surprises.
-* Purely functional.
-* Uses classic FRP. This means that the library makes a distinction
-  between behaviors and streams.
+* Purely functional API.
+* Based on classic FRP. This means that the library makes a
+  distinction between behaviors and streams.
 * Supports continuous time for expressive and efficient creation of
   time-dependent behavior.
 * Integrates with declarative side-effects in a way that is pure,
   testable and uses FRP for powerful handling of asynchronous
   operations.
+* Declarative testing. Hareactive programs are easy to test
+  synchronously and declaratively.
 * Great performance.
 
 ## Introduction
@@ -53,7 +55,8 @@ time.
 ## Table of contents
 
 * [Installation](#installation)
-* [Tutorial](#tutorial)
+* [Conceptual overview](#conceptual-overview)
+* [Tutorial/cookbook](#tutorial-cookbook)
 * [API documentation](#api)
 * [Contributing](#contributing)
 * [Benchmark](#benchmark)
@@ -67,10 +70,15 @@ CommonJS modules and ES6 modules
 npm install @funkia/hareactive
 ```
 
-## Tutorial
+## Conceptual overview
 
-Hareactive contains four key concepts: Future, stream, behavior and
-now.
+Hareactive contains four key concepts: Behavior, stream, future and
+now. This section will describe each of these at conceptual level.
+
+For a practical introduction into using Hareactive see the
+[tutorial](#tutorial). Unless you're already familiar with classic FRP
+you should at least read the sections on behavior, stream and now
+before you dive into the tutorial.
 
 ### Behavior
 
@@ -105,11 +113,11 @@ keypress happens at a specific moment in time and with a value
 indicating which key was pressed.
 
 Similarily to behaviors a stream can be visualized. But, in this case
-we wont get a graph. Instead we will get some points in time. The
-value of an occurrence can be anything. For instance, the figure to
-the left may represent a stream of booleans where all the "low" stars
-represents an occurrence with the value `false` and the "high" stars
-represents `true`.
+we wont get a graph. Instead we will get some points in time. Each
+point is called an _occurrence_. The value of an occurrence can be
+anything. For instance, the figure to the left may represent a stream
+of booleans where all the "low" stars represents an occurrence with
+the value `false` and the "high" stars represents `true`.
 
 ![stream figure](https://rawgit.com/funkia/hareactive/master/figures/stream.svg)
 
@@ -165,16 +173,17 @@ values. But you don't do that because `username = "foo"` expresses
 that only one username exists whereas `username = ["foo"]` gives the
 impression that a user can have more than one username. Similarly one
 could forget about numbers and just use strings instead. But saying
-`amount = 22` is obviously better than `amount = "22"`.
+`amount = 22` is obviously better than `amount = "22"` because it's
+more precise.
 
 This is how to figure out if a certain thing is a future, a stream or
 a behavior:
 
 1. Ask the question: "does the thing always have a current value?". If
    yes, you're done, the thing should be represented as a behavior.
-2. Ask the question: "does the thing always happen once?". If yes, the
-   thing should be represented as a future. If no, you should use a
-   stream.
+2. Ask the question: "does the thing happen exactly once?". If yes,
+   the thing should be represented as a future. If no, you should use
+   a stream.
 
 Below are some examples:
 
@@ -183,11 +192,11 @@ Below are some examples:
 * The moment where the alarm goes off: This has no current value. And
   since the alarm only goes off a single time this is a future.
 * User clicking on a specific button: This has no notion of a current
-  value. And the user may press the button more than once. This is a
-  stream.
+  value. And the user may press the button more than once. Thus a
+  stream is the proper representation.
 * Whether or not a button is currently pressed: This always has a
-  current value. The button is always pressed or not pressed. This
-  should be represented as a behavior.
+  current value. The button is always either pressed or not pressed.
+  This should be represented as a behavior.
 * The tenth time a button is pressed: This happens once at a specific
   moment in time. Use a future.
 
@@ -197,27 +206,34 @@ Below are some examples:
 moment. Hence the name "now". `Now` is perhaps the most difficult
 concept in Hareactive.
 
-Inside a `Now`-computation we can do two things.
+A value of type `Now` is a _description_ of something that we'd like
+to do. Such a description can declare that is wants to do one of two
+things.
 
 * Get the current value of behavior. This is done with the `sample`
-  function.
-* Describe side-effects. This is done with functions such as `async`
-  and `performStream`.
+  function. Since a `Now`-computation will always be run in the
+  present it is impossible to sample a behavior in the past.
+* Describe side-effects. This is done with functions such as `perform`
+  and `performStream`. With these functions we can describe things
+  that should happen when a stream occurs.
 
-A `Now`-value can be thought of as function that has access to the
-current time. This means that it can do things that functions normally
-can't. Namely things that depend on the current time. For instance,
-getting the current value of a behavior requires that you know what
-"current" is.
+Most Hareactive programs are bootstrapped by a `Now`-computation. That
+is, they take the form.
+
+```js
+const main = ...
+
+runNow(main);
+```
 
 `Now` is closely tied to the concept of stateful behaviors which is
 the topic of the next section.
 
-### Stateful behaviors work
+### How stateful behaviors work
 
 A notorious problem in FRP is how to implement functions that return
 behaviors or streams that depends on the past. Such behaviors or
-streams are sometimes called "stateful"
+streams are called "stateful"
 
 For instance `scan` creates a behavior that accumulates values over
 time. Clearly such a behavior depends on the past. Thus we say that
@@ -265,6 +281,121 @@ const count = sample(scan((acc, inc) => acc + inc, 0, incrementStream));
 Here `count` has type `Now<Behavior<A>>` and it represents a
 `Now`-computation that will start accumulating from the present
 moment.
+
+## Tutorial/cookbook
+
+This cookbook will demonstrate how to use Hareactive. The examples
+gradually increases in complexity. Reading from the top serves as an
+tutorial about the library.
+
+Please open an issue if anything is unclear from the explanations
+given.
+
+### General
+
+#### How do I apply a function the value inside a behavior?
+
+You can use the `map` method. For instance, if you have a behavior of
+a number you can square the number like this. `map` returns a new
+behavior that is equal to the original behavior except all values in
+the new behavior will be passed through the function.
+
+```js
+behaviorOfNumber.map((n) => n * n);
+```
+
+`map` is also available as a function instead of a method.
+
+```js
+map((n) => n * n, behaviorOfNumber);
+```
+
+#### Can I also apply a function to the occurrences in a stream?
+
+Yes. Streams also have a `map` method.
+
+```js
+streamOfNumbers.map((n) => n * n);
+```
+
+The `map` function also works with streams.
+
+```js
+map((n) => n * n, streamOfNumbers);
+```
+
+#### If I have two streams how can I merge them into one with the occurrences from both?
+
+This is done with the `combine` method or the `combine` function.
+
+```js
+combine(firstStream, secondStream);
+```
+
+You can also combine more than two streams.
+
+```js
+combine(firstStream, secondStream, thirdStream, etcStream);
+```
+
+#### How do do I combine two behaviors?
+
+Behaviors always have a current value. So to combine them you will
+have to specify how to turn the two values from the two behaviors into
+a single value. You do that with the `lift` function.
+
+For instance, if you have two behaviors of numbers you can combine
+them by adding their values together.
+
+```js
+lift((n, m) => n + m, behaviorN, behaviorM);
+```
+
+You can also combine more than two behaviors in this fashion.
+
+```js
+lift((n, m, q) => (n + m) / q, behaviorN, behaviorM, behaviorQ);
+```
+
+#### I want to turn a stream into a behavior?
+
+You probably want `stepper`.
+
+```js
+const b = stepper(0, streamOfNumbers);
+```
+
+### Creating behaviors and streams
+
+#### Can I create a stream from events on a DOM element?
+
+We've though of that. Hareactive comes with a function for doing just
+that.
+
+```js
+streamFromEvent(domElment, "click");
+```
+
+#### Can I turn an item in `localStorage` into a behavior?
+
+Definitely. Yes. `fromFunction` takes an impure function and turns it
+into a behavior whose value is at any time equal to what the impure
+function would return at that time.
+
+```js
+const localStorageBehavior = fromFunction(() => localStorage.getItem("foobar"));
+```
+
+### Debugging
+
+#### My program isn't working. Is there an easy way to check what is going on in my behaviors or streams?
+
+Both streams and behaviors have a `log` method that logs to the
+console when something happens.
+
+```js
+misbehavingStream.log();
+```
 
 ## API
 
