@@ -293,12 +293,11 @@ given.
 
 ### General
 
-#### How do I apply a function the value inside a behavior?
+#### How do I apply a function to the value inside a behavior?
 
 You can use the `map` method. For instance, if you have a behavior of
-a number you can square the number like this. `map` returns a new
-behavior that is equal to the original behavior except all values in
-the new behavior will be passed through the function.
+a number you can square the number as follows. `map` returns a new
+behavior with all values of the original behavior passed through the function:
 
 ```js
 behaviorOfNumber.map((n) => n * n);
@@ -332,13 +331,13 @@ This is done with the `combine` method or the `combine` function.
 combine(firstStream, secondStream);
 ```
 
-You can also combine more than two streams.
+You can similarly combine any number of streams:
 
 ```js
 combine(firstStream, secondStream, thirdStream, etcStream);
 ```
 
-#### How do do I combine two behaviors?
+#### How do I combine two behaviors?
 
 Behaviors always have a current value. So to combine them you will
 have to specify how to turn the two values from the two behaviors into
@@ -351,18 +350,19 @@ them by adding their values together.
 lift((n, m) => n + m, behaviorN, behaviorM);
 ```
 
-You can also combine more than two behaviors in this fashion.
+You can also combine in this fashion any number of behaviors,
+which has to match the number of the function arguments:
 
 ```js
 lift((n, m, q) => (n + m) / q, behaviorN, behaviorM, behaviorQ);
 ```
 
-#### I want to turn a stream into a behavior?
+#### How do I turn a stream into a behavior?
 
-You probably want `stepper`.
+You probably want `stepper`:
 
 ```js
-const b = stepper(0, streamOfNumbers);
+const b = stepper(initial, stream);
 ```
 
 ### Creating behaviors and streams
@@ -370,17 +370,17 @@ const b = stepper(0, streamOfNumbers);
 #### Can I create a stream from events on a DOM element?
 
 We've though of that. Hareactive comes with a function for doing just
-that.
+that:
 
 ```js
-streamFromEvent(domElment, "click");
+streamFromEvent(domElement, "click");
 ```
 
 #### Can I turn an item in `localStorage` into a behavior?
 
 Definitely. Yes. `fromFunction` takes an impure function and turns it
-into a behavior whose value is at any time equal to what the impure
-function would return at that time.
+into a behavior whose value at any time is equal to what the impure
+function would return at that time:
 
 ```js
 const localStorageBehavior = fromFunction(() => localStorage.getItem("foobar"));
