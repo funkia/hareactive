@@ -537,3 +537,36 @@ export function toggle(
 ): Behavior<Behavior<boolean>> {
   return stepper(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
 }
+
+export type SampleAt = <B>(b: Behavior<B>) => B;
+
+class MomentBehavior<A> extends Behavior<A> {
+  private sampleBound: SampleAt;
+  public parentsArr: Behavior<any>[];
+  constructor(private f: (at: SampleAt) => A) {
+    super();
+    this.sampleBound = (b) => this.sample(b);
+    this.parentsArr = [];
+  }
+  activate(): void {
+    this.state = State.Push;
+    this.last = this.f(this.sampleBound);
+  }
+  push(): void {
+    // All listeners are cleared every time, not optimal for performance.
+    for (const b of this.parentsArr) {
+      b.removeListener(this);
+    }
+    this.parentsArr = [];
+    this.child.push(this.last = this.f(this.sampleBound));
+  }
+  sample<B>(b: Behavior<B>): B {
+    b.addListener(this);
+    this.parentsArr.push(b);
+    return b.at();
+  }
+}
+
+export function moment<A>(f: (sample: SampleAt) => A): Behavior<A> {
+  return new MomentBehavior(f);
+}
