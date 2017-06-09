@@ -1,3 +1,4 @@
+import { scanCombine } from "../src/behavior";
 import "mocha";
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
@@ -544,6 +545,23 @@ describe("Behavior and Stream", () => {
       assert.strictEqual(from3(5), 2);
       assert.strictEqual(from3(6), 5);
       assert.strictEqual(from3(7), 6);
+    });
+  });
+  describe("scanCombine", () => {
+    it("combines several streams", () => {
+      const add = sinkStream();
+      const sub = sinkStream();
+      const mul = sinkStream();
+      const b = scanCombine([
+        [add, (n, m) => n + m],
+        [sub, (n, m) => m - n],
+        [mul, (n, m) => n * m]
+      ], 1);
+      const cb = subscribeSpy(b.at());
+      add.push(3);
+      mul.push(3);
+      sub.push(5);
+      assert.deepEqual(cb.args, [[1], [4], [12], [7]]);
     });
   });
   describe("switchStream", () => {

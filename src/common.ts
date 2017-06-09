@@ -161,7 +161,6 @@ export abstract class Reactive<A> implements Observer<any> {
     removeListenerParents(this, this.parents);
     this.state = done === true ? State.Done : State.Inactive;
   }
-  abstract map<B>(f: (a: A) => B): Reactive<B>;
 }
 
 export class CbObserver<A> implements Observer<A> {

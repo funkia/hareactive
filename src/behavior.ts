@@ -33,7 +33,7 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     this.nrOfPullers = 0;
   }
   static is(a: any): a is Behavior<any> {
-     return isBehavior(a);
+    return isBehavior(a);
   }
   map<B>(fn: (a: A) => B): Behavior<B> {
     return new MapBehavior<A, B>(this, fn);
@@ -375,7 +375,7 @@ export abstract class ActiveBehavior<A> extends Behavior<A> {
 }
 
 export abstract class StatefulBehavior<A> extends ActiveBehavior<A> {
-  constructor(protected a: any, protected b: any, protected c: any) {
+  constructor(protected a: any, protected b?: any, protected c?: any) {
     super();
     this.state = State.OnlyPull;
   }
@@ -479,11 +479,10 @@ export function testBehavior<A>(b: SemanticBehavior<A>): Behavior<A> {
 /** @private */
 class ActiveScanBehavior<A, B> extends ActiveBehavior<B> {
   constructor(
-    private f: (a: A, b: B) => B, initial: B, private parent: Stream<A>
+    private f: (a: A, b: B) => B, public last: B, private parent: Stream<A>
   ) {
     super();
     this.state = State.Push;
-    this.last = initial;
     parent.addListener(this);
   }
   push(val: A): void {
@@ -513,6 +512,55 @@ export function scan<A, B>(
   f: (a: A, b: B) => B, initial: B, source: Stream<A>
 ): Behavior<Behavior<B>> {
   return new ScanBehavior<A, B>(f, initial, source);
+}
+
+class IndexReactive<A> extends Reactive<A> {
+  constructor(
+    private index: number,
+    parent: Reactive<A>
+  ) {
+    super();
+    this.parents = cons(parent);
+  }
+  push(a: A): void {
+    (<any>this.child).pushIdx(a, this.index);
+  }
+}
+
+class ActiveScanCombineBehavior<A> extends ActiveBehavior<A> {
+  private accumulators: ((a: any, b: A) => A)[];
+  constructor(streams: ScanPair<A>[], public last: A) {
+    super();
+    this.state = State.Push;
+    this.accumulators = [];
+    for (let i = 0; i < streams.length; ++i) {
+      const [s, f] = streams[i];
+      this.accumulators.push(f);
+      const indexReactive = new IndexReactive(i, s);
+      indexReactive.addListener(this);
+      this.parents = cons(indexReactive, this.parents);
+    }
+  }
+  pushIdx(a: A, index: number): void {
+    this.last = this.accumulators[index](a, this.last);
+    if (this.child) {
+      this.child.push(this.last);
+    }
+  }
+}
+
+class ScanCombineBehavior<B> extends StatefulBehavior<Behavior<B>> {
+  pull(): Behavior<B> {
+    return new ActiveScanCombineBehavior(this.a, this.b);
+  }
+}
+
+export type ScanPair<A> = [Stream<any>, (a: any, b: A) => A];
+
+export function scanCombine<B>(
+  pairs: ScanPair<B>[], initial: B
+): Behavior<Behavior<B>> {
+  return new ScanCombineBehavior<B>(pairs, initial);
 }
 
 const firstArg = (a, b) => a;
