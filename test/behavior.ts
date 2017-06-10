@@ -674,9 +674,9 @@ describe("Behavior and Stream", () => {
       const count1 = { count: nr1 };
       const count2 = { count: nr2 };
       const count3 = { count: nr3 };
-      const list: Behavior<{count: Behavior<number>}[]> = sinkBehavior([]);
+      const list: Behavior<{ count: Behavior<number> }[]> = sinkBehavior([]);
       const derived = moment((at) => {
-        return at(list).map(({count}) => at(count)).reduce((n, m) => n + m, 0);
+        return at(list).map(({ count }) => at(count)).reduce((n, m) => n + m, 0);
       });
       const spy = subscribeSpy(derived);
       list.push([count1, count2, count3]);
@@ -685,6 +685,26 @@ describe("Behavior and Stream", () => {
       nr2.push(10);
       nr3.push(3);
       assert.deepEqual(spy.args, [[0], [9], [11], [6], [7]]);
+    });
+    it("works with placeholders", () => {
+      const p = placeholder<number>();
+      const b0 = sinkBehavior(3);
+      const b1 = sinkBehavior(1);
+      const b2 = sinkBehavior(2);
+      const derived = moment((at) => {
+        return at(b1) + at(p) + at(b2);
+      });
+      const spy = subscribeSpy(derived);
+      b1.push(2);
+      p.replaceWith(b0);
+      p.push(0);
+      assert.deepEqual(spy.args, [[7], [4]]);
+    });
+    it("works with snapshot", () => {
+      const b1 = sinkBehavior(1);
+      const b2 = moment((at) => at(b1) * 2);
+      const snapped = snapshot(b2, empty);
+      const cb = subscribeSpy(snapped);
     });
   });
 });

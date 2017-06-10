@@ -85,12 +85,13 @@ export function removeListenerParents(
 }
 
 export function changePullersParents(n: number, parents: Cons<Reactive<any>>): void {
+  if (parents === undefined) {
+    return;
+  }
   if (isBehavior(parents.value)) {
     parents.value.changePullers(n);
   }
-  if (parents.tail !== undefined) {
-    changePullersParents(n, parents.tail);
-  }
+  changePullersParents(n, parents.tail);
 }
 
 export abstract class Reactive<A> implements Observer<any> {

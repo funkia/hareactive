@@ -51,6 +51,12 @@ describe("placeholder", () => {
       const p = placeholder();
       assert.strictEqual(isBehavior(p), true);
     });
+    it("throws on attempt to sample non-replaced behavior", () => {
+      const p = placeholder();
+      assert.throws(() => {
+        p.at();
+      }, "placeholder");
+    });
     it("mapTo", () => {
       const p = placeholder<number>();
       const mapped = p.mapTo(12);

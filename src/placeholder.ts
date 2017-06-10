@@ -2,6 +2,14 @@ import { Reactive, State } from "./common";
 import { Behavior, ConstantBehavior, isBehavior, MapBehavior } from "./behavior";
 import { Stream, MapToStream } from "./stream";
 
+class SamplePlaceholderError {
+  message: string = "Attempt to sample non-replaced placeholder";
+  constructor(public placeholder: Placeholder<any>) { }
+  toString(): string {
+    return this.message;
+  }
+}
+
 export class Placeholder<A> extends Behavior<A> {
   source: Reactive<A>;
   replaceWith(parent: Reactive<A>): void {
@@ -21,6 +29,9 @@ export class Placeholder<A> extends Behavior<A> {
     this.child.push(a);
   }
   pull(): A {
+    if (this.source === undefined) {
+      throw new SamplePlaceholderError(this);
+    }
     return (<any>this.source).pull();
   }
   activate(): void {
@@ -28,6 +39,12 @@ export class Placeholder<A> extends Behavior<A> {
       this.source.addListener(this);
       this.state = this.source.state;
       this.changeStateDown(this.state);
+    }
+  }
+  deactivate(done = false): void {
+    this.state = State.Inactive;
+    if (this.source !== undefined) {
+      this.source.removeListener(this);
     }
   }
   changePullers(n: number): void {

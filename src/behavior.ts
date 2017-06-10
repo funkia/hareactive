@@ -590,27 +590,33 @@ export type SampleAt = <B>(b: Behavior<B>) => B;
 
 class MomentBehavior<A> extends Behavior<A> {
   private sampleBound: SampleAt;
-  public parentsArr: Behavior<any>[];
   constructor(private f: (at: SampleAt) => A) {
     super();
     this.sampleBound = (b) => this.sample(b);
-    this.parentsArr = [];
   }
   activate(): void {
-    this.state = State.Push;
-    this.last = this.f(this.sampleBound);
+    try {
+      this.last = this.f(this.sampleBound);
+      this.state = State.Push;
+    } catch (error) {
+      if ("placeholder" in error) {
+        const placeholder = error.placeholder;
+        removeListenerParents(this, this.parents);
+        placeholder.addListener(this);
+        this.parents = cons(placeholder);
+      } else {
+        throw error;
+      }
+    }
   }
   push(): void {
-    // All listeners are cleared every time, not optimal for performance.
-    for (const b of this.parentsArr) {
-      b.removeListener(this);
-    }
-    this.parentsArr = [];
+    removeListenerParents(this, this.parents);
+    this.parents = undefined;
     this.child.push(this.last = this.f(this.sampleBound));
   }
   sample<B>(b: Behavior<B>): B {
     b.addListener(this);
-    this.parentsArr.push(b);
+    this.parents = cons(b, this.parents);
     return b.at();
   }
 }
