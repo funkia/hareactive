@@ -140,8 +140,11 @@ class ChainFuture<A, B> extends Future<B> {
   }
 }
 
-// A Sink is a producer that one can imperatively resolve.
-class SinkFuture<A> extends Future<A> {
+/**
+ * A Sink is a producer that one can imperatively resolve.
+ * @private
+ */
+export class SinkFuture<A> extends Future<A> {
   /* istanbul ignore next */
   push(val: any): void {
     throw new Error("A sink should not be pushed to.");
