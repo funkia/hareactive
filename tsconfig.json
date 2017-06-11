@@ -5,7 +5,15 @@
     "noImplicitAny": false,
     "experimentalDecorators": true,
     "importHelpers": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "lib": [
+      "dom",
+      "es5",
+      "es2015.core",
+      "es2015.promise",
+      "es2015.iterable",
+      "es2015.proxy"
+    ]
   },
   "exclude": [
     "node_modules"

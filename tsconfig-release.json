@@ -1,16 +1,12 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "es5",
-    "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
     "declarationDir": "./dist/defs",
     "outDir": "./dist",
-    "rootDir": "./src",
-    "noImplicitAny": false,
-    "sourceMap": true,
-    "experimentalDecorators": true,
-    "lib": ["dom", "es5", "es2015.core", "es2015.promise", "es2015.iterable"]
+    "rootDir": "./src"
   },
   "files": [
     "node_modules/@types/mocha/index.d.ts"
