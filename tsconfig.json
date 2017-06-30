@@ -6,6 +6,8 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "sourceMap": true,
+    "skipLibCheck": true,
+    "noStrictGenericChecks": true,
     "lib": [
       "dom",
       "es5",
@@ -15,6 +17,10 @@
       "es2015.proxy"
     ]
   },
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ],
   "exclude": [
     "node_modules"
   ]
