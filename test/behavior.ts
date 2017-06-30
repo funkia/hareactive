@@ -491,11 +491,11 @@ describe("Behavior and Stream", () => {
   });
   describe("stepper", () => {
     it("steps to the last event value", () => {
-      const e = sinkStream();
-      const b = stepper(0, e).at();
+      const s = sinkStream();
+      const b = stepper(0, s).at();
       const cb = subscribeSpy(b);
-      e.push(1);
-      e.push(2);
+      s.push(1);
+      s.push(2);
       assert.deepEqual(cb.args, [[0], [1], [2]]);
     });
     it("saves last occurrence from stream", () => {
@@ -504,6 +504,17 @@ describe("Behavior and Stream", () => {
       s.push(12);
       const spy = subscribeSpy(t);
       assert.deepEqual(spy.args, [[12]]);
+    });
+    it("has old value in exact moment", () => {
+      const s = sinkStream();
+      const b = stepper(0, s).at();
+      const res = snapshot(b, s);
+      const spy = subscribeSpy(res);
+      s.push(1);
+      assert.strictEqual(b.at(), 1);
+      s.push(2);
+      assert.strictEqual(b.at(), 2);
+      assert.deepEqual(spy.args, [[0], [1]]);
     });
   });
   describe("scan", () => {

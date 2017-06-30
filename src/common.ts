@@ -48,12 +48,12 @@ export class MultiObserver<A> implements Observer<A> {
     this.listeners = [c1, c2];
   }
   push(a: A): void {
-    for (let i = 0; i < this.listeners.length; ++i) {
+    for (let i = this.listeners.length - 1; 0 <= i; --i) {
       this.listeners[i].push(a);
     }
   }
   changeStateDown(state: State): void {
-    for (let i = 0; i < this.listeners.length; ++i) {
+    for (let i = this.listeners.length - 1; 0 <= i; --i) {
       this.listeners[i].changeStateDown(state);
     }
   }
