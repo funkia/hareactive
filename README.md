@@ -207,7 +207,7 @@ moment. Hence the name "now". `Now` is perhaps the most difficult
 concept in Hareactive.
 
 A value of type `Now` is a _description_ of something that we'd like
-to do. Such a description can declare that is wants to do one of two
+to do. Such a description can declare that it wants to do one of two
 things.
 
 * Get the current value of behavior. This is done with the `sample`
