@@ -285,7 +285,7 @@ moment.
 ## Tutorial/cookbook
 
 This cookbook will demonstrate how to use Hareactive. The examples
-gradually increases in complexity. Reading from the top serves as an
+gradually increase in complexity. Reading from the top serves as an
 tutorial about the library.
 
 Please open an issue if anything is unclear from the explanations
