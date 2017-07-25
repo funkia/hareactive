@@ -38,7 +38,7 @@ conceptual model the entire API can be understood.
 This means that to you use Hareactive you do not have to worry about
 things such as "lazy observables", "hot vs cold observables" and
 "unicast vs multicast observables". These are all unfortunate concepts
-that confuses people and makes reactive libraries harder to use. In
+that confuse people and make reactive libraries harder to use. In
 Hareactive we consider such things implementation detail that users
 should never have to think about.
 
@@ -91,15 +91,15 @@ Since a behavior is a function of time we can visualize it by plotting
 it as a graph. The figure below shows two examples of behaviors. The
 left behavior is what we call a _continuous_ behavior since it changes
 infinitely often. The right behavior only changes at specific moments,
-but it's still a function from time. Hareactive is implemented so that
-both types of behaviors can be represented efficiently.
+but it's still a function of time. Hareactive is implemented so that
+both types of behavior can be represented efficiently.
 
 ![behavior figure](https://rawgit.com/funkia/hareactive/master/figures/behavior.svg)
 
 It is important to understand that behaviors are not implemented as
 functions. Although, in theory, they could be. All operations that
 Hareactive offers on behaviors can be explained and defined based on
-the understanding that a behavior is a function from time. It is a
+the understanding that a behavior is a function of time. It is a
 mental model that can be used to understand the library.
 
 ### Stream
@@ -137,10 +137,10 @@ instance, the result of an HTTP-request is a future since it occurs at
 a specific time (when the response is received) and contains a value
 (the response itself).
 
-Future has much in common with JavaScript's Promises. However, they
-are simpler. A future has no notion of resolution or rejection. That
+Future has much in common with JavaScript's Promises. However, it is
+simpler. A future has no notion of resolution or rejection. That
 is, a specific future can be understood simply as a time and a value.
-Conceptually one can think of them as being implemented simply like
+Conceptually one can think of it as being implemented simply like
 this.
 
 ```js
@@ -232,7 +232,7 @@ the topic of the next section.
 ### How stateful behaviors work
 
 A notorious problem in FRP is how to implement functions that return
-behaviors or streams that depends on the past. Such behaviors or
+behaviors or streams that depend on the past. Such behaviors or
 streams are called "stateful"
 
 For instance `scan` creates a behavior that accumulates values over
@@ -257,9 +257,9 @@ der Ploeg and presented in his paper "Principled Practical FRP". His
 brilliant idea gives Hareactive the best of both worlds. Intuitive
 behavior and purity.
 
-The solution means that some functions returns a value that, compared
+The solution means that some functions return a value that, compared
 to what one might expect, is wrapped in an "extra" behavior. This
-"behavior wrapping" is applied to all functions that returns a result
+"behavior wrapping" is applied to all functions that return a result
 that depends on the past. The before mentioned `scan`, for instance,
 returns a value of type `Behavior<Behavior<A>>`.
 
