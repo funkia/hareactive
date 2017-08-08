@@ -33,16 +33,16 @@ export function transitionBehavior(
     const startTimeB: Behavior<number> = yield stepper(initialStartTime, snapshot(timeB, triggerStream));
     const transition: Behavior<number> = lift((range, startTime, now) => {
       const endTime = startTime + config.duration;
-      const scaled = scaleNumber(
+      const scaled = interpolate(
         startTime, endTime, 0, 1, capToRange(startTime, endTime, now - config.delay)
       );
-      return scaleNumber(0, 1, range.from, range.to, config.timingFunction(scaled));
+      return interpolate(0, 1, range.from, range.to, config.timingFunction(scaled));
     }, rangeValueB, startTimeB, timeB);
     return transition;
   });
 }
 
-export function scaleNumber(
+export function interpolate(
   fromA: number, toA: number, fromB: number, toB: number, a: number
 ): number {
   if (a < fromA || a > toA) {
