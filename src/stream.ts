@@ -174,9 +174,7 @@ export function scanS<A, B>(
 /** @private */
 class SwitchOuter<A> implements Observer<Stream<A>> {
   constructor(private s: SwitchBehaviorStream<A>) { }
-  changeStateDown(state: State): void {
-    throw new Error("not implemented");
-  }
+  changeStateDown(state: State): void { }
   push(a: Stream<A>): void {
     this.s.doSwitch(a);
   }
