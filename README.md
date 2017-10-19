@@ -1,6 +1,6 @@
 <img align="right" width="220px" src="https://rawgithub.com/funkia/hareactive/master/logo.svg">
 
-[![Build Status](https://img.shields.io/travis/funkia/hareactive.svg)](https://travis-ci.org/funkia/hareactive)
+[![Build Status](https://travis-ci.org/funkia/hareactive.svg?branch=master)](https://travis-ci.org/funkia/hareactive)
 [![codecov](https://img.shields.io/codecov/c/github/funkia/hareactive.svg)](https://codecov.io/gh/funkia/hareactive)
 [![Gitter](https://img.shields.io/gitter/room/funkia/General.svg)](https://gitter.im/funkia/General)
 
