@@ -11,29 +11,29 @@
   },
   "scripts": {
     "build": "npm run build-es6; npm run build-cmjs",
-    "build-es6": "tsc -P ./tsconfig-release.json --outDir 'dist/es' --target es2015 --module es2015",
+    "build-es6":
+      "tsc -P ./tsconfig-release.json --outDir 'dist/es' --target es2015 --module es2015",
     "build-cmjs": "tsc -P ./tsconfig-release.json",
     "prepare": "npm run clean; npm run build",
     "prebench": "npm run build-cmjs",
     "bench": "node benchmark",
     "clean": "rm -rf dist coverage .nyc_output",
     "test": "nyc mocha --recursive test/**/*.ts",
-    "test-watch": "mocha -R progress --watch --compilers ts:ts-node/register test/**/*.ts",
+    "test-watch":
+      "mocha -R progress --watch --require ts-node/register --watch-extensions ts test/**/*.ts",
     "codecov": "codecov -f coverage/coverage-final.json",
-    "release-major": "xyz --repo git@github.com:funkia/hareactive.git --increment major",
-    "release-minor": "xyz --repo git@github.com:funkia/hareactive.git --increment minor",
-    "release-patch": "xyz --repo git@github.com:funkia/hareactive.git --increment patch"
+    "release-major":
+      "xyz --repo git@github.com:funkia/hareactive.git --increment major",
+    "release-minor":
+      "xyz --repo git@github.com:funkia/hareactive.git --increment minor",
+    "release-patch":
+      "xyz --repo git@github.com:funkia/hareactive.git --increment patch"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/paldepind/hareactive.git"
   },
-  "keywords": [
-    "frp",
-    "functional reactive programming",
-    "pure",
-    "funkia"
-  ],
+  "keywords": ["frp", "functional reactive programming", "pure", "funkia"],
   "author": "Funkia",
   "license": "MIT",
   "bugs": {
@@ -41,39 +41,30 @@
   },
   "homepage": "https://github.com/paldepind/hareactive#readme",
   "dependencies": {
-    "@funkia/jabz": "0.0.22",
-    "tslib": "^1.7.1"
+    "@funkia/jabz": "0.0.23",
+    "tslib": "^1.8.0"
   },
   "devDependencies": {
-    "@types/benchmark": "^1.0.30",
-    "@types/chai": "^4.0.1",
-    "@types/mocha": "^2.2.41",
-    "@types/sinon": "^2.3.2",
+    "@types/benchmark": "^1.0.31",
+    "@types/chai": "^4.0.6",
+    "@types/mocha": "^2.2.44",
+    "@types/sinon": "^4.0.0",
     "benchmark": "^2.1.4",
-    "browser-env": "^2.0.31",
-    "chai": "^4.0.2",
-    "codecov": "^2.2.0",
+    "browser-env": "^3.2.4",
+    "chai": "^4.1.2",
+    "codecov": "^3.0.0",
     "has-flag": "^2.0.0",
-    "mocha": "^3.4.2",
-    "nyc": "^11.0.3",
-    "sinon": "^2.3.6",
-    "source-map-support": "^0.4.15",
-    "ts-node": "^3.1.0",
-    "typescript": "^2.4.1",
+    "mocha": "^4.0.1",
+    "nyc": "^11.3.0",
+    "sinon": "^4.1.2",
+    "source-map-support": "^0.5.0",
+    "ts-node": "^3.3.0",
+    "typescript": "^2.6.2",
     "xyz": "2.1.0"
   },
   "nyc": {
-    "extension": [
-      ".ts"
-    ],
-    "require": [
-      "ts-node/register",
-      "source-map-support/register"
-    ],
-    "reporter": [
-      "json",
-      "html",
-      "text"
-    ]
+    "extension": [".ts"],
+    "require": ["ts-node/register", "source-map-support/register"],
+    "reporter": ["json", "html", "text"]
   }
 }
