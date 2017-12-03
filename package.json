@@ -1,6 +1,6 @@
 {
   "name": "@funkia/hareactive",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Purely functional reactive library.",
   "main": "dist/index.js",
   "module": "dist/es/index.js",
@@ -11,29 +11,29 @@
   },
   "scripts": {
     "build": "npm run build-es6; npm run build-cmjs",
-    "build-es6":
-      "tsc -P ./tsconfig-release.json --outDir 'dist/es' --target es2015 --module es2015",
+    "build-es6": "tsc -P ./tsconfig-release.json --outDir 'dist/es' --target es2015 --module es2015",
     "build-cmjs": "tsc -P ./tsconfig-release.json",
     "prepare": "npm run clean; npm run build",
     "prebench": "npm run build-cmjs",
     "bench": "node benchmark",
     "clean": "rm -rf dist coverage .nyc_output",
     "test": "nyc mocha --recursive test/**/*.ts",
-    "test-watch":
-      "mocha -R progress --watch --require ts-node/register --watch-extensions ts test/**/*.ts",
+    "test-watch": "mocha -R progress --watch --require ts-node/register --watch-extensions ts test/**/*.ts",
     "codecov": "codecov -f coverage/coverage-final.json",
-    "release-major":
-      "xyz --repo git@github.com:funkia/hareactive.git --increment major",
-    "release-minor":
-      "xyz --repo git@github.com:funkia/hareactive.git --increment minor",
-    "release-patch":
-      "xyz --repo git@github.com:funkia/hareactive.git --increment patch"
+    "release-major": "xyz --repo git@github.com:funkia/hareactive.git --increment major",
+    "release-minor": "xyz --repo git@github.com:funkia/hareactive.git --increment minor",
+    "release-patch": "xyz --repo git@github.com:funkia/hareactive.git --increment patch"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/paldepind/hareactive.git"
   },
-  "keywords": ["frp", "functional reactive programming", "pure", "funkia"],
+  "keywords": [
+    "frp",
+    "functional reactive programming",
+    "pure",
+    "funkia"
+  ],
   "author": "Funkia",
   "license": "MIT",
   "bugs": {
@@ -63,8 +63,17 @@
     "xyz": "2.1.0"
   },
   "nyc": {
-    "extension": [".ts"],
-    "require": ["ts-node/register", "source-map-support/register"],
-    "reporter": ["json", "html", "text"]
+    "extension": [
+      ".ts"
+    ],
+    "require": [
+      "ts-node/register",
+      "source-map-support/register"
+    ],
+    "reporter": [
+      "json",
+      "html",
+      "text"
+    ]
   }
 }
