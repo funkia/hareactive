@@ -26,6 +26,28 @@ describe("Future", () => {
       assert.strictEqual(result, 9);
     });
   });
+  describe("Semigroup", () => {
+    it("returns the first future if it occurs first", () => {
+      let result: number;
+      const future1 = sinkFuture<number>();
+      const future2 = sinkFuture<number>();
+      const combined = future1.combine(future2);
+      combined.subscribe((a) => result = a);
+      future1.resolve(1);
+      future2.resolve(2);
+      assert.strictEqual(result, 1);
+    });
+    it("returns the seconds future if it occurs first", () => {
+      let result: number;
+      const future1 = sinkFuture<number>();
+      const future2 = sinkFuture<number>();
+      const combined = future1.combine(future2);
+      combined.subscribe((a) => result = a);
+      future2.resolve(2);
+      future1.resolve(1);
+      assert.strictEqual(result, 2);
+    });
+  });
   describe("Functor", () => {
     it("maps over value", () => {
       let result: number;

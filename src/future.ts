@@ -1,4 +1,4 @@
-import { monad, Monad } from "@funkia/jabz";
+import { monad, Monad, Semigroup } from "@funkia/jabz";
 import { State } from "./common";
 import { Observer, Reactive } from "./common";
 import { cons, fromArray } from "./linkedlist";
@@ -15,7 +15,8 @@ export interface Consumer<A> {
  * promise.
  */
 @monad
-export abstract class Future<A> extends Reactive<A> implements Monad<A> {
+export abstract class Future<A> extends Reactive<A>
+  implements Semigroup<Future<A>>, Monad<A> {
   // The value of the future. Often `undefined` until occurrence.
   value: A;
   constructor() {
@@ -36,6 +37,9 @@ export abstract class Future<A> extends Reactive<A> implements Monad<A> {
     } else {
       return super.addListener(c);
     }
+  }
+  combine(future: Future<A>): Future<A> {
+    return new CombineFuture(this, future);
   }
   // A future is a functor, when the future occurs we can feed its
   // result through the mapping function
@@ -70,6 +74,16 @@ export abstract class Future<A> extends Reactive<A> implements Monad<A> {
     return new ChainFuture(f, this);
   }
   flatten: <B>() => Future<B>;
+}
+
+class CombineFuture<A> extends Future<A> {
+  constructor(private future1: Future<A>, private future2: Future<A>) {
+    super();
+    this.parents = cons(future1, cons(future2));
+  }
+  push(val: A): void {
+    this.resolve(val);
+  }
 }
 
 class MapFuture<A, B> extends Future<B> {
