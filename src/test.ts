@@ -27,8 +27,12 @@ export function testStreamFromArray<A>(array: A[]): Stream<A> {
   return new TestStream(semanticStream);
 }
 
-export function testStreamFromObject<A>(object: { [time: number]: A }): Stream<A> {
-  const semanticStream =
-    Object.keys(object).map((key) => ({ time: parseFloat(key), value: object[key] }));
+export function testStreamFromObject<A>(object: {
+  [time: number]: A;
+}): Stream<A> {
+  const semanticStream = Object.keys(object).map((key) => ({
+    time: parseFloat(key),
+    value: object[key]
+  }));
   return new TestStream(semanticStream);
 }

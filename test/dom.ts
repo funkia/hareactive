@@ -23,9 +23,10 @@ describe("dom", () => {
 
     it("applies extractor to event", () => {
       const input = document.createElement("input");
-      const s = streamFromEvent(
-        input, "input", (e, elm) => ({ bubbles: e.bubbles, value: elm.value })
-      );
+      const s = streamFromEvent(input, "input", (e, elm) => ({
+        bubbles: e.bubbles,
+        value: elm.value
+      }));
       const result = [];
       s.subscribe((ev) => result.push(ev));
       const event = new Event("input");
@@ -39,7 +40,12 @@ describe("dom", () => {
   describe("behaviorFromEvent", () => {
     it("has initial value", () => {
       const input = document.createElement("input");
-      const s = behaviorFromEvent(input, "change", "asd", (evt, elm) => elm.value);
+      const s = behaviorFromEvent(
+        input,
+        "change",
+        "asd",
+        (evt, elm) => elm.value
+      );
       const result = [];
       s.subscribe((ev) => result.push(ev));
       assert.strictEqual(result.length, 1);
@@ -47,9 +53,14 @@ describe("dom", () => {
     });
     it("updates the current value on event", () => {
       const input = document.createElement("input");
-      const s = behaviorFromEvent(input, "change", "initial", (evt, elm) => elm.value);
+      const s = behaviorFromEvent(
+        input,
+        "change",
+        "initial",
+        (evt, elm) => elm.value
+      );
       const result = [];
-      s.subscribe(ev => result.push(ev));
+      s.subscribe((ev) => result.push(ev));
       // simulate input
       input.value = "second";
       input.dispatchEvent(new Event("change"));

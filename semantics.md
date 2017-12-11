@@ -25,7 +25,6 @@ Behavior a = Time -> a
 
 A `Future a` is denoted as a pair of `Time` and `a`.
 
-
 ```haskell
 Future a = (Time, a)
 ```
@@ -64,7 +63,6 @@ instance Monad Future where
 ## Stream
 
 A `Stream` is denoted as below.
-
 
 ```haskell
 Stream a = [(Time, a)]

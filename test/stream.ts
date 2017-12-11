@@ -2,15 +2,42 @@ import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
 import { State } from "../src/common";
 import {
-  map, publish, placeholder, apply, changes, debounce, delay, empty,
-  filter, filterApply, isStream, keepWhen, producerStream,
-  ProducerStream, scanS, Behavior, ProducerBehavior, fromFunction,
-  sinkBehavior, testBehavior, sinkStream, snapshot, snapshotWith,
-  split, subscribe, testStreamFromArray, testStreamFromObject,
-  throttle, combine
+  map,
+  publish,
+  placeholder,
+  apply,
+  changes,
+  debounce,
+  delay,
+  empty,
+  filter,
+  filterApply,
+  isStream,
+  keepWhen,
+  producerStream,
+  ProducerStream,
+  scanS,
+  Behavior,
+  ProducerBehavior,
+  fromFunction,
+  sinkBehavior,
+  testBehavior,
+  sinkStream,
+  snapshot,
+  snapshotWith,
+  split,
+  subscribe,
+  testStreamFromArray,
+  testStreamFromObject,
+  throttle,
+  combine
 } from "../src/index";
 
-import { createTestProducer, createTestProducerBehavior, subscribeSpy } from "./helpers";
+import {
+  createTestProducer,
+  createTestProducerBehavior,
+  subscribeSpy
+} from "./helpers";
 
 const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
@@ -147,7 +174,7 @@ describe("stream", () => {
       let push: (n: number) => void;
       const producer = producerStream((p) => {
         push = p;
-        return () => push = undefined;
+        return () => (push = undefined);
       });
       producer.subscribe(callback);
       push(1);
@@ -173,14 +200,13 @@ describe("stream", () => {
           3: "#5"
         });
         const combined = s2.combine(s1);
-        assert.deepEqual(
-          combined.semantic(),
-          [
-            { time: 0, value: "#1" }, { time: 1, value: "#2" },
-            { time: 2, value: "#3" }, { time: 2, value: "#4" },
-            { time: 3, value: "#5" }
-          ]
-        );
+        assert.deepEqual(combined.semantic(), [
+          { time: 0, value: "#1" },
+          { time: 1, value: "#2" },
+          { time: 2, value: "#3" },
+          { time: 2, value: "#4" },
+          { time: 3, value: "#5" }
+        ]);
       });
     });
     it("should combine two streams", () => {
@@ -260,20 +286,17 @@ describe("stream", () => {
       fnB.push(Math.sqrt);
       publish(25, origin);
       publish(36, origin);
-      assert.deepEqual(callback.args, [
-        [4], [9], [8], [10], [2], [5], [6]
-      ]);
+      assert.deepEqual(callback.args, [[4], [9], [8], [10], [2], [5], [6]]);
     });
   });
   describe("filter", () => {
     it("filter values semantically", () => {
       const s = testStreamFromArray([1, 3, 2, 4, 1]);
       const filtered = s.filter((n) => n > 2);
-      assert.deepEqual(
-        filtered.semantic(),
-        [{ time: 1, value: 3 },
-        { time: 3, value: 4 }]
-      );
+      assert.deepEqual(filtered.semantic(), [
+        { time: 1, value: 3 },
+        { time: 3, value: 4 }
+      ]);
     });
     it("should filter the unwanted values", () => {
       const sink = sinkStream();
@@ -318,9 +341,7 @@ describe("stream", () => {
       predB.push((n: number) => n % 4 === 0);
       publish(6, origin);
       publish(12, origin);
-      assert.deepEqual(callback.args, [
-        [2], [6], [12]
-      ]);
+      assert.deepEqual(callback.args, [[2], [6], [12]]);
     });
   });
 
@@ -334,7 +355,18 @@ describe("stream", () => {
       for (let i = 0; i < 10; i++) {
         publish(i, eventS);
       }
-      assert.deepEqual(callback.args, [[0], [1], [3], [6], [10], [15], [21], [28], [36], [45]]);
+      assert.deepEqual(callback.args, [
+        [0],
+        [1],
+        [3],
+        [6],
+        [10],
+        [15],
+        [21],
+        [28],
+        [36],
+        [45]
+      ]);
     });
   });
 
@@ -357,9 +389,7 @@ describe("stream", () => {
       publish(5, origin);
       flag = true;
       publish(6, origin);
-      assert.deepEqual(callback.args, [
-        [0], [1], [4], [6]
-      ]);
+      assert.deepEqual(callback.args, [[0], [1], [4], [6]]);
     });
   });
   describe("timing operators", () => {
@@ -375,8 +405,8 @@ describe("stream", () => {
         let n = 0;
         const s = sinkStream<number>();
         const delayedS = delay(50, s);
-        delayedS.subscribe(() => n = 2);
-        s.subscribe(() => n = 1);
+        delayedS.subscribe(() => (n = 2));
+        s.subscribe(() => (n = 1));
         s.push(0);
         assert.strictEqual(n, 1);
         clock.tick(49);
@@ -390,7 +420,7 @@ describe("stream", () => {
         let n = 0;
         const s = sinkStream<number>();
         const throttleS = throttle(100, s);
-        throttleS.subscribe((v) => n = v);
+        throttleS.subscribe((v) => (n = v));
         assert.strictEqual(n, 0);
         s.push(1);
         assert.strictEqual(n, 1);
@@ -410,7 +440,7 @@ describe("stream", () => {
         let n = 0;
         const s = sinkStream<number>();
         const debouncedS = debounce(100, s);
-        debouncedS.subscribe((v) => n = v);
+        debouncedS.subscribe((v) => (n = v));
         assert.strictEqual(n, 0);
         s.push(1);
         clock.tick(80);
@@ -441,9 +471,7 @@ describe("stream", () => {
       n = 2;
       publish(3, e);
       publish(4, e);
-      assert.deepEqual(callback.args, [
-        [0], [0], [1], [2], [2]
-      ]);
+      assert.deepEqual(callback.args, [[0], [0], [1], [2], [2]]);
     });
     it("snapshots push based Behavior", () => {
       const b = sinkBehavior(0);
@@ -458,9 +486,7 @@ describe("stream", () => {
       b.push(2);
       publish(3, e);
       publish(4, e);
-      assert.deepEqual(callback.args, [
-        [0], [0], [1], [2], [2]
-      ]);
+      assert.deepEqual(callback.args, [[0], [0], [1], [2], [2]]);
     });
     it("activates producer", () => {
       const { activate, push, producer } = createTestProducerBehavior(0);
@@ -478,9 +504,7 @@ describe("stream", () => {
       push(4);
       s.push(undefined);
       assert(activate.calledOnce, "called once");
-      assert.deepEqual(callback.args, [
-        [2], [3], [4], [6]
-      ]);
+      assert.deepEqual(callback.args, [[2], [3], [4], [6]]);
     });
     it("applies function in snapshotWith to pull based Behavior", () => {
       let n = 0;
@@ -496,18 +520,20 @@ describe("stream", () => {
       n = 2;
       publish(3, e);
       publish(4, e);
-      assert.deepEqual(callback.args, [
-        [0], [1], [3], [5], [6]
-      ]);
+      assert.deepEqual(callback.args, [[0], [1], [3], [5], [6]]);
     });
     it("has semantic representation", () => {
       const b = testBehavior((t) => t * t);
       const s = testStreamFromObject({
-        1: 1, 4: 4, 8: 8
+        1: 1,
+        4: 4,
+        8: 8
       });
       const shot = snapshot(b, s);
       const expected = testStreamFromObject({
-        1: 1, 4: 16, 8: 8 * 8
+        1: 1,
+        4: 16,
+        8: 8 * 8
       });
       assert.deepEqual(shot.semantic(), expected.semantic());
     });

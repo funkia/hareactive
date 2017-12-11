@@ -1,8 +1,5 @@
 export class Cons<A> {
-  constructor(
-    public value: A,
-    public tail: Cons<A> | undefined
-  ) { }
+  constructor(public value: A, public tail: Cons<A> | undefined) {}
 }
 
 export function cons<A>(value: A, tail?: Cons<A>): Cons<A> {

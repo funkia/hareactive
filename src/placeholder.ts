@@ -1,10 +1,15 @@
 import { Reactive, State } from "./common";
-import { Behavior, ConstantBehavior, isBehavior, MapBehavior } from "./behavior";
+import {
+  Behavior,
+  ConstantBehavior,
+  isBehavior,
+  MapBehavior
+} from "./behavior";
 import { Stream, MapToStream } from "./stream";
 
 class SamplePlaceholderError {
   message: string = "Attempt to sample non-replaced placeholder";
-  constructor(public placeholder: Placeholder<any>) { }
+  constructor(public placeholder: Placeholder<any>) {}
   toString(): string {
     return this.message;
   }
@@ -57,15 +62,13 @@ export class Placeholder<A> extends Behavior<A> {
     return new MapPlaceholder<A, B>(this, fn);
   }
   mapTo<B>(b: B): Behavior<B> {
-    return <any>(new MapToPlaceholder<A, B>(<any>this, b));
+    return <any>new MapToPlaceholder<A, B>(<any>this, b);
   }
 }
 
-class MapPlaceholder<A, B> extends MapBehavior<A, B> {
-}
+class MapPlaceholder<A, B> extends MapBehavior<A, B> {}
 
-class MapToPlaceholder<A, B> extends MapToStream<A, B> {
-}
+class MapToPlaceholder<A, B> extends MapToStream<A, B> {}
 
 function install(target: Function, source: Function): void {
   for (const key of Object.getOwnPropertyNames(source.prototype)) {
@@ -92,5 +95,5 @@ export function placeholder<A>(): Placeholder<A> & Stream<A> {
     // prevent tree-shaking.
     installMethods();
   }
-  return (<any>new Placeholder());
+  return <any>new Placeholder();
 }

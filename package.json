@@ -11,29 +11,30 @@
   },
   "scripts": {
     "build": "npm run build-es6; npm run build-cmjs",
-    "build-es6": "tsc -P ./tsconfig-release.json --outDir 'dist/es' --target es2015 --module es2015",
+    "build-es6":
+      "tsc -P ./tsconfig-release.json --outDir 'dist/es' --target es2015 --module es2015",
     "build-cmjs": "tsc -P ./tsconfig-release.json",
     "prepare": "npm run clean; npm run build",
     "prebench": "npm run build-cmjs",
     "bench": "node benchmark",
     "clean": "rm -rf dist coverage .nyc_output",
     "test": "nyc mocha --recursive test/**/*.ts",
-    "test-watch": "mocha -R progress --watch --require ts-node/register --watch-extensions ts test/**/*.ts",
+    "test-watch":
+      "mocha -R progress --watch --require ts-node/register --watch-extensions ts test/**/*.ts",
+    "format": "prettier --write \"**/*.{ts,json,md}\"",
     "codecov": "codecov -f coverage/coverage-final.json",
-    "release-major": "xyz --repo git@github.com:funkia/hareactive.git --increment major",
-    "release-minor": "xyz --repo git@github.com:funkia/hareactive.git --increment minor",
-    "release-patch": "xyz --repo git@github.com:funkia/hareactive.git --increment patch"
+    "release-major":
+      "xyz --repo git@github.com:funkia/hareactive.git --increment major",
+    "release-minor":
+      "xyz --repo git@github.com:funkia/hareactive.git --increment minor",
+    "release-patch":
+      "xyz --repo git@github.com:funkia/hareactive.git --increment patch"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/paldepind/hareactive.git"
   },
-  "keywords": [
-    "frp",
-    "functional reactive programming",
-    "pure",
-    "funkia"
-  ],
+  "keywords": ["frp", "functional reactive programming", "pure", "funkia"],
   "author": "Funkia",
   "license": "MIT",
   "bugs": {
@@ -56,6 +57,7 @@
     "has-flag": "^2.0.0",
     "mocha": "^4.0.1",
     "nyc": "^11.3.0",
+    "prettier": "^1.9.1",
     "sinon": "^4.1.2",
     "source-map-support": "^0.5.0",
     "ts-node": "^3.3.0",
@@ -63,17 +65,11 @@
     "xyz": "2.1.0"
   },
   "nyc": {
-    "extension": [
-      ".ts"
-    ],
-    "require": [
-      "ts-node/register",
-      "source-map-support/register"
-    ],
-    "reporter": [
-      "json",
-      "html",
-      "text"
-    ]
+    "extension": [".ts"],
+    "require": ["ts-node/register", "source-map-support/register"],
+    "reporter": ["json", "html", "text"]
+  },
+  "prettier": {
+    "arrowParens": "always"
   }
 }

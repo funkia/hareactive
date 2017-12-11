@@ -5,11 +5,33 @@ import { assert } from "chai";
 import { placeholder } from "../src/placeholder";
 import { State, observe } from "../src/common";
 import {
-  isBehavior, Behavior, stepper, fromFunction, sinkBehavior, ap, map,
-  publish, apply, debounce, delay, empty, filter, filterApply,
-  isStream, keepWhen, ProducerStream, scanS, sinkStream, snapshot,
-  snapshotWith, split, Stream, subscribe, testStreamFromArray,
-  testStreamFromObject, throttle
+  isBehavior,
+  Behavior,
+  stepper,
+  fromFunction,
+  sinkBehavior,
+  ap,
+  map,
+  publish,
+  apply,
+  debounce,
+  delay,
+  empty,
+  filter,
+  filterApply,
+  isStream,
+  keepWhen,
+  ProducerStream,
+  scanS,
+  sinkStream,
+  snapshot,
+  snapshotWith,
+  split,
+  Stream,
+  subscribe,
+  testStreamFromArray,
+  testStreamFromObject,
+  throttle
 } from "../src/index";
 
 import { createTestProducerBehavior } from "./helpers";
@@ -20,7 +42,7 @@ describe("placeholder", () => {
       let result: number;
       const p = placeholder<string>();
       const mapped = p.map((s) => s.length);
-      mapped.subscribe((n: number) => result = n);
+      mapped.subscribe((n: number) => (result = n));
       p.replaceWith(sinkBehavior("Hello"));
       assert.strictEqual(result, 5);
     });
@@ -29,9 +51,13 @@ describe("placeholder", () => {
       const p = placeholder();
       const b = fromFunction(() => 12);
       observe(
-        () => { throw new Error("should not be called"); },
-        () => beginPulling = true,
-        () => { throw new Error("should not be called"); },
+        () => {
+          throw new Error("should not be called");
+        },
+        () => (beginPulling = true),
+        () => {
+          throw new Error("should not be called");
+        },
         p
       );
       assert.strictEqual(beginPulling, false);
@@ -90,9 +116,7 @@ describe("placeholder", () => {
       publish("d", s);
       push(4);
       publish("e", s);
-      assert.deepEqual(callback.args, [
-        [0], [0], [1], [1], [4]
-      ]);
+      assert.deepEqual(callback.args, [[0], [0], [1], [1], [4]]);
     });
     it("adds puller to the behavior it has been replaced with", () => {
       const { activate, push, producer } = createTestProducerBehavior(0);
@@ -117,7 +141,7 @@ describe("placeholder", () => {
       let result = 0;
       const p = placeholder();
       const mapped = p.map((s: number) => s + 1);
-      mapped.subscribe((n: number) => result = n);
+      mapped.subscribe((n: number) => (result = n));
       const s = sinkStream();
       p.replaceWith(s);
       assert.strictEqual(result, 0);
@@ -141,7 +165,7 @@ describe("placeholder", () => {
       const b = Behavior.of(7);
       const p = placeholder();
       const snap = snapshot(b, p);
-      snap.subscribe((n: number) => result = n);
+      snap.subscribe((n: number) => (result = n));
       const s = sinkStream();
       p.replaceWith(s);
       assert.strictEqual(result, 0);
@@ -160,8 +184,8 @@ describe("placeholder", () => {
         let n = 0;
         const p = placeholder();
         const delayedP = delay(50, p);
-        delayedP.subscribe(() => n = 2);
-        p.subscribe(() => n = 1);
+        delayedP.subscribe(() => (n = 2));
+        p.subscribe(() => (n = 1));
         const s = sinkStream<number>();
         p.replaceWith(s);
         s.push(0);
@@ -176,7 +200,7 @@ describe("placeholder", () => {
         let n = 0;
         const p = placeholder();
         const throttleP = throttle(100, p);
-        throttleP.subscribe((v: number) => n = v);
+        throttleP.subscribe((v: number) => (n = v));
         assert.strictEqual(n, 0);
         const s = sinkStream<number>();
         p.replaceWith(s);
@@ -192,7 +216,7 @@ describe("placeholder", () => {
         let n = 0;
         const p = placeholder();
         const debouncedP = debounce(100, p);
-        debouncedP.subscribe((v: number) => n = v);
+        debouncedP.subscribe((v: number) => (n = v));
         const s = sinkStream<number>();
         p.replaceWith(s);
         assert.strictEqual(n, 0);

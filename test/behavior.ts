@@ -4,10 +4,31 @@ import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
 import { go, lift, map, mapTo } from "@funkia/jabz";
 import {
-  testBehavior, at, Behavior, fromFunction, Future, integrate,
-  isBehavior, observe, placeholder, ProducerBehavior, testStreamFromObject,
-  producerBehavior, publish, scan, sinkBehavior, sinkStream, stepper,
-  switcher, switchStream, switchTo, time, timeFrom, toggle, snapshot, empty,
+  testBehavior,
+  at,
+  Behavior,
+  fromFunction,
+  Future,
+  integrate,
+  isBehavior,
+  observe,
+  placeholder,
+  ProducerBehavior,
+  testStreamFromObject,
+  producerBehavior,
+  publish,
+  scan,
+  sinkBehavior,
+  sinkStream,
+  stepper,
+  switcher,
+  switchStream,
+  switchTo,
+  time,
+  timeFrom,
+  toggle,
+  snapshot,
+  empty,
   moment
 } from "../src";
 
@@ -30,10 +51,7 @@ function mockNow(): [(t: number) => void, () => void] {
   const orig = Date.now;
   let time = 0;
   Date.now = () => time;
-  return [
-    (t: number) => time = t,
-    () => Date.now = orig
-  ];
+  return [(t: number) => (time = t), () => (Date.now = orig)];
 }
 
 describe("behavior", () => {
@@ -150,7 +168,9 @@ describe("behavior", () => {
         assert.strictEqual(at(b2), 2);
       });
       it("has semantic representation", () => {
-        const b = testBehavior((t) => { throw new Error("Don't call me"); });
+        const b = testBehavior((t) => {
+          throw new Error("Don't call me");
+        });
         const mapped = b.mapTo(7);
         const semantic = mapped.semantic();
         assert.strictEqual(semantic(-3), 7);
@@ -235,12 +255,12 @@ describe("behavior", () => {
   describe("chain", () => {
     it("handles a constant behavior", () => {
       const b1 = Behavior.of(12);
-      const b2 = b1.chain(x => Behavior.of(x * x));
+      const b2 = b1.chain((x) => Behavior.of(x * x));
       assert.strictEqual(at(b2), 144);
     });
     it("handles changing outer behavior", () => {
       const b1 = sinkBehavior(0);
-      const b2 = b1.chain(x => Behavior.of(x * x));
+      const b2 = b1.chain((x) => Behavior.of(x * x));
       assert.strictEqual(at(b2), 0);
       b1.push(2);
       assert.strictEqual(at(b2), 4);
@@ -249,7 +269,7 @@ describe("behavior", () => {
     });
     it("handles changing inner behavior", () => {
       const inner = sinkBehavior(0);
-      const b = Behavior.of(1).chain(_ => inner);
+      const b = Behavior.of(1).chain((_) => inner);
       const spy = subscribeSpy(b);
       assert.strictEqual(at(b), 0);
       inner.push(2);
@@ -261,7 +281,7 @@ describe("behavior", () => {
     it("stops subscribing to past inner behavior", () => {
       const inner = sinkBehavior(0);
       const outer = sinkBehavior(1);
-      const b = outer.chain(n => n === 1 ? inner : Behavior.of(6));
+      const b = outer.chain((n) => (n === 1 ? inner : Behavior.of(6)));
       assert.strictEqual(at(b), 0);
       inner.push(2);
       assert.strictEqual(at(b), 2);
@@ -274,7 +294,7 @@ describe("behavior", () => {
       const outer = sinkBehavior(0);
       const inner1 = sinkBehavior(1);
       const inner2 = sinkBehavior(3);
-      const b = outer.chain(n => {
+      const b = outer.chain((n) => {
         if (n === 0) {
           return Behavior.of(0);
         } else if (n === 1) {
@@ -300,7 +320,7 @@ describe("behavior", () => {
       let variable = 7;
       const pullingB = fromFunction(() => variable);
       const outer = sinkBehavior(true);
-      const chained = outer.chain((b) => b ? pushingB : pullingB);
+      const chained = outer.chain((b) => (b ? pushingB : pullingB));
       const pushSpy = spy();
       const beginPullingSpy = spy();
       const endPullingSpy = spy();
@@ -321,16 +341,29 @@ describe("behavior", () => {
       outer.push(false);
       variable = 9;
       assert.strictEqual(at(chained), 9);
-      assert.deepEqual(
-        pushSpy.args,
-        [[0], [0], [0], [1], [1], [1], [2], [2], [2], [4], [4], [4], [5], [5], [5]]
-      );
+      assert.deepEqual(pushSpy.args, [
+        [0],
+        [0],
+        [0],
+        [1],
+        [1],
+        [1],
+        [2],
+        [2],
+        [2],
+        [4],
+        [4],
+        [4],
+        [5],
+        [5],
+        [5]
+      ]);
       assert.equal(beginPullingSpy.callCount, 6);
       assert.equal(endPullingSpy.callCount, 3);
     });
     it("works with go-notation", () => {
       const a = sinkBehavior(1);
-      const b = go(function* (): IterableIterator<any> {
+      const b = go(function*(): IterableIterator<any> {
         const val = yield a;
         return val * 2;
       });
@@ -340,7 +373,7 @@ describe("behavior", () => {
     });
     it("supports adding pullers", () => {
       const b1 = Behavior.of(12);
-      const b2 = b1.chain(x => Behavior.of(x * x));
+      const b2 = b1.chain((x) => Behavior.of(x * x));
       b2.changePullers(1);
     });
   });
@@ -369,7 +402,7 @@ describe("Behavior and Future", () => {
       const b = Behavior.of(true);
       const w = B.when(b);
       const fut = at(w);
-      fut.subscribe((_) => occurred = true);
+      fut.subscribe((_) => (occurred = true));
       assert.strictEqual(occurred, true);
     });
     it("future occurs when behavior turns true", () => {
@@ -377,7 +410,7 @@ describe("Behavior and Future", () => {
       const b = sinkBehavior(false);
       const w = B.when(b);
       const fut = at(w);
-      fut.subscribe((_) => occurred = true);
+      fut.subscribe((_) => (occurred = true));
       assert.strictEqual(occurred, false);
       b.push(true);
       assert.strictEqual(occurred, true);
@@ -389,7 +422,7 @@ describe("Behavior and Future", () => {
       const bSink = sinkBehavior(1);
       const futureSink = F.sinkFuture();
       const mySnapshot = at(B.snapshotAt(bSink, futureSink));
-      mySnapshot.subscribe(res => result = res);
+      mySnapshot.subscribe((res) => (result = res));
       bSink.push(2);
       bSink.push(3);
       futureSink.resolve({});
@@ -402,7 +435,7 @@ describe("Behavior and Future", () => {
       const occurredFuture = Future.of({});
       bSink.push(2);
       const mySnapshot = at(B.snapshotAt(bSink, occurredFuture));
-      mySnapshot.subscribe(res => result = res);
+      mySnapshot.subscribe((res) => (result = res));
       bSink.push(3);
       assert.strictEqual(result, 2);
     });
@@ -456,8 +489,8 @@ describe("Behavior and Future", () => {
       const switching = switchTo(b1, futureSink);
       observe(
         (n: number) => pushed.push(n),
-        () => beginPull = true,
-        () => endPull = true,
+        () => (beginPull = true),
+        () => (endPull = true),
         switching
       );
       assert.strictEqual(beginPull, true);
@@ -538,7 +571,11 @@ describe("Behavior and Stream", () => {
     });
     it("has semantic representation", () => {
       const s = testStreamFromObject({
-        1: 1, 2: 1, 4: 2, 6: 3, 7: 1
+        1: 1,
+        2: 1,
+        4: 2,
+        6: 3,
+        7: 1
       });
       const scanned = scan((n, m) => n + m, 0, s);
       const semantic = scanned.semantic();
@@ -563,11 +600,14 @@ describe("Behavior and Stream", () => {
       const add = sinkStream();
       const sub = sinkStream();
       const mul = sinkStream();
-      const b = scanCombine([
-        [add, (n, m) => n + m],
-        [sub, (n, m) => m - n],
-        [mul, (n, m) => n * m]
-      ], 1);
+      const b = scanCombine(
+        [
+          [add, (n, m) => n + m],
+          [sub, (n, m) => m - n],
+          [mul, (n, m) => n * m]
+        ],
+        1
+      );
       const cb = subscribeSpy(b.at());
       add.push(3);
       mul.push(3);
@@ -613,8 +653,8 @@ describe("Behavior and Stream", () => {
       let pushed: number[] = [];
       observe(
         (n: number) => pushed.push(n),
-        () => beginPull = true,
-        () => endPull = true,
+        () => (beginPull = true),
+        () => (endPull = true),
         time
       );
       assert.strictEqual(beginPull, true);
@@ -646,10 +686,7 @@ describe("Behavior and Stream", () => {
       s1.push(1);
       s2.push(2);
       s1.push(3);
-      assert.deepEqual(
-        cb.args,
-        [[false], [true], [false], [true]]
-      );
+      assert.deepEqual(cb.args, [[false], [true], [false], [true]]);
     });
   });
   describe("moment", () => {
@@ -687,7 +724,9 @@ describe("Behavior and Stream", () => {
       const count3 = { count: nr3 };
       const list: Behavior<{ count: Behavior<number> }[]> = sinkBehavior([]);
       const derived = moment((at) => {
-        return at(list).map(({ count }) => at(count)).reduce((n, m) => n + m, 0);
+        return at(list)
+          .map(({ count }) => at(count))
+          .reduce((n, m) => n + m, 0);
       });
       const spy = subscribeSpy(derived);
       list.push([count1, count2, count3]);

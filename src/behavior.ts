@@ -1,8 +1,13 @@
 import { Cons, cons } from "./linkedlist";
 import { Monad, monad } from "@funkia/jabz";
 import {
-  Observer, State, Reactive, Time, addListenerParents,
-  removeListenerParents, changePullersParents
+  Observer,
+  State,
+  Reactive,
+  Time,
+  addListenerParents,
+  removeListenerParents,
+  changePullersParents
 } from "./common";
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
@@ -16,7 +21,8 @@ import { Stream } from "./stream";
 export type SemanticBehavior<A> = (time: Time) => A;
 
 @monad
-export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Monad<A> {
+export abstract class Behavior<A> extends Reactive<A>
+  implements Observer<A>, Monad<A> {
   // Push behaviors cache their last value in `last`.
   // Pull behaviors do not use `last`.
   last: A;
@@ -51,8 +57,17 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     return new ApBehavior<A, B>(f, this);
   }
   lift<T1, R>(f: (t: T1) => R, m: Behavior<T1>): Behavior<R>;
-  lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Behavior<T1>, m2: Behavior<T2>): Behavior<R>;
-  lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Behavior<T1>, m2: Behavior<T2>, m3: Behavior<T3>): Behavior<R>;
+  lift<T1, T2, R>(
+    f: (t: T1, u: T2) => R,
+    m1: Behavior<T1>,
+    m2: Behavior<T2>
+  ): Behavior<R>;
+  lift<T1, T2, T3, R>(
+    f: (t1: T1, t2: T2, t3: T3) => R,
+    m1: Behavior<T1>,
+    m2: Behavior<T2>,
+    m3: Behavior<T3>
+  ): Behavior<R>;
   lift(/* arguments */): any {
     // TODO: Experiment with faster specialized `lift` implementation
     const f = arguments[0];
@@ -60,11 +75,15 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
       case 1:
         return arguments[1].map(f);
       case 2:
-        return arguments[2].ap(arguments[1].map((a: any) => (b: any) => f(a, b)));
+        return arguments[2].ap(
+          arguments[1].map((a: any) => (b: any) => f(a, b))
+        );
       case 3:
-        return arguments[3].ap(arguments[2].ap(arguments[1].map(
-          (a: any) => (b: any) => (c: any) => f(a, b, c)
-        )));
+        return arguments[3].ap(
+          arguments[2].ap(
+            arguments[1].map((a: any) => (b: any) => (c: any) => f(a, b, c))
+          )
+        );
     }
   }
   static multi: boolean = true;
@@ -97,13 +116,13 @@ export abstract class Behavior<A> extends Reactive<A> implements Observer<A>, Mo
     throw new Error("The behavior does not have a semantic representation");
   }
   log(prefix?: string): Behavior<A> {
-    this.subscribe(a => console.log(`${prefix || ""} `, a));
+    this.subscribe((a) => console.log(`${prefix || ""} `, a));
     return this;
   }
 }
 
 export function isBehavior(b: any): b is Behavior<any> {
-  return typeof b === "object" && ("at" in b);
+  return typeof b === "object" && "at" in b;
 }
 
 export abstract class ProducerBehavior<A> extends Behavior<A> {
@@ -144,7 +163,10 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
 export type ProducerBehaviorFunction<A> = (push: (a: A) => void) => () => void;
 
 class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
-  constructor(private activateFn: ProducerBehaviorFunction<A>, private initial: A) {
+  constructor(
+    private activateFn: ProducerBehaviorFunction<A>,
+    private initial: A
+  ) {
     super();
     this.last = initial;
   }
@@ -159,7 +181,10 @@ class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
   }
 }
 
-export function producerBehavior<A>(activate: ProducerBehaviorFunction<A>, initial: A): Behavior<A> {
+export function producerBehavior<A>(
+  activate: ProducerBehaviorFunction<A>,
+  initial: A
+): Behavior<A> {
   return new ProducerBehaviorFromFunction(activate, initial);
 }
 
@@ -167,8 +192,8 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
   constructor(public last: A) {
     super();
   }
-  activateProducer(): void { }
-  deactivateProducer(): void { }
+  activateProducer(): void {}
+  deactivateProducer(): void {}
 }
 
 /**
@@ -212,10 +237,7 @@ export class MapBehavior<A, B> extends Behavior<B> {
 }
 
 class ApBehavior<A, B> extends Behavior<B> {
-  constructor(
-    private fn: Behavior<(a: A) => B>,
-    private val: Behavior<A>
-  ) {
+  constructor(private fn: Behavior<(a: A) => B>, private val: Behavior<A>) {
     super();
     this.parents = cons<any>(fn, cons(val));
   }
@@ -237,7 +259,10 @@ class ApBehavior<A, B> extends Behavior<B> {
  * @param valB A behavior of `A`
  * @returns Behavior of the function in `fnB` applied to the value in `valB`
  */
-export function ap<A, B>(fnB: Behavior<(a: A) => B>, valB: Behavior<A>): Behavior<B> {
+export function ap<A, B>(
+  fnB: Behavior<(a: A) => B>,
+  valB: Behavior<A>
+): Behavior<B> {
   return valB.ap(fnB);
 }
 
@@ -258,10 +283,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
   private outerConsumer: Behavior<A>;
-  constructor(
-    private outer: Behavior<A>,
-    private fn: (a: A) => Behavior<B>
-  ) {
+  constructor(private outer: Behavior<A>, private fn: (a: A) => Behavior<B>) {
     super();
     // Create the outer consumer
     this.outerConsumer = new ChainOuter(this, outer);
@@ -285,7 +307,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
     if (this.innerB !== undefined) {
       this.innerB.removeListener(this);
     }
-    const newInner = this.innerB = this.fn(a);
+    const newInner = (this.innerB = this.fn(a));
     newInner.addListener(this);
     this.state = newInner.state;
     this.changeStateDown(this.state);
@@ -361,7 +383,8 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
 }
 
 export function snapshotAt<A>(
-  b: Behavior<A>, f: Future<any>
+  b: Behavior<A>,
+  f: Future<any>
 ): Behavior<Future<A>> {
   return new SnapshotBehavior(b, f);
 }
@@ -369,9 +392,9 @@ export function snapshotAt<A>(
 /** Behaviors that are always active */
 export abstract class ActiveBehavior<A> extends Behavior<A> {
   // noop methods, behavior is always active
-  activate(): void { }
-  deactivate(): void { }
-  changePullers(): void { }
+  activate(): void {}
+  deactivate(): void {}
+  changePullers(): void {}
 }
 
 export abstract class StatefulBehavior<A> extends ActiveBehavior<A> {
@@ -458,7 +481,8 @@ export function switchTo<A>(
 }
 
 export function switcher<A>(
-  init: Behavior<A>, stream: Stream<Behavior<A>>
+  init: Behavior<A>,
+  stream: Stream<Behavior<A>>
 ): Behavior<Behavior<A>> {
   return fromFunction(() => new SwitcherBehavior(init, stream));
 }
@@ -479,7 +503,9 @@ export function testBehavior<A>(b: SemanticBehavior<A>): Behavior<A> {
 /** @private */
 class ActiveScanBehavior<A, B> extends ActiveBehavior<B> {
   constructor(
-    private f: (a: A, b: B) => B, public last: B, private parent: Stream<A>
+    private f: (a: A, b: B) => B,
+    public last: B,
+    private parent: Stream<A>
   ) {
     super();
     this.state = State.Push;
@@ -499,26 +525,26 @@ class ScanBehavior<A, B> extends StatefulBehavior<Behavior<B>> {
   }
   semantic(): SemanticBehavior<Behavior<B>> {
     const stream = this.c.semantic();
-    return (t1) => testBehavior<B>((t2) =>
-      stream
-        .filter(({ time }) => t1 <= time && time <= t2)
-        .map((o) => o.value)
-        .reduce((acc, cur) => this.a(cur, acc), this.b)
-    );
+    return (t1) =>
+      testBehavior<B>((t2) =>
+        stream
+          .filter(({ time }) => t1 <= time && time <= t2)
+          .map((o) => o.value)
+          .reduce((acc, cur) => this.a(cur, acc), this.b)
+      );
   }
 }
 
 export function scan<A, B>(
-  f: (a: A, b: B) => B, initial: B, source: Stream<A>
+  f: (a: A, b: B) => B,
+  initial: B,
+  source: Stream<A>
 ): Behavior<Behavior<B>> {
   return new ScanBehavior<A, B>(f, initial, source);
 }
 
 class IndexReactive<A> extends Reactive<A> {
-  constructor(
-    private index: number,
-    parent: Reactive<A>
-  ) {
+  constructor(private index: number, parent: Reactive<A>) {
     super();
     this.parents = cons(parent);
   }
@@ -558,7 +584,8 @@ class ScanCombineBehavior<B> extends StatefulBehavior<Behavior<B>> {
 export type ScanPair<A> = [Stream<any>, (a: any, b: A) => A];
 
 export function scanCombine<B>(
-  pairs: ScanPair<B>[], initial: B
+  pairs: ScanPair<B>[],
+  initial: B
 ): Behavior<Behavior<B>> {
   return new ScanCombineBehavior<B>(pairs, initial);
 }
@@ -570,7 +597,10 @@ const firstArg = (a, b) => a;
  * @param initial - the initial value that the behavior has
  * @param steps - the stream that will change the value of the behavior
  */
-export function stepper<B>(initial: B, steps: Stream<B>): Behavior<Behavior<B>> {
+export function stepper<B>(
+  initial: B,
+  steps: Stream<B>
+): Behavior<Behavior<B>> {
   return scan(firstArg, initial, steps);
 }
 
@@ -581,7 +611,9 @@ export function stepper<B>(initial: B, steps: Stream<B>): Behavior<Behavior<B>> 
  * @param turnOff the streams that turn the behavior off
  */
 export function toggle(
-  initial: boolean, turnOn: Stream<any>, turnOff: Stream<any>
+  initial: boolean,
+  turnOn: Stream<any>,
+  turnOff: Stream<any>
 ): Behavior<Behavior<boolean>> {
   return stepper(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
 }
@@ -612,7 +644,7 @@ class MomentBehavior<A> extends Behavior<A> {
   push(): void {
     removeListenerParents(this, this.parents);
     this.parents = undefined;
-    this.child.push(this.last = this.f(this.sampleBound));
+    this.child.push((this.last = this.f(this.sampleBound)));
   }
   sample<B>(b: Behavior<B>): B {
     b.addListener(this);

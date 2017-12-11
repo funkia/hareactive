@@ -1,7 +1,12 @@
 import { Time, State } from "./common";
 import { cons } from "./linkedlist";
 import { Stream, SemanticStream } from "./stream";
-import { Behavior, SemanticBehavior, FunctionBehavior, fromFunction } from "./behavior";
+import {
+  Behavior,
+  SemanticBehavior,
+  FunctionBehavior,
+  fromFunction
+} from "./behavior";
 
 /*
  * Time related behaviors and functions
@@ -98,8 +103,9 @@ export const time: Behavior<Time> = new TimeBehavior();
  * between the current sample time and the time at which the outer
  * behavior was sampled.
  */
-export const timeFrom: Behavior<Behavior<Time>>
-  = fromFunction(() => new TimeFromBehavior());
+export const timeFrom: Behavior<Behavior<Time>> = fromFunction(
+  () => new TimeFromBehavior()
+);
 
 class IntegrateBehavior extends Behavior<number> {
   private lastPullTime: Time;
@@ -119,6 +125,8 @@ class IntegrateBehavior extends Behavior<number> {
   }
 }
 
-export function integrate(behavior: Behavior<number>): Behavior<Behavior<number>> {
+export function integrate(
+  behavior: Behavior<number>
+): Behavior<Behavior<number>> {
   return fromFunction(() => new IntegrateBehavior(behavior));
 }

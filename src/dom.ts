@@ -32,18 +32,38 @@ function id<A>(a: A): A {
 
 // Overloads for Window
 export function streamFromEvent<A, E extends WindowEventName, T extends Window>(
-  target: T, eventName: E): Stream<WindowEventMap[E]>;
+  target: T,
+  eventName: E
+): Stream<WindowEventMap[E]>;
 export function streamFromEvent<A, E extends WindowEventName, T extends Window>(
-  target: T, eventName: E, extractor: Extractor<WindowEventMap[E], T, A>): Stream<A>;
+  target: T,
+  eventName: E,
+  extractor: Extractor<WindowEventMap[E], T, A>
+): Stream<A>;
 // Overloads for HTMLElement
-export function streamFromEvent<A, E extends HTMLEventName, T extends HTMLElement>(
-  target: T, eventName: E): Stream<HTMLElementEventMap[E]>;
-export function streamFromEvent<A, E extends HTMLEventName, T extends HTMLElement>(
-  target: T, eventName: E, extractor: Extractor<HTMLElementEventMap[E], T, A>): Stream<A>;
+export function streamFromEvent<
+  A,
+  E extends HTMLEventName,
+  T extends HTMLElement
+>(target: T, eventName: E): Stream<HTMLElementEventMap[E]>;
+export function streamFromEvent<
+  A,
+  E extends HTMLEventName,
+  T extends HTMLElement
+>(
+  target: T,
+  eventName: E,
+  extractor: Extractor<HTMLElementEventMap[E], T, A>
+): Stream<A>;
 export function streamFromEvent<A>(
-  target: EventTarget, eventName: string, extractor: Extractor<any, EventTarget, A>): Stream<A>;
+  target: EventTarget,
+  eventName: string,
+  extractor: Extractor<any, EventTarget, A>
+): Stream<A>;
 export function streamFromEvent<A>(
-  target: EventTarget, eventName: string, extractor: Extractor<any, EventTarget, A> = id
+  target: EventTarget,
+  eventName: string,
+  extractor: Extractor<any, EventTarget, A> = id
 ): Stream<A> {
   return new DomEventStream(target, eventName, extractor);
 }
@@ -70,19 +90,52 @@ class DomEventBehavior<A> extends ProducerBehavior<A> {
 }
 
 // Overloads for Window
-export function behaviorFromEvent<A, E extends WindowEventName, T extends Window>(
-  target: T, eventName: E, initial: WindowEventMap[E]): Behavior<WindowEventMap[E]>;
-export function behaviorFromEvent<A, E extends WindowEventName, T extends Window>(
-  target: T, eventName: E, initial: A, extractor: Extractor<WindowEventMap[E], T, A>): Behavior<A>;
+export function behaviorFromEvent<
+  A,
+  E extends WindowEventName,
+  T extends Window
+>(
+  target: T,
+  eventName: E,
+  initial: WindowEventMap[E]
+): Behavior<WindowEventMap[E]>;
+export function behaviorFromEvent<
+  A,
+  E extends WindowEventName,
+  T extends Window
+>(
+  target: T,
+  eventName: E,
+  initial: A,
+  extractor: Extractor<WindowEventMap[E], T, A>
+): Behavior<A>;
 // Overloads for HTMLElement
-export function behaviorFromEvent<A, E extends HTMLEventName, T extends HTMLElement>(
-  target: T, eventName: E, initial: A): Behavior<HTMLElementEventMap[E]>;
-export function behaviorFromEvent<A, E extends HTMLEventName, T extends HTMLElement>(
-  target: T, eventName: E, initial: A, extractor: Extractor<HTMLElementEventMap[E], T, A>): Behavior<A>;
+export function behaviorFromEvent<
+  A,
+  E extends HTMLEventName,
+  T extends HTMLElement
+>(target: T, eventName: E, initial: A): Behavior<HTMLElementEventMap[E]>;
+export function behaviorFromEvent<
+  A,
+  E extends HTMLEventName,
+  T extends HTMLElement
+>(
+  target: T,
+  eventName: E,
+  initial: A,
+  extractor: Extractor<HTMLElementEventMap[E], T, A>
+): Behavior<A>;
 export function behaviorFromEvent<A>(
-  target: EventTarget, eventName: string, initial: A, extractor: Extractor<any, EventTarget, A>): Behavior<A>;
+  target: EventTarget,
+  eventName: string,
+  initial: A,
+  extractor: Extractor<any, EventTarget, A>
+): Behavior<A>;
 export function behaviorFromEvent<A>(
-  target: EventTarget, eventName: string, initial: A, extractor: Extractor<any, EventTarget, A> = id
+  target: EventTarget,
+  eventName: string,
+  initial: A,
+  extractor: Extractor<any, EventTarget, A> = id
 ): Behavior<A> {
   return new DomEventBehavior(target, eventName, initial, extractor);
 }

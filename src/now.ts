@@ -241,7 +241,7 @@ export interface ReactivesObject {
 }
 
 const placeholderProxyHandler = {
-  get: function (target: any, name: string): Behavior<any> | Stream<any> {
+  get: function(target: any, name: string): Behavior<any> | Stream<any> {
     if (!(name in target)) {
       target[name] = placeholder();
     }
@@ -250,7 +250,10 @@ const placeholderProxyHandler = {
 };
 
 class LoopNow<A extends ReactivesObject> extends Now<A> {
-  constructor(private fn: (a: A) => Now<A>, private placeholderNames?: string[]) {
+  constructor(
+    private fn: (a: A) => Now<A>,
+    private placeholderNames?: string[]
+  ) {
     super();
   }
   run(): A {
@@ -273,6 +276,9 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
   }
 }
 
-export function loopNow<A extends ReactivesObject>(fn: (a: A) => Now<A>, names?: string[]): Now<A> {
+export function loopNow<A extends ReactivesObject>(
+  fn: (a: A) => Now<A>,
+  names?: string[]
+): Now<A> {
   return new LoopNow(fn, names);
 }

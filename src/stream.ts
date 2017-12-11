@@ -4,8 +4,8 @@ import { Behavior, fromFunction, scan } from "./behavior";
 // import { DelayStream } from "./time";
 
 export type Occurrence<A> = {
-  time: Time,
-  value: A
+  time: Time;
+  value: A;
 };
 
 export type SemanticStream<A> = Occurrence<A>[];
@@ -37,7 +37,7 @@ export abstract class Stream<A> extends Reactive<A> {
     return scan(fn, init, this);
   }
   log(prefix?: string): Stream<A> {
-    this.subscribe(a => console.log(`${prefix || ""} `, a));
+    this.subscribe((a) => console.log(`${prefix || ""} `, a));
     return this;
   }
   /* istanbul ignore next */
@@ -91,7 +91,10 @@ class FilterStream<A> extends Stream<A> {
   }
 }
 
-export function apply<A, B>(behavior: Behavior<(a: A) => B>, stream: Stream<A>): Stream<B> {
+export function apply<A, B>(
+  behavior: Behavior<(a: A) => B>,
+  stream: Stream<A>
+): Stream<B> {
   return stream.map((a: A) => behavior.at()(a));
 }
 
@@ -101,28 +104,40 @@ export function apply<A, B>(behavior: Behavior<(a: A) => B>, stream: Stream<A>):
  * @returns Stream that only contains the occurrences from `stream`
  * for which `fn` returns true.
  */
-export function filter<A>(predicate: (a: A) => boolean, s: Stream<A>): Stream<A> {
+export function filter<A>(
+  predicate: (a: A) => boolean,
+  s: Stream<A>
+): Stream<A> {
   return s.filter(predicate);
 }
 
-export function split<A>(predicate: (a: A) => boolean, stream: Stream<A>): [Stream<A>, Stream<A>] {
+export function split<A>(
+  predicate: (a: A) => boolean,
+  stream: Stream<A>
+): [Stream<A>, Stream<A>] {
   // It should be possible to implement this in a faster way where
   // `predicate` is only called once for each occurrence
   return [stream.filter(predicate), stream.filter((a) => !predicate(a))];
 }
 
-export function filterApply<A>(predicate: Behavior<(a: A) => boolean>, stream: Stream<A>): Stream<A> {
+export function filterApply<A>(
+  predicate: Behavior<(a: A) => boolean>,
+  stream: Stream<A>
+): Stream<A> {
   return stream.filter((a: A) => predicate.at()(a));
 }
 
-export function keepWhen<A>(stream: Stream<A>, behavior: Behavior<boolean>): Stream<A> {
+export function keepWhen<A>(
+  stream: Stream<A>,
+  behavior: Behavior<boolean>
+): Stream<A> {
   return stream.filter((_) => behavior.at());
 }
 
 /** For stateful streams that are always active */
 export abstract class ActiveStream<A> extends Stream<A> {
-  activate(): void { }
-  deactivate(): void { }
+  activate(): void {}
+  deactivate(): void {}
 }
 
 class EmptyStream extends ActiveStream<any> {
@@ -141,7 +156,11 @@ class EmptyStream extends ActiveStream<any> {
 export const empty: Stream<any> = new EmptyStream();
 
 class ScanStream<A, B> extends ActiveStream<B> {
-  constructor(private fn: (a: A, b: B) => B, private last: B, public parent: Stream<A>) {
+  constructor(
+    private fn: (a: A, b: B) => B,
+    private last: B,
+    public parent: Stream<A>
+  ) {
     super();
     parent.addListener(this);
   }
@@ -154,7 +173,7 @@ class ScanStream<A, B> extends ActiveStream<B> {
     });
   }
   push(a: A): void {
-    const val = this.last = this.fn(a, this.last);
+    const val = (this.last = this.fn(a, this.last));
     this.child.push(val);
   }
 }
@@ -166,15 +185,17 @@ class ScanStream<A, B> extends ActiveStream<B> {
  * becomes the next value of the behavior.
  */
 export function scanS<A, B>(
-  fn: (a: A, b: B) => B, startingValue: B, stream: Stream<A>
+  fn: (a: A, b: B) => B,
+  startingValue: B,
+  stream: Stream<A>
 ): Behavior<Stream<B>> {
   return stream.scanS(fn, startingValue);
 }
 
 /** @private */
 class SwitchOuter<A> implements Observer<Stream<A>> {
-  constructor(private s: SwitchBehaviorStream<A>) { }
-  changeStateDown(state: State): void { }
+  constructor(private s: SwitchBehaviorStream<A>) {}
+  changeStateDown(state: State): void {}
   push(a: Stream<A>): void {
     this.s.doSwitch(a);
   }
@@ -233,7 +254,7 @@ class CombineStream<A, B> extends Stream<A | B> {
     const result: Occurrence<A | B>[] = [];
     const a = this.s1.semantic();
     const b = this.s2.semantic();
-    for (let i = 0, j = 0; i < a.length || j < b.length;) {
+    for (let i = 0, j = 0; i < a.length || j < b.length; ) {
       if (j === b.length || (i < a.length && a[i].time <= b[j].time)) {
         result.push(a[i]);
         i++;
@@ -252,7 +273,9 @@ class CombineStream<A, B> extends Stream<A | B> {
 export abstract class ProducerStream<A> extends Stream<A> {
   /* istanbul ignore next */
   semantic(): SemanticStream<A> {
-    throw new Error("A producer stream does not have a semantic representation");
+    throw new Error(
+      "A producer stream does not have a semantic representation"
+    );
   }
   push(a: A): void {
     this.child.push(a);
@@ -276,7 +299,9 @@ class ProducerStreamFromFunction<A> extends ProducerStream<A> {
   }
 }
 
-export function producerStream<A>(activate: ProducerStreamFunction<A>): Stream<A> {
+export function producerStream<A>(
+  activate: ProducerStreamFunction<A>
+): Stream<A> {
   return new ProducerStreamFromFunction(activate);
 }
 
@@ -352,7 +377,9 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
 }
 
 export function snapshotWith<A, B, C>(
-  f: (a: A, b: B) => C, b: Behavior<B>, s: Stream<A>
+  f: (a: A, b: B) => C,
+  b: Behavior<B>,
+  s: Stream<A>
 ): Stream<C> {
   return new SnapshotWithStream(f, b, s);
 }
@@ -363,5 +390,5 @@ export function combine<A>(...streams: Stream<A>[]): Stream<A> {
 }
 
 export function isStream(s: any): s is Stream<any> {
-  return typeof s === "object" && ("scanS" in s);
+  return typeof s === "object" && "scanS" in s;
 }

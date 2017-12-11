@@ -2,13 +2,28 @@ import { testStreamFromObject } from "../src";
 import { Behavior, switchTo, when, scan } from "../src/behavior";
 import { Future } from "../src/future";
 import {
-  perform, Now, performStream, performStreamLatest,
-  performStreamOrdered, plan, runNow, sample, testNow, loopNow
+  perform,
+  Now,
+  performStream,
+  performStreamLatest,
+  performStreamOrdered,
+  plan,
+  runNow,
+  sample,
+  testNow,
+  loopNow
 } from "../src/now";
 import { Stream, sinkStream } from "../src/stream";
 import { assert } from "chai";
 import {
-  lift, Either, callP, IO, withEffects, withEffectsP, go, fgo
+  lift,
+  Either,
+  callP,
+  IO,
+  withEffects,
+  withEffectsP,
+  go,
+  fgo
 } from "@funkia/jabz";
 
 // A reference that can be mutated
@@ -18,7 +33,9 @@ function createRef<A>(a: A): Ref<A> {
   return { ref: a };
 }
 
-const mutateRef: <A>(a: A, r: Ref<A>) => IO<{}> = withEffects((a: any, r: Ref<any>) => r.ref = a);
+const mutateRef: <A>(a: A, r: Ref<A>) => IO<{}> = withEffects(
+  (a: any, r: Ref<any>) => (r.ref = a)
+);
 
 describe("Now", () => {
   describe("of", () => {
@@ -36,17 +53,19 @@ describe("Now", () => {
   });
   describe("functor", () => {
     it("mapTo", () => {
-      assert.strictEqual(Now.of(12).mapTo(4).run(), 4);
+      assert.strictEqual(
+        Now.of(12)
+          .mapTo(4)
+          .run(),
+        4
+      );
     });
   });
   describe("applicative", () => {
     it("lifts over constant now", () => {
       const now = Now.of(1);
       assert.strictEqual(lift((n) => n * n, now.of(3)).run(), 9);
-      assert.strictEqual(
-        lift((n, m) => n + m, now.of(1), now.of(3)).run(),
-        4
-      );
+      assert.strictEqual(lift((n, m) => n + m, now.of(1), now.of(3)).run(), 4);
       assert.strictEqual(
         lift((n, m, p) => n + m + p, now.of(1), now.of(3), now.of(5)).run(),
         9
@@ -61,12 +80,11 @@ describe("Now", () => {
     it("executes several `async`s in succession", () => {
       const ref1 = createRef(1);
       const ref2 = createRef("Hello");
-      const comp =
-        perform(mutateRef(2, ref1)).chain(
-          (_: any) => perform(mutateRef("World", ref2)).chain(
-            (__: any) => Now.of(Future.of(true))
-          )
-        );
+      const comp = perform(mutateRef(2, ref1)).chain((_: any) =>
+        perform(mutateRef("World", ref2)).chain((__: any) =>
+          Now.of(Future.of(true))
+        )
+      );
       return runNow(comp).then((result: boolean) => {
         assert.strictEqual(result, true);
         assert.strictEqual(ref1.ref, 2);
@@ -74,10 +92,15 @@ describe("Now", () => {
       });
     });
     it("can flatten pure nows", () => {
-      assert.strictEqual(Now.of(Now.of(12)).flatten().run(), 12);
+      assert.strictEqual(
+        Now.of(Now.of(12))
+          .flatten()
+          .run(),
+        12
+      );
     });
     it("throws in go if incorrect monad is yielded", (done) => {
-      const now = go(function* () {
+      const now = go(function*() {
         const a = yield Now.of(1);
         const b = yield Behavior.of(2);
         return 3;
@@ -89,9 +112,11 @@ describe("Now", () => {
     it("works with runNow", () => {
       let resolve: (n: number) => void;
       const promise = runNow(
-        perform(callP((n: number) => new Promise((res) => resolve = res), 0))
+        perform(callP((n: number) => new Promise((res) => (resolve = res)), 0))
       );
-      setTimeout(() => { resolve(12); });
+      setTimeout(() => {
+        resolve(12);
+      });
       return promise.then((result: number) => {
         assert.deepEqual(result, 12);
       });
@@ -110,13 +135,10 @@ describe("Now", () => {
       const now = sample(scan((n, m) => n + m, 0, stream));
       const result = testNow(now);
       const fn = result.semantic();
-      assert.deepEqual(
-        [fn(0), fn(1), fn(2), fn(3), fn(4)],
-        [0, 1, 4, 4, 6]
-      );
+      assert.deepEqual([fn(0), fn(1), fn(2), fn(3), fn(4)], [0, 1, 4, 4, 6]);
     });
     it("it can test with go", () => {
-      const model = fgo(function* (incrementClick: Stream<any>) {
+      const model = fgo(function*(incrementClick: Stream<any>) {
         const increment = incrementClick.mapTo(1);
         const count = yield sample(scan((n, m) => n + m, 0, increment));
         return count;
@@ -143,7 +165,7 @@ describe("Now", () => {
       function comp(n: number): Now<number> {
         return Now.of(n * 2);
       }
-      const prog = go(function* () {
+      const prog = go(function*() {
         const e: Future<number> = yield perform(fn(1));
         const e2 = yield plan(e.map((r) => comp(r)));
         return e2;
@@ -166,18 +188,22 @@ describe("Now", () => {
       });
     });
     function loop(n: number): Now<Behavior<number>> {
-      return go(function* () {
+      return go(function*() {
         const e = yield perform(getNextNr(1));
         const e1 = yield plan(e.map(loop));
         return switchTo(Behavior.of(n), e1);
       });
     }
     function main(): Now<Future<number>> {
-      return go(function* () {
+      return go(function*() {
         const b: Behavior<number> = yield loop(0);
-        const e = yield sample(when(b.map((n: number) => {
-          return n === 3;
-        })));
+        const e = yield sample(
+          when(
+            b.map((n: number) => {
+              return n === 3;
+            })
+          )
+        );
         return e;
       });
     }
@@ -202,7 +228,9 @@ describe("Now", () => {
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStream(mappedS).run().subscribe((n) => results.push(n));
+      performStream(mappedS)
+        .run()
+        .subscribe((n) => results.push(n));
       s.push(1);
       setTimeout(() => {
         s.push(2);
@@ -221,10 +249,14 @@ describe("Now", () => {
   describe("performStreamLatest", () => {
     it("work with one occurrence", (done: Function) => {
       let results: any[] = [];
-      const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
+      const impure = withEffectsP(
+        (n: number) => new Promise((resolve, reject) => resolve(n))
+      );
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamLatest(mappedS).run().subscribe((n) => results.push(n));
+      performStreamLatest(mappedS)
+        .run()
+        .subscribe((n) => results.push(n));
       s.push(60);
       setTimeout(() => {
         assert.deepEqual(results, [60]);
@@ -242,7 +274,9 @@ describe("Now", () => {
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamLatest(mappedS).run().subscribe((n) => results.push(n));
+      performStreamLatest(mappedS)
+        .run()
+        .subscribe((n) => results.push(n));
       s.push(0);
       s.push(1);
       s.push(2);
@@ -259,10 +293,14 @@ describe("Now", () => {
   describe("performStreamOrdered", () => {
     it("work with one occurrence", (done: Function) => {
       let results: any[] = [];
-      const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
+      const impure = withEffectsP(
+        (n: number) => new Promise((resolve, reject) => resolve(n))
+      );
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
+      performStreamOrdered(mappedS)
+        .run()
+        .subscribe((n) => results.push(n));
       s.push(60);
       setTimeout(() => {
         assert.deepEqual(results, [60]);
@@ -280,7 +318,9 @@ describe("Now", () => {
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
+      performStreamOrdered(mappedS)
+        .run()
+        .subscribe((n) => results.push(n));
       s.push(0);
       s.push(1);
       s.push(2);
@@ -301,10 +341,14 @@ describe("Now", () => {
 
     it("should support `undefined` as result", (done: MochaDone) => {
       let results: any[] = [];
-      const impure = withEffectsP((n: number) => new Promise((resolve, reject) => resolve(n)));
+      const impure = withEffectsP(
+        (n: number) => new Promise((resolve, reject) => resolve(n))
+      );
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamOrdered(mappedS).run().subscribe((n) => results.push(n));
+      performStreamOrdered(mappedS)
+        .run()
+        .subscribe((n) => results.push(n));
       s.push(60);
       s.push(undefined);
       s.push(20);
@@ -318,10 +362,10 @@ describe("Now", () => {
     it("should loop the reactives", () => {
       let result = [];
       let s;
-      const now = loopNow(({stream}) => {
+      const now = loopNow(({ stream }) => {
         stream.subscribe((a) => result.push(a));
         s = sinkStream();
-        return Now.of({stream: s});
+        return Now.of({ stream: s });
       });
       now.run();
       s.push("a");
@@ -333,12 +377,12 @@ describe("Now", () => {
     it("should return the reactives", () => {
       let result = [];
       let s;
-      const now = loopNow(({stream}) => {
+      const now = loopNow(({ stream }) => {
         stream.subscribe((a) => a);
         s = sinkStream();
-        return Now.of({stream: s});
+        return Now.of({ stream: s });
       });
-      const {stream} = now.run();
+      const { stream } = now.run();
       stream.subscribe((a) => result.push(a));
       s.push("a");
       s.push("b");

@@ -271,8 +271,7 @@ accumulating and where we are now.
 
 To get rid of the extra layer of nesting we often use `sample`. The
 `sample` function returns a `Now`-computation that asks for the
-current value of a behavior. It has the type `(b: Behavior<A>) =>
-Now<A>`. Using `sample` with `scan` looks like this.
+current value of a behavior. It has the type `(b: Behavior<A>) => Now<A>`. Using `sample` with `scan` looks like this.
 
 ```js
 const count = sample(scan((acc, inc) => acc + inc, 0, incrementStream));
@@ -426,7 +425,7 @@ Returns a stream with all the occurrences from `s` for which
 ```js
 const stream = testStreamFromArray([1, 3, 2, 4, 1]);
 const filtered = stream.filter((n) => n > 2);
-filtered.semantic() //=> [{ time: 1, value: 3 }, { time: 3, value: 4 }]
+filtered.semantic(); //=> [{ time: 1, value: 3 }, { time: 3, value: 4 }]
 ```
 
 #### `split<A>(predicate: (a: A) => boolean, stream: Stream<A>): [Stream<A>, Stream<A>]`
@@ -438,7 +437,7 @@ occurrences for which `predicate` returns `false`.
 ```js
 const whereTrue = stream.filter(predicate);
 const whereFalse = stream.filter((v) => !predicate(v));
-// is equivalent to 
+// is equivalent to
 const [whereTrue, whereFalse] = split(predicate, stream);
 ```
 
@@ -466,11 +465,17 @@ value in the occurrence is then replaced with the sampled value.
 
 ```js
 const stream = testStreamFromObject({
-  1: 0, 4: 0, 8: 0, 12: 0
+  1: 0,
+  4: 0,
+  8: 0,
+  12: 0
 });
 const shot = snapshot(time, stream);
 const result = testStreamFromObject({
-  1: 1, 4: 4, 8: 8, 12: 12
+  1: 1,
+  4: 4,
+  8: 8,
+  12: 12
 });
 // short == result
 ```
@@ -503,14 +508,13 @@ the occurrence from `a` comes first.
 const s1 = testStreamFromObject({ 0: "#1", 2: "#3" });
 const s2 = testStreamFromObject({ 1: "#2", 2: "#4", 3: "#5" });
 const combined = combine(s1, s2);
-assert.deepEqual(
-  combined.semantic(),
-  [
-    { time: 0, value: "#1" }, { time: 1, value: "#2" },
-    { time: 2, value: "#3" }, { time: 2, value: "#4" },
-    { time: 3, value: "#5" }
-  ]
-);
+assert.deepEqual(combined.semantic(), [
+  { time: 0, value: "#1" },
+  { time: 1, value: "#2" },
+  { time: 2, value: "#3" },
+  { time: 2, value: "#4" },
+  { time: 3, value: "#5" }
+]);
 ```
 
 #### `isStream(obj: any): boolean`
@@ -644,17 +648,21 @@ code.
 Contributions are very welcome. Development happens as follows:
 
 Install dependencies.
+
 ```
 npm install
 ```
 
 Run tests.
+
 ```
 npm test
 ```
+
 Running the tests will generate an HTML coverage report in `./coverage/`.
 
 Continuously run the tests with
+
 ```
 npm run test-watch
 ```
@@ -671,16 +679,19 @@ npm run build
 ```
 
 Run all benchmarks with:
+
 ```
 npm run bench
 ```
 
 Run a single benchmark with:
+
 ```
 node benchmark/<name-of-benchmark>
 ```
 
 For example
+
 ```
 node benchmark/scan.suite
 ```

@@ -16,9 +16,7 @@
         "--colors",
         "${workspaceRoot}/test/**/*.ts"
       ],
-      "outFiles": [
-        "${workspaceRoot}/dist"
-      ],
+      "outFiles": ["${workspaceRoot}/dist"],
       "sourceMaps": true,
       "cwd": "${workspaceRoot}",
       "runtimeExecutable": null,
@@ -27,10 +25,7 @@
       "env": {
         "NODE_ENV": "testing"
       },
-      "skipFiles": [
-        "node_modules/**/*.js",
-        "<node_internals>/**/*.js"
-      ]
-    },
+      "skipFiles": ["node_modules/**/*.js", "<node_internals>/**/*.js"]
+    }
   ]
 }

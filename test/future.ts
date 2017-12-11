@@ -32,7 +32,7 @@ describe("Future", () => {
       const future1 = sinkFuture<number>();
       const future2 = sinkFuture<number>();
       const combined = future1.combine(future2);
-      combined.subscribe((a) => result = a);
+      combined.subscribe((a) => (result = a));
       future1.resolve(1);
       future2.resolve(2);
       assert.strictEqual(result, 1);
@@ -42,7 +42,7 @@ describe("Future", () => {
       const future1 = sinkFuture<number>();
       const future2 = sinkFuture<number>();
       const combined = future1.combine(future2);
-      combined.subscribe((a) => result = a);
+      combined.subscribe((a) => (result = a));
       future2.resolve(2);
       future1.resolve(1);
       assert.strictEqual(result, 2);
@@ -52,7 +52,7 @@ describe("Future", () => {
     it("maps over value", () => {
       let result: number;
       const s = sinkFuture<number>();
-      const mapped = s.map(x => x * x);
+      const mapped = s.map((x) => x * x);
       mapped.subscribe((x: number) => {
         result = x;
       });
@@ -76,16 +76,16 @@ describe("Future", () => {
     it("of gives future that has occurred", () => {
       let result: number;
       const o = Future.of(12);
-      o.subscribe((x) => result = x);
+      o.subscribe((x) => (result = x));
       assert.strictEqual(result, 12);
-      o.of(7).subscribe((x) => result = x);
+      o.of(7).subscribe((x) => (result = x));
       assert.strictEqual(result, 7);
     });
     it("lifts a function of one argument", () => {
       let result: string;
       const fut = sinkFuture<string>();
       const lifted = lift((s: string) => s + "!", fut);
-      lifted.subscribe((s: string) => result = s);
+      lifted.subscribe((s: string) => (result = s));
       assert.strictEqual(result, undefined);
       fut.resolve("Hello");
       assert.strictEqual(result, "Hello!");
@@ -95,10 +95,15 @@ describe("Future", () => {
       const fut1 = sinkFuture<string>();
       const fut2 = sinkFuture<string>();
       const fut3 = sinkFuture<string>();
-      const lifted = lift((s1: string, s2: string, s3: string) => {
-        return s1 + "-" + s2 + "+" + s3;
-      }, fut1, fut2, fut3);
-      lifted.subscribe((s: string) => result = s);
+      const lifted = lift(
+        (s1: string, s2: string, s3: string) => {
+          return s1 + "-" + s2 + "+" + s3;
+        },
+        fut1,
+        fut2,
+        fut3
+      );
+      lifted.subscribe((s: string) => (result = s));
       assert.strictEqual(result, undefined);
       fut1.resolve("Hello");
       assert.strictEqual(result, undefined);
@@ -129,9 +134,9 @@ describe("Future", () => {
   it("can convert Promise to Future", () => {
     let result: number;
     let resolve: (n: number) => void;
-    const promise = new Promise((res) => resolve = res);
+    const promise = new Promise((res) => (resolve = res));
     const future = fromPromise(promise);
-    future.subscribe((res: number) => result = res);
+    future.subscribe((res: number) => (result = res));
     assert.strictEqual(result, undefined);
     resolve(12);
     return promise.then(() => {

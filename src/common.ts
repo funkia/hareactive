@@ -4,7 +4,7 @@ import { Behavior } from "./behavior";
 export type Time = number;
 
 function isBehavior(b: any): b is Behavior<any> {
-  return typeof b === "object" && ("at" in b);
+  return typeof b === "object" && "at" in b;
 }
 
 export const enum State {
@@ -39,7 +39,7 @@ export class PushOnlyObserver<A> {
   deactivate(): void {
     this.source.removeListener(this);
   }
-  changeStateDown(state: State): void { }
+  changeStateDown(state: State): void {}
 }
 
 export class MultiObserver<A> implements Observer<A> {
@@ -64,7 +64,9 @@ export interface Subscriber<A> extends Observer<A> {
 }
 
 export function addListenerParents(
-  child: Observer<any>, parents: Cons<Reactive<any>>, state: State
+  child: Observer<any>,
+  parents: Cons<Reactive<any>>,
+  state: State
 ): State {
   const parentState = parents.value.addListener(child);
   const newState = parentState !== State.Push ? parentState : state;
@@ -76,7 +78,8 @@ export function addListenerParents(
 }
 
 export function removeListenerParents(
-  child: Observer<any>, parents: Cons<Reactive<any>>
+  child: Observer<any>,
+  parents: Cons<Reactive<any>>
 ): void {
   parents.value.removeListener(child);
   if (parents.tail !== undefined) {
@@ -84,7 +87,10 @@ export function removeListenerParents(
   }
 }
 
-export function changePullersParents(n: number, parents: Cons<Reactive<any>>): void {
+export function changePullersParents(
+  n: number,
+  parents: Cons<Reactive<any>>
+): void {
   if (parents === undefined) {
     return;
   }

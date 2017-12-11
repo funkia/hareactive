@@ -59,11 +59,19 @@ export abstract class Future<A> extends Reactive<A>
   }
   ap: <B>(f: Future<(a: A) => B>) => Future<B>;
   lift<T1, R>(f: (t: T1) => R, m: Future<T1>): Future<R>;
-  lift<T1, T2, R>(f: (t: T1, u: T2) => R, m1: Future<T1>, m2: Future<T2>): Future<R>;
-  lift<T1, T2, T3, R>(f: (t1: T1, t2: T2, t3: T3) => R, m1: Future<T1>, m2: Future<T2>, m3: Future<T3>): Future<R>;
+  lift<T1, T2, R>(
+    f: (t: T1, u: T2) => R,
+    m1: Future<T1>,
+    m2: Future<T2>
+  ): Future<R>;
+  lift<T1, T2, T3, R>(
+    f: (t1: T1, t2: T2, t3: T3) => R,
+    m1: Future<T1>,
+    m2: Future<T2>,
+    m3: Future<T3>
+  ): Future<R>;
   lift(f: any, ...args: Future<any>[]): any {
-    return f.length === 1 ? new MapFuture(f, args[0])
-      : new LiftFuture(f, args);
+    return f.length === 1 ? new MapFuture(f, args[0]) : new LiftFuture(f, args);
   }
   static multi: false;
   multi: false = false;
@@ -163,8 +171,8 @@ export class SinkFuture<A> extends Future<A> {
   push(val: any): void {
     throw new Error("A sink should not be pushed to.");
   }
-  activate(): void { }
-  deactivate(): void { }
+  activate(): void {}
+  deactivate(): void {}
 }
 
 export function sinkFuture<A>(): Future<A> {
