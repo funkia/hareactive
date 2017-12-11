@@ -656,3 +656,31 @@ class MomentBehavior<A> extends Behavior<A> {
 export function moment<A>(f: (sample: SampleAt) => A): Behavior<A> {
   return new MomentBehavior(f);
 }
+
+class FormatBehavior extends Behavior<string> {
+  constructor(
+    private strings: TemplateStringsArray,
+    private behaviors: Behavior<string | number>[]
+  ) {
+    super();
+    let parents = undefined;
+    for (const b of behaviors) {
+      parents = cons(b, parents);
+    }
+    this.parents = parents;
+  }
+  pull(): string {
+    let resultString = this.strings[0];
+    for (let i = 0; i < this.behaviors.length; ++i) {
+      resultString += at(this.behaviors[i]) + this.strings[i + 1];
+    }
+    return (this.last = resultString);
+  }
+}
+
+export function format(
+  strings: TemplateStringsArray,
+  ...behaviors: Behavior<string | number>[]
+): Behavior<string> {
+  return new FormatBehavior(strings, behaviors);
+}
