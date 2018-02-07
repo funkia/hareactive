@@ -13,3 +13,5 @@ coverage/
 src/**/*.js
 test/**/*.js
 yarn.lock
+.idea
+output
