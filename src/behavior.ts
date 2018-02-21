@@ -88,7 +88,7 @@ export abstract class Behavior<A> extends Reactive<A>
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new ChainBehavior<A, B>(this, fn);
   }
-  flatten: <B>() => Behavior<B>;
+  flatten: <B>(this: Behavior<Behavior<B>>) => Behavior<B>;
   at(): A {
     return this.state === State.Push ? this.last : this.pull();
   }

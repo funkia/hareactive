@@ -382,6 +382,12 @@ describe("behavior", () => {
       b2.changePullers(1);
     });
   });
+  describe("flatten", () => {
+    it("has proper type", () => {
+      const b = Behavior.of(Behavior.of("foo"));
+      const b2 = b.flatten().map((s) => s + "bar");
+    });
+  });
   describe("integrate", () => {
     it("can integrate", () => {
       const clock = useFakeTimers();

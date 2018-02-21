@@ -60,8 +60,8 @@ describe("dom", () => {
         (evt, elm) => elm.value
       );
       const result = [];
-      s.subscribe((ev) => result.push(ev));
-      // simulate input
+      s.subscribe(ev => result.push(ev));
+      // simulate input low latency
       input.value = "second";
       input.dispatchEvent(new Event("change"));
       assert.strictEqual(result.length, 2);
