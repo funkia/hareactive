@@ -29,7 +29,8 @@ import {
   toggle,
   snapshot,
   empty,
-  moment
+  moment,
+  format
 } from "../src";
 
 import * as B from "../src/behavior";
@@ -391,6 +392,36 @@ describe("behavior", () => {
       acceleration.push(2);
       assert.strictEqual(at(integration), 4);
       clock.restore();
+    });
+  });
+  describe("format", () => {
+    it("interpolates string", () => {
+      const bs1 = sinkBehavior("foo");
+      const bs2 = sinkBehavior("bar");
+      const b = format`${bs1} and ${bs2}!`;
+      const cb = spy();
+      b.subscribe(cb);
+      bs1.push("Hello");
+      bs2.push("goodbye");
+      assert.deepEqual(cb.args, [
+        ["foo and bar!"],
+        ["Hello and bar!"],
+        ["Hello and goodbye!"]
+      ]);
+    });
+    it("insert numbers", () => {
+      const bs1 = sinkBehavior("foo");
+      const bs2 = sinkBehavior(12);
+      const b = format`first ${bs1} then ${bs2}!`;
+      const cb = spy();
+      b.subscribe(cb);
+      bs1.push("bar");
+      bs2.push(24);
+      assert.deepEqual(cb.args, [
+        ["first foo then 12!"],
+        ["first bar then 12!"],
+        ["first bar then 24!"]
+      ]);
     });
   });
 });
