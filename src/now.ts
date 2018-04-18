@@ -28,9 +28,9 @@ export abstract class Now<A> implements Monad<A> {
   }
   static multi: boolean = false;
   multi: boolean = false;
-  test(t: Time): A {
-    throw new Error("The Now computation does not support testing yet");
-  }
+
+  abstract test(mocks: any[], t: Time): { value: A; mocks: any[] };
+
   // Definitions below are inserted by Jabz
   flatten: <B>() => Now<B>;
   map: <B>(f: (a: A) => B) => Now<B>;
@@ -46,8 +46,8 @@ class OfNow<A> extends Now<A> {
   run(): A {
     return this.value;
   }
-  test(_: Time): A {
-    return this.value;
+  test(mocks: any[], _: Time): { value: A; mocks: any[] } {
+    return { value: this.value, mocks };
   }
 }
 
@@ -58,8 +58,9 @@ class ChainNow<A, B> extends Now<B> {
   run(): B {
     return this.f(this.first.run()).run();
   }
-  test(t: Time): B {
-    return this.f(this.first.test(t)).test(t);
+  test(mocks: any[], t: Time): { value: B; mocks: any[] } {
+    const { value, mocks: m } = this.first.test(mocks, t);
+    return this.f(value).test(m, t);
   }
 }
 
@@ -70,8 +71,8 @@ class SampleNow<A> extends Now<A> {
   run(): A {
     return at(this.b);
   }
-  test(t: Time): A {
-    return this.b.semantic()(t);
+  test(mocks: any[], t: Time): { value: A; mocks: any[] } {
+    return { value: this.b.semantic()(t), mocks };
   }
 }
 
@@ -85,6 +86,10 @@ class PerformNow<A> extends Now<Future<A>> {
   }
   run(): Future<A> {
     return fromPromise(runIO(this.comp));
+  }
+
+  test([value, ...mocks]: any[], t: Time): { value: Future<A>; mocks: any[] } {
+    return { value: fromPromise(Promise.resolve(value)), mocks };
   }
 }
 
@@ -112,6 +117,10 @@ class PerformStreamNow<A> extends Now<Stream<A>> {
   }
   run(): Stream<A> {
     return new PerformIOStream(this.s);
+  }
+
+  test([value, ...mocks]: any[], _: Time): { value: Stream<A>; mocks } {
+    return { value, mocks };
   }
 }
 
@@ -152,6 +161,10 @@ class PerformStreamNowLatest<A> extends Now<Stream<A>> {
   }
   run(): Stream<A> {
     return new PerformIOStreamLatest(this.s);
+  }
+
+  test([value, ...mocks]: any[], _: Time): { value: Stream<A>; mocks } {
+    return { value, mocks };
   }
 }
 
@@ -195,6 +208,10 @@ class PerformStreamNowOrdered<A> extends Now<Stream<A>> {
   run(): Stream<A> {
     return new PerformIOStreamOrdered(this.s);
   }
+
+  test([value, ...mocks]: any[], _: Time): { value: Stream<A>; mocks } {
+    return { value, mocks };
+  }
 }
 
 export function performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>> {
@@ -211,6 +228,10 @@ class PlanNow<A> extends Now<Future<A>> {
   }
   run(): Future<A> {
     return this.future.map(run);
+  }
+
+  test(mocks: any[], t: Time): { value: Future<A>; mocks: any[] } {
+    throw new Error("The PlanNow computation does not support testing yet");
   }
 }
 
@@ -230,8 +251,8 @@ export function runNow<A>(now: Now<Future<A>>): Promise<A> {
  * @param time The point in time at which the now computation should
  * be run. Defaults to 0.
  */
-export function testNow<A>(now: Now<A>, time: Time = 0): A {
-  return (<any>now).test(time);
+export function testNow<A>(now: Now<A>, mocks: any[] = [], time: Time = 0): A {
+  return now.test(mocks, time).value;
 }
 
 export interface ReactivesObject {
@@ -271,6 +292,10 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
       placeholderObject[name].replaceWith(result[name]);
     }
     return result;
+  }
+
+  test(mocks: any[], t: Time): { value: A; mocks: any[] } {
+    throw new Error("The LoopNow computation does not support testing yet");
   }
 }
 
