@@ -424,6 +424,74 @@ describe("behavior", () => {
       ]);
     });
   });
+  describe("moment", () => {
+    it("works as lift", () => {
+      const b1 = sinkBehavior(0);
+      const b2 = sinkBehavior(1);
+      const derived = moment((at) => {
+        return at(b1) + at(b2);
+      });
+      const spy = subscribeSpy(derived);
+      b1.push(2);
+      b2.push(3);
+      assert.deepEqual(spy.args, [[1], [3], [5]]);
+    });
+    it("adds and removes dependencies", () => {
+      const flag = sinkBehavior(true);
+      const b1 = sinkBehavior(2);
+      const b2 = sinkBehavior(3);
+      const derived = moment((at) => {
+        return at(flag) ? at(b1) : at(b2);
+      });
+      const spy = subscribeSpy(derived);
+      b1.push(4);
+      flag.push(false);
+      b2.push(5);
+      b1.push(6);
+      assert.deepEqual(spy.args, [[2], [4], [3], [5]]);
+    });
+    it("can combine behaviors from array", () => {
+      const nr1 = sinkBehavior(4);
+      const nr2 = sinkBehavior(3);
+      const nr3 = sinkBehavior(2);
+      const count1 = { count: nr1 };
+      const count2 = { count: nr2 };
+      const count3 = { count: nr3 };
+      const list: Behavior<{ count: Behavior<number> }[]> = sinkBehavior([]);
+      const derived = moment((at) => {
+        return at(list)
+          .map(({ count }) => at(count))
+          .reduce((n, m) => n + m, 0);
+      });
+      const spy = subscribeSpy(derived);
+      list.push([count1, count2, count3]);
+      nr2.push(5);
+      list.push([count1, count3]);
+      nr2.push(10);
+      nr3.push(3);
+      assert.deepEqual(spy.args, [[0], [9], [11], [6], [7]]);
+    });
+    it("works with placeholders", () => {
+      const p = placeholder<number>();
+      const b0 = sinkBehavior(3);
+      const b1 = sinkBehavior(1);
+      const b2 = sinkBehavior(2);
+      const derived = moment((at) => {
+        return at(b1) + at(p) + at(b2);
+      });
+      const spy = subscribeSpy(derived);
+      b1.push(2);
+      p.replaceWith(b0);
+      p.push(0);
+      assert.deepEqual(spy.args, [[7], [4]]);
+    });
+    it("works with snapshot", () => {
+      const b1 = sinkBehavior(1);
+      const b2 = moment((at) => at(b1) * 2);
+      const snapped = snapshot(b2, empty);
+      const cb = subscribeSpy(snapped);
+    });
+  });
 });
 
 describe("Behavior and Future", () => {
@@ -569,7 +637,7 @@ describe("Behavior and Stream", () => {
       const spy = subscribeSpy(t);
       assert.deepEqual(spy.args, [[12]]);
     });
-    it("has old value in exact moment", () => {
+    it.skip("has old value in exact moment", () => {
       const s = sinkStream();
       const b = stepper(0, s).at();
       const res = snapshot(b, s);
@@ -720,72 +788,5 @@ describe("Behavior and Stream", () => {
       assert.deepEqual(cb.args, [[false], [true], [false], [true]]);
     });
   });
-  describe("moment", () => {
-    it("works as lift", () => {
-      const b1 = sinkBehavior(0);
-      const b2 = sinkBehavior(1);
-      const derived = moment((at) => {
-        return at(b1) + at(b2);
-      });
-      const spy = subscribeSpy(derived);
-      b1.push(2);
-      b2.push(3);
-      assert.deepEqual(spy.args, [[1], [3], [5]]);
-    });
-    it("adds and removes dependencies", () => {
-      const flag = sinkBehavior(true);
-      const b1 = sinkBehavior(2);
-      const b2 = sinkBehavior(3);
-      const derived = moment((at) => {
-        return at(flag) ? at(b1) : at(b2);
-      });
-      const spy = subscribeSpy(derived);
-      b1.push(4);
-      flag.push(false);
-      b2.push(5);
-      b1.push(6);
-      assert.deepEqual(spy.args, [[2], [4], [3], [5]]);
-    });
-    it("can combine behaviors from array", () => {
-      const nr1 = sinkBehavior(4);
-      const nr2 = sinkBehavior(3);
-      const nr3 = sinkBehavior(2);
-      const count1 = { count: nr1 };
-      const count2 = { count: nr2 };
-      const count3 = { count: nr3 };
-      const list: Behavior<{ count: Behavior<number> }[]> = sinkBehavior([]);
-      const derived = moment((at) => {
-        return at(list)
-          .map(({ count }) => at(count))
-          .reduce((n, m) => n + m, 0);
-      });
-      const spy = subscribeSpy(derived);
-      list.push([count1, count2, count3]);
-      nr2.push(5);
-      list.push([count1, count3]);
-      nr2.push(10);
-      nr3.push(3);
-      assert.deepEqual(spy.args, [[0], [9], [11], [6], [7]]);
-    });
-    it("works with placeholders", () => {
-      const p = placeholder<number>();
-      const b0 = sinkBehavior(3);
-      const b1 = sinkBehavior(1);
-      const b2 = sinkBehavior(2);
-      const derived = moment((at) => {
-        return at(b1) + at(p) + at(b2);
-      });
-      const spy = subscribeSpy(derived);
-      b1.push(2);
-      p.replaceWith(b0);
-      p.push(0);
-      assert.deepEqual(spy.args, [[7], [4]]);
-    });
-    it("works with snapshot", () => {
-      const b1 = sinkBehavior(1);
-      const b2 = moment((at) => at(b1) * 2);
-      const snapped = snapshot(b2, empty);
-      const cb = subscribeSpy(snapped);
-    });
-  });
+  
 });
