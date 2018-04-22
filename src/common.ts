@@ -1,4 +1,4 @@
-import { Cons, cons } from "./linkedlist";
+import { Cons, cons, DoubleLinkedList, Node } from "./linkedlist";
 import { Behavior } from "./behavior";
 
 export type Time = number;
@@ -29,8 +29,9 @@ export interface Observer<A> {
 }
 
 export class PushOnlyObserver<A> {
+  node = new Node(this);
   constructor(private callback: (a: A) => void, private source: Reactive<A>) {
-    source.addListener(this);
+    source.addListener(this.node);
     if (isBehavior(source) && source.state === State.Push) {
       callback(source.at());
     }
@@ -39,54 +40,13 @@ export class PushOnlyObserver<A> {
     this.callback(a);
   }
   deactivate(): void {
-    this.source.removeListener(this);
+    this.source.removeListener(this.node);
   }
   changeStateDown(state: State): void {}
 }
 
-export class MultiObserver<A> implements Observer<A> {
-  listeners: Observer<A>[];
-  constructor(c1: Observer<A>, c2: Observer<A>) {
-    this.listeners = [c1, c2];
-  }
-  push(a: A): void {
-    for (let i = this.listeners.length - 1; 0 <= i; --i) {
-      this.listeners[i].push(a);
-    }
-  }
-  changeStateDown(state: State): void {
-    for (let i = this.listeners.length - 1; 0 <= i; --i) {
-      this.listeners[i].changeStateDown(state);
-    }
-  }
-}
-
 export interface Subscriber<A> extends Observer<A> {
   deactivate(): void;
-}
-
-export function addListenerParents(
-  child: Observer<any>,
-  parents: Cons<Reactive<any>>,
-  state: State
-): State {
-  const parentState = parents.value.addListener(child);
-  const newState = parentState !== State.Push ? parentState : state;
-  if (parents.tail !== undefined) {
-    return addListenerParents(child, parents.tail, newState);
-  } else {
-    return newState;
-  }
-}
-
-export function removeListenerParents(
-  child: Observer<any>,
-  parents: Cons<Reactive<any>>
-): void {
-  parents.value.removeListener(child);
-  if (parents.tail !== undefined) {
-    removeListenerParents(child, parents.tail);
-  }
 }
 
 export function changePullersParents(
@@ -102,57 +62,41 @@ export function changePullersParents(
   changePullersParents(n, parents.tail);
 }
 
+type NodeParentPair = {
+  parent: Reactive<any>;
+  node: Node<any>;
+};
+
 export abstract class Reactive<A> implements Observer<any> {
-  child: Observer<A>;
   nrOfListeners: number;
   state: State;
+  children: DoubleLinkedList<Observer<A>> = new DoubleLinkedList();
   parents: Cons<Reactive<any>>;
+  listenerNodes: Cons<NodeParentPair> | undefined;
   constructor() {
     this.state = State.Inactive;
     this.nrOfListeners = 0;
   }
-  addListener(c: Observer<A>): State {
-    const nr = ++this.nrOfListeners;
-    if (nr === 1) {
-      this.child = c;
+  addListener(node: Node<Observer<any>>): State {
+    const firstChild = this.children.head === undefined;
+    this.children.append(node);
+    if (firstChild) {
       this.activate();
-    } else if (nr === 2) {
-      this.child = new MultiObserver(this.child, c);
-    } else {
-      (<MultiObserver<A>>this.child).listeners.push(c);
     }
     return this.state;
   }
-  removeListener(listener: Observer<any>): void {
-    const nr = --this.nrOfListeners;
-    if (nr === 0) {
-      this.child = undefined;
-      if (this.state !== State.Done) {
-        this.deactivate();
-      }
-    } else if (nr === 1) {
-      const l = (<MultiObserver<A>>this.child).listeners;
-      this.child = l[l[0] === listener ? 1 : 0];
-    } else {
-      const l = (<MultiObserver<A>>this.child).listeners;
-      // The indexOf here is O(n), where n is the number of listeners,
-      // if using a linked list it should be possible to perform the
-      // unsubscribe operation in constant time.
-      const idx = l.indexOf(listener);
-      if (idx !== -1) {
-        if (idx !== l.length - 1) {
-          l[idx] = l[l.length - 1];
-        }
-        l.length--; // remove the last element of the list
-      }
+  removeListener(node: Node<Observer<any>>): void {
+    this.children.remove(node);
+    if (this.children.head === undefined && this.state !== State.Done) {
+      this.deactivate();
     }
   }
   changeStateDown(state: State): void {
-    if (this.child !== undefined) {
-      this.child.changeStateDown(state);
+    for (const child of this.children) {
+      child.changeStateDown(state);
     }
   }
-  subscribe(callback: (a: A) => void): Subscriber<A> {
+  subscribe(callback: (a: A) => void) {
     return new PushOnlyObserver(callback, this);
   }
   observe(push: (a: A) => void, handlePulling: PullHandler): CbObserver<A> {
@@ -161,22 +105,37 @@ export abstract class Reactive<A> implements Observer<any> {
   abstract push(a: any): void;
   abstract pull(): A;
   activate(): void {
-    this.state = addListenerParents(this, this.parents, State.Push);
+    this.state = State.Push;
+    for (const parent of this.parents) {
+      const node = new Node(this);
+      this.listenerNodes = cons({ node, parent }, this.listenerNodes);
+      parent.addListener(node);
+      const parentState = parent.state;
+      if (parentState !== State.Push) {
+        this.state = parentState;
+      }
+    }
+    // this.state = addListenerParents(this, this.parents, State.Push);
   }
   deactivate(done = false): void {
-    removeListenerParents(this, this.parents);
+    if (this.listenerNodes !== undefined) {
+      for (const { node, parent } of this.listenerNodes) {
+        parent.removeListener(node);
+      }
+    }
     this.state = done === true ? State.Done : State.Inactive;
   }
 }
 
 export class CbObserver<A> implements Observer<A> {
   private endPulling = () => {};
+  node: Node<Observer<A>> = new Node(this);
   constructor(
     private _push: (a: A) => void,
     private handlePulling: PullHandler,
     private source: Reactive<A>
   ) {
-    source.addListener(this);
+    source.addListener(this.node);
     if (source.state === State.Pull || source.state === State.OnlyPull) {
       this.endPulling = handlePulling(this.pull.bind(this));
     } else if (isBehavior(source) && source.state === State.Push) {

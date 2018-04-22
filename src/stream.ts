@@ -1,5 +1,5 @@
 import { Observer, Reactive, State, Time } from "./common";
-import { cons } from "./linkedlist";
+import { cons, Node } from "./linkedlist";
 import { Behavior, fromFunction, scan } from "./behavior";
 // import { DelayStream } from "./time";
 
@@ -60,7 +60,10 @@ export class MapStream<A, B> extends Stream<B> {
     return s.map(({ time, value }) => ({ time, value: this.f(value) }));
   }
   push(a: A): void {
-    this.child.push(this.f(a));
+    const b = this.f(a);
+    for (const child of this.children) {
+      child.push(b);          
+    }
   }
 }
 
@@ -74,7 +77,9 @@ export class MapToStream<A, B> extends Stream<B> {
     return s.map(({ time }) => ({ time, value: this.b }));
   }
   push(a: A): void {
-    this.child.push(this.b);
+    for (const child of this.children) {
+      child.push(this.b);          
+    }
   }
 }
 
@@ -89,7 +94,9 @@ class FilterStream<A> extends Stream<A> {
   }
   push(a: A): void {
     if (this.fn(a) === true) {
-      this.child.push(a);
+      for (const child of this.children) {
+        child.push(a);          
+      }
     }
   }
 }
@@ -159,16 +166,18 @@ class EmptyStream extends ActiveStream<any> {
 export const empty: Stream<any> = new EmptyStream();
 
 class ScanStream<A, B> extends ActiveStream<B> {
+  private node = new Node(this);
   constructor(
     private fn: (a: A, b: B) => B,
     private last: B,
     public parent: Stream<A>
   ) {
     super();
-    parent.addListener(this);
+    this.parents = cons(parent);
+    parent.addListener(this.node);
   }
   semantic(): SemanticStream<B> {
-    const s = (<Stream<A>>this.parent).semantic();
+    const s = this.parent.semantic();
     let acc = this.last;
     return s.map(({ time, value }) => {
       acc = this.fn(value, acc);
@@ -177,7 +186,9 @@ class ScanStream<A, B> extends ActiveStream<B> {
   }
   push(a: A): void {
     const val = (this.last = this.fn(a, this.last));
-    this.child.push(val);
+    for (const child of this.children) {
+      child.push(val);          
+    }
   }
 }
 
@@ -197,6 +208,7 @@ export function scanS<A, B>(
 
 /** @private */
 class SwitchOuter<A> implements Observer<Stream<A>> {
+  node = new Node(this);
   constructor(private s: SwitchBehaviorStream<A>) {}
   changeStateDown(state: State): void {}
   push(a: Stream<A>): void {
@@ -205,27 +217,30 @@ class SwitchOuter<A> implements Observer<Stream<A>> {
 }
 
 class SwitchBehaviorStream<A> extends Stream<A> {
+  private node = new Node(this);
   private currentSource: Stream<A>;
-  private outerConsumer: Observer<Stream<A>>;
+  private outerConsumer: SwitchOuter<A>;
   constructor(private b: Behavior<Stream<A>>) {
     super();
   }
   activate(): void {
     this.outerConsumer = new SwitchOuter(this);
-    this.b.addListener(this.outerConsumer);
+    this.b.addListener(this.outerConsumer.node);
     this.currentSource = this.b.at();
-    this.currentSource.addListener(this);
+    this.currentSource.addListener(this.node);
   }
   deactivate(): void {
-    this.currentSource.removeListener(this);
-    this.b.removeListener(this.outerConsumer);
+    this.currentSource.removeListener(this.node);
+    this.b.removeListener(this.outerConsumer.node);
   }
   push(a: A): void {
-    this.child.push(a);
+    for (const child of this.children) {
+      child.push(a);          
+    }
   }
   public doSwitch(newStream: Stream<A>): void {
-    this.currentSource.removeListener(this);
-    newStream.addListener(this);
+    this.currentSource.removeListener(this.node);
+    newStream.addListener(this.node);
     this.currentSource = newStream;
   }
 }
@@ -240,7 +255,9 @@ class ChangesStream<A> extends Stream<A> {
     this.parents = cons(parent);
   }
   push(a: A): void {
-    this.child.push(a);
+    for (const child of this.children) {
+      child.push(a);          
+    }
   }
 }
 
@@ -269,7 +286,9 @@ class CombineStream<A, B> extends Stream<A | B> {
     return result;
   }
   push(a: A | B): void {
-    this.child.push(a);
+    for (const child of this.children) {
+      child.push(a);          
+    }
   }
 }
 
@@ -281,7 +300,9 @@ export abstract class ProducerStream<A> extends Stream<A> {
     );
   }
   push(a: A): void {
-    this.child.push(a);
+    for (const child of this.children) {
+      child.push(a);          
+    }
   }
 }
 
@@ -316,7 +337,9 @@ export class SinkStream<A> extends ProducerStream<A> {
   }
   push(a: A): void {
     if (this.pushing === true) {
-      this.child.push(a);
+      for (const child of this.children) {
+        child.push(a);          
+      }
     }
   }
   activate(): void {
@@ -336,19 +359,23 @@ export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
 }
 
 class SnapshotStream<B> extends Stream<B> {
+  private node = new Node(this);
   constructor(private behavior: Behavior<B>, private stream: Stream<any>) {
     super();
   }
   push(a: any): void {
-    this.child.push(this.behavior.at());
+    const b = this.behavior.at();
+    for (const child of this.children) {
+      child.push(b);          
+    }
   }
   activate(): void {
     this.behavior.changePullers(1);
-    this.stream.addListener(this);
+    this.stream.addListener(this.node);
   }
   deactivate(): void {
     this.behavior.changePullers(-1);
-    this.stream.removeListener(this);
+    this.stream.removeListener(this.node);
   }
   semantic(): SemanticStream<B> {
     const b = this.behavior.semantic();
@@ -361,6 +388,7 @@ export function snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B> {
 }
 
 class SnapshotWithStream<A, B, C> extends Stream<C> {
+  private node = new Node(this);
   constructor(
     private fn: (a: A, b: B) => C,
     private behavior: Behavior<B>,
@@ -369,13 +397,16 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
     super();
   }
   push(a: A): void {
-    this.child.push(this.fn(a, this.behavior.at()));
+    const c = this.fn(a, this.behavior.at());
+    for (const child of this.children) {
+      child.push(c);
+    }
   }
   activate(): void {
-    this.stream.addListener(this);
+    this.stream.addListener(this.node);
   }
   deactivate(): void {
-    this.stream.removeListener(this);
+    this.stream.removeListener(this.node);
   }
 }
 
