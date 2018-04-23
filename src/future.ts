@@ -23,6 +23,7 @@ export abstract class Future<A> extends Reactive<A>
     super();
   }
   abstract push(val: any): void;
+  pull(){}
   resolve(val: A): void {
     this.deactivate(true);
     this.value = val;

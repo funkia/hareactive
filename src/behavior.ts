@@ -551,6 +551,7 @@ class IndexReactive<A> extends Reactive<A> {
   push(a: A): void {
     (<any>this.child).pushIdx(a, this.index);
   }
+  pull() {}
 }
 
 class ActiveScanCombineBehavior<A> extends ActiveBehavior<A> {

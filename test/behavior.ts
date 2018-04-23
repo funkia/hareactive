@@ -325,10 +325,14 @@ describe("behavior", () => {
       const pushSpy = spy();
       const beginPullingSpy = spy();
       const endPullingSpy = spy();
+      const handlePulling = (...args) => {
+        beginPullingSpy(...args);
+        return endPullingSpy;
+      }
       // Test that several observers are notified
-      chained.observe(pushSpy, beginPullingSpy, endPullingSpy);
-      chained.observe(pushSpy, beginPullingSpy, endPullingSpy);
-      chained.observe(pushSpy, beginPullingSpy, endPullingSpy);
+      chained.observe(pushSpy, handlePulling);
+      chained.observe(pushSpy, handlePulling);
+      chained.observe(pushSpy, handlePulling);
       pushingB.push(1);
       pushingB.push(2);
       outer.push(false);
@@ -493,12 +497,17 @@ describe("Behavior and Future", () => {
       const pushSpy = spy();
       const beginPullingSpy = spy();
       const endPullingSpy = spy();
+      const handlePulling = (...args) => {
+        beginPullingSpy(...args);
+        return endPullingSpy;
+      }
+
       const pushingB = sinkBehavior(0);
       let x = 7;
       const pullingB = fromFunction(() => x);
       const futureSink = F.sinkFuture<Behavior<number>>();
       const switching = switchTo(pushingB, futureSink);
-      observe(pushSpy, beginPullingSpy, endPullingSpy, switching);
+      observe(pushSpy, handlePulling, switching);
       assert.strictEqual(at(switching), 0);
       pushingB.push(1);
       assert.strictEqual(at(switching), 1);
@@ -520,8 +529,10 @@ describe("Behavior and Future", () => {
       const switching = switchTo(b1, futureSink);
       observe(
         (n: number) => pushed.push(n),
-        () => (beginPull = true),
-        () => (endPull = true),
+        () => {
+          beginPull = true
+          return () => {endPull = true}; 
+        },
         switching
       );
       assert.strictEqual(beginPull, true);
@@ -684,8 +695,10 @@ describe("Behavior and Stream", () => {
       let pushed: number[] = [];
       observe(
         (n: number) => pushed.push(n),
-        () => (beginPull = true),
-        () => (endPull = true),
+        () => { 
+          beginPull = true;
+          return () => {endPull = true}
+        },
         time
       );
       assert.strictEqual(beginPull, true);

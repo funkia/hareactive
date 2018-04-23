@@ -44,6 +44,7 @@ export abstract class Stream<A> extends Reactive<A> {
   semantic(): SemanticStream<A> {
     throw new Error("The stream does not have a semantic representation");
   }
+  pull(){}
   // abstract semantic(): SemanticStream<A>;
 }
 

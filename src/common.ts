@@ -7,6 +7,8 @@ function isBehavior(b: any): b is Behavior<any> {
   return typeof b === "object" && "at" in b;
 }
 
+export type PullHandler = (pull: () => void) => () => void;
+
 export const enum State {
   // Values are pushed to listeners
   Push,
@@ -155,12 +157,12 @@ export abstract class Reactive<A> implements Observer<any> {
   }
   observe(
     push: (a: A) => void,
-    beginPulling: () => void,
-    endPulling: () => void
+    handlePulling: PullHandler
   ): CbObserver<A> {
-    return new CbObserver(push, beginPulling, endPulling, this);
+    return new CbObserver(push, handlePulling, this);
   }
   abstract push(a: any): void;
+  abstract pull(a: any): void;
   activate(): void {
     this.state = addListenerParents(this, this.parents, State.Push);
   }
@@ -171,15 +173,15 @@ export abstract class Reactive<A> implements Observer<any> {
 }
 
 export class CbObserver<A> implements Observer<A> {
+  private endPulling = () => {}; 
   constructor(
     private _push: (a: A) => void,
-    private _beginPulling: () => void,
-    private _endPulling: () => void,
+    private handlePulling: PullHandler,
     private source: Reactive<A>
   ) {
     source.addListener(this);
     if (source.state === State.Pull || source.state === State.OnlyPull) {
-      _beginPulling();
+      this.endPulling = handlePulling(source.pull.bind(source));
     } else if (isBehavior(source) && source.state === State.Push) {
       _push(source.last);
     }
@@ -189,9 +191,9 @@ export class CbObserver<A> implements Observer<A> {
   }
   changeStateDown(state: State): void {
     if (state === State.Pull || state === State.OnlyPull) {
-      this._beginPulling();
+      this.endPulling = this.handlePulling(this.endPulling.bind(this));
     } else {
-      this._endPulling();
+      this.endPulling();
     }
   }
 }
@@ -208,9 +210,8 @@ export class CbObserver<A> implements Observer<A> {
  */
 export function observe<A>(
   push: (a: A) => void,
-  beginPulling: () => void,
-  endPulling: () => void,
-  behavior: Behavior<A>
+  handlePulling: PullHandler,
+  behavior: Reactive<A>
 ): CbObserver<A> {
-  return behavior.observe(push, beginPulling, endPulling);
+  return behavior.observe(push, handlePulling);
 }
