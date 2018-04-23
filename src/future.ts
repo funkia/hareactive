@@ -23,7 +23,9 @@ export abstract class Future<A> extends Reactive<A>
     super();
   }
   abstract push(val: any): void;
-  pull(){}
+  pull(): A {
+    throw new Error("Pull not implemented on future");
+  }
   resolve(val: A): void {
     this.deactivate(true);
     this.value = val;

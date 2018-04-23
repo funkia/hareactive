@@ -155,14 +155,11 @@ export abstract class Reactive<A> implements Observer<any> {
   subscribe(callback: (a: A) => void): Subscriber<A> {
     return new PushOnlyObserver(callback, this);
   }
-  observe(
-    push: (a: A) => void,
-    handlePulling: PullHandler
-  ): CbObserver<A> {
+  observe(push: (a: A) => void, handlePulling: PullHandler): CbObserver<A> {
     return new CbObserver(push, handlePulling, this);
   }
   abstract push(a: any): void;
-  abstract pull(a: any): void;
+  abstract pull(): A;
   activate(): void {
     this.state = addListenerParents(this, this.parents, State.Push);
   }
@@ -173,7 +170,7 @@ export abstract class Reactive<A> implements Observer<any> {
 }
 
 export class CbObserver<A> implements Observer<A> {
-  private endPulling = () => {}; 
+  private endPulling = () => {};
   constructor(
     private _push: (a: A) => void,
     private handlePulling: PullHandler,
@@ -181,10 +178,14 @@ export class CbObserver<A> implements Observer<A> {
   ) {
     source.addListener(this);
     if (source.state === State.Pull || source.state === State.OnlyPull) {
-      this.endPulling = handlePulling(source.pull.bind(source));
+      this.endPulling = handlePulling(this.pull.bind(this));
     } else if (isBehavior(source) && source.state === State.Push) {
       _push(source.last);
     }
+  }
+  pull() {
+    const val = this.source.pull();
+    this._push(val);
   }
   push(a: A): void {
     this._push(a);
