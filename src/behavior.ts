@@ -1,4 +1,4 @@
-import { Cons, cons, DoubleLinkedList, Node } from "./linkedlist";
+import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Monad, monad } from "@funkia/jabz";
 import {
   Observer,
@@ -560,7 +560,7 @@ class IndexReactive<A> extends Reactive<A> {
   }
   push(a: A): void {
     for (const child of this.children) {
-      (<any>child).pushIdx(a, this.index);        
+      (<any>child).pushIdx(a, this.index);
     }
   }
   pull(): A {
@@ -589,7 +589,7 @@ class ActiveScanCombineBehavior<A> extends ActiveBehavior<A> {
     this.last = this.accumulators[index](a, this.last);
     for (const child of this.children) {
       child.push(this.last);
-    }    
+    }
   }
 }
 
@@ -652,12 +652,15 @@ class MomentBehavior<A> extends Behavior<A> {
       if ("placeholder" in error) {
         const placeholder = error.placeholder;
         if (this.listenerNodes !== undefined) {
-          for (const {node, parent} of this.listenerNodes) {
+          for (const { node, parent } of this.listenerNodes) {
             parent.removeListener(node);
           }
         }
         const node = new Node(this);
-        this.listenerNodes = cons({node, parent: placeholder}, this.listenerNodes);
+        this.listenerNodes = cons(
+          { node, parent: placeholder },
+          this.listenerNodes
+        );
         placeholder.addListener(node);
         this.parents = cons(placeholder);
       } else {
@@ -667,21 +670,21 @@ class MomentBehavior<A> extends Behavior<A> {
   }
   push(): void {
     if (this.listenerNodes !== undefined) {
-      for (const {node, parent} of this.listenerNodes) {
+      for (const { node, parent } of this.listenerNodes) {
         parent.removeListener(node);
-      }      
+      }
     }
     this.parents = undefined;
     this.last = this.f(this.sampleBound);
     for (const child of this.children) {
-      child.push(this.last);   
+      child.push(this.last);
     }
   }
   sample<B>(b: Behavior<B>): B {
     const node = new Node(this);
-    this.listenerNodes = cons({node, parent: b}, this.listenerNodes);
+    this.listenerNodes = cons({ node, parent: b }, this.listenerNodes);
     b.addListener(node);
-    
+
     this.parents = cons(b, this.parents);
     return b.at();
   }

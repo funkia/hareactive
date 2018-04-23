@@ -1,4 +1,4 @@
-import { Cons, cons, DoubleLinkedList, Node } from "./linkedlist";
+import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Behavior } from "./behavior";
 
 export type Time = number;
@@ -115,7 +115,6 @@ export abstract class Reactive<A> implements Observer<any> {
         this.state = parentState;
       }
     }
-    // this.state = addListenerParents(this, this.parents, State.Push);
   }
   deactivate(done = false): void {
     if (this.listenerNodes !== undefined) {

@@ -1,5 +1,5 @@
 import { Observer, Reactive, State, Time } from "./common";
-import { cons, Node } from "./linkedlist";
+import { cons, Node } from "./datastructures";
 import { Behavior, fromFunction, scan } from "./behavior";
 // import { DelayStream } from "./time";
 
@@ -62,7 +62,7 @@ export class MapStream<A, B> extends Stream<B> {
   push(a: A): void {
     const b = this.f(a);
     for (const child of this.children) {
-      child.push(b);          
+      child.push(b);
     }
   }
 }
@@ -78,7 +78,7 @@ export class MapToStream<A, B> extends Stream<B> {
   }
   push(a: A): void {
     for (const child of this.children) {
-      child.push(this.b);          
+      child.push(this.b);
     }
   }
 }
@@ -95,7 +95,7 @@ class FilterStream<A> extends Stream<A> {
   push(a: A): void {
     if (this.fn(a) === true) {
       for (const child of this.children) {
-        child.push(a);          
+        child.push(a);
       }
     }
   }
@@ -187,7 +187,7 @@ class ScanStream<A, B> extends ActiveStream<B> {
   push(a: A): void {
     const val = (this.last = this.fn(a, this.last));
     for (const child of this.children) {
-      child.push(val);          
+      child.push(val);
     }
   }
 }
@@ -235,7 +235,7 @@ class SwitchBehaviorStream<A> extends Stream<A> {
   }
   push(a: A): void {
     for (const child of this.children) {
-      child.push(a);          
+      child.push(a);
     }
   }
   public doSwitch(newStream: Stream<A>): void {
@@ -256,7 +256,7 @@ class ChangesStream<A> extends Stream<A> {
   }
   push(a: A): void {
     for (const child of this.children) {
-      child.push(a);          
+      child.push(a);
     }
   }
 }
@@ -287,7 +287,7 @@ class CombineStream<A, B> extends Stream<A | B> {
   }
   push(a: A | B): void {
     for (const child of this.children) {
-      child.push(a);          
+      child.push(a);
     }
   }
 }
@@ -301,7 +301,7 @@ export abstract class ProducerStream<A> extends Stream<A> {
   }
   push(a: A): void {
     for (const child of this.children) {
-      child.push(a);          
+      child.push(a);
     }
   }
 }
@@ -338,7 +338,7 @@ export class SinkStream<A> extends ProducerStream<A> {
   push(a: A): void {
     if (this.pushing === true) {
       for (const child of this.children) {
-        child.push(a);          
+        child.push(a);
       }
     }
   }
@@ -366,7 +366,7 @@ class SnapshotStream<B> extends Stream<B> {
   push(a: any): void {
     const b = this.behavior.at();
     for (const child of this.children) {
-      child.push(b);          
+      child.push(b);
     }
   }
   activate(): void {

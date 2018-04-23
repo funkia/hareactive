@@ -5,7 +5,7 @@ import {
   isBehavior,
   MapBehavior
 } from "./behavior";
-import { Node } from "./linkedlist";
+import { Node } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
 
 class SamplePlaceholderError {
@@ -34,7 +34,7 @@ export class Placeholder<A> extends Behavior<A> {
   push(a: any): void {
     this.last = a;
     for (const child of this.children) {
-      child.push(a);        
+      child.push(a);
     }
   }
   pull(): A {
