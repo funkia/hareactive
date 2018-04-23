@@ -1,5 +1,5 @@
 import { Time, State } from "./common";
-import { cons } from "./linkedlist";
+import { cons } from "./datastructures";
 import { Stream, SemanticStream } from "./stream";
 import {
   Behavior,
@@ -23,7 +23,7 @@ export class DelayStream<A> extends Stream<A> {
   push(a: A): void {
     setTimeout(() => {
       for (const child of this.children) {
-        child.push(a)        
+        child.push(a);
       }
     }, this.ms);
   }
@@ -42,7 +42,7 @@ class ThrottleStream<A> extends Stream<A> {
   push(a: A): void {
     if (!this.isSilenced) {
       for (const child of this.children) {
-        child.push(a)        
+        child.push(a);
       }
       this.isSilenced = true;
       setTimeout(() => {
@@ -66,7 +66,7 @@ class DebounceStream<A> extends Stream<A> {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
       for (const child of this.children) {
-        child.push(a)        
+        child.push(a);
       }
     }, this.ms);
   }

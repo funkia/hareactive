@@ -2,7 +2,7 @@ import { IO, runIO, Monad, monad } from "@funkia/jabz";
 import { placeholder, Placeholder } from "./placeholder";
 import { State, Time } from "./common";
 import { Future, fromPromise, sinkFuture } from "./future";
-import { Node } from "./linkedlist";
+import { Node } from "./datastructures";
 import { Behavior, at } from "./behavior";
 import { ActiveStream, Stream } from "./stream";
 

@@ -1,7 +1,7 @@
 import { monad, Monad, Semigroup } from "@funkia/jabz";
 import { State } from "./common";
 import { Observer, Reactive } from "./common";
-import { cons, fromArray, Node } from "./linkedlist";
+import { cons, fromArray, Node } from "./datastructures";
 import { Behavior } from "./behavior";
 
 export interface Consumer<A> {
@@ -193,7 +193,7 @@ export function fromPromise<A>(p: Promise<A>): Future<A> {
  * @private
  */
 export class BehaviorFuture<A> extends SinkFuture<A> implements Observer<A> {
-  node= new Node(this);
+  node = new Node(this);
   constructor(private b: Behavior<A>) {
     super();
     b.addListener(this.node);

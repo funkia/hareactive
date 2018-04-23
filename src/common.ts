@@ -1,4 +1,4 @@
-import { Cons, cons, DoubleLinkedList, Node } from "./linkedlist";
+import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Behavior } from "./behavior";
 
 export type Time = number;
@@ -43,7 +43,6 @@ export class PushOnlyObserver<A> {
   changeStateDown(state: State): void {}
 }
 
-
 export interface Subscriber<A> extends Observer<A> {
   deactivate(): void;
 }
@@ -62,8 +61,8 @@ export function changePullersParents(
 }
 
 type NodeParentPair = {
-  parent: Reactive<any>,
-  node: Node<any>
+  parent: Reactive<any>;
+  node: Node<any>;
 };
 
 export abstract class Reactive<A> implements Observer<any> {
@@ -84,7 +83,7 @@ export abstract class Reactive<A> implements Observer<any> {
     }
     return this.state;
   }
-  removeListener(node: Node<Observer<any>>): void {   
+  removeListener(node: Node<Observer<any>>): void {
     this.children.remove(node);
     if (this.children.head === undefined && this.state !== State.Done) {
       this.deactivate();
@@ -110,20 +109,19 @@ export abstract class Reactive<A> implements Observer<any> {
     this.state = State.Push;
     for (const parent of this.parents) {
       const node = new Node(this);
-      this.listenerNodes = cons({node, parent}, this.listenerNodes);
+      this.listenerNodes = cons({ node, parent }, this.listenerNodes);
       parent.addListener(node);
       const parentState = parent.state;
       if (parentState !== State.Push) {
         this.state = parentState;
       }
     }
-    // this.state = addListenerParents(this, this.parents, State.Push);
   }
   deactivate(done = false): void {
     if (this.listenerNodes !== undefined) {
-      for (const {node, parent} of this.listenerNodes) {
+      for (const { node, parent } of this.listenerNodes) {
         parent.removeListener(node);
-      }  
+      }
     }
     this.state = done === true ? State.Done : State.Inactive;
   }
