@@ -94,9 +94,7 @@ export abstract class Behavior<A> extends Reactive<A>
   }
   push(a: any): void {
     this.last = this.pull();
-    for (const child of this.children) {
-      child.push(this.last);
-    }
+    this.pushToChildren(this.last);
   }
   pull(): A {
     return this.last;
@@ -221,9 +219,7 @@ export class MapBehavior<A, B> extends Behavior<B> {
   }
   push(a: A): void {
     this.last = this.f(a);
-    for (const child of this.children) {
-      child.push(this.last);
-    }
+    this.pushToChildren(this.last);
   }
   pull(): B {
     const newVal = this.parent.at();
@@ -248,9 +244,7 @@ class ApBehavior<A, B> extends Behavior<B> {
     const fn = at(this.fn);
     const val = at(this.val);
     this.last = fn(val);
-    for (const child of this.children) {
-      child.push(this.last);
-    }
+    this.pushToChildren(this.last);
   }
   pull(): B {
     return this.fn.at()(this.val.at());
@@ -324,9 +318,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
   }
   push(b: B): void {
     this.last = b;
-    for (const child of this.children) {
-      child.push(this.last);
-    }
+    this.pushToChildren(this.last);
   }
   pull(): B {
     return this.fn(this.outer.at()).at();
@@ -457,9 +449,7 @@ class SwitcherBehavior<A> extends ActiveBehavior<A> {
   }
   push(val: A): void {
     this.last = val;
-    for (const child of this.children) {
-      child.push(this.last);
-    }
+    this.pushToChildren(this.last);
   }
   pull(): A {
     return at(this.b);
@@ -523,9 +513,7 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B> {
   }
   push(val: A): void {
     this.last = this.f(val, this.last);
-    for (const child of this.children) {
-      child.push(this.last);
-    }
+    this.pushToChildren(this.last);
   }
 }
 
@@ -584,9 +572,7 @@ class ActiveScanCombineBehavior<A> extends ActiveBehavior<A> {
   }
   pushIdx(a: A, index: number): void {
     this.last = this.accumulators[index](a, this.last);
-    for (const child of this.children) {
-      child.push(this.last);
-    }
+    this.pushToChildren(this.last);
   }
 }
 
@@ -673,9 +659,7 @@ class MomentBehavior<A> extends Behavior<A> {
     }
     this.parents = undefined;
     this.last = this.f(this.sampleBound);
-    for (const child of this.children) {
-      child.push(this.last);
-    }
+    this.pushToChildren(this.last);
   }
   sample<B>(b: Behavior<B>): B {
     const node = new Node(this);

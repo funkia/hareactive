@@ -26,9 +26,7 @@ export abstract class Future<A> extends Reactive<A>
   resolve(val: A): void {
     this.deactivate(true);
     this.value = val;
-    for (const child of this.children) {
-      child.push(val);
-    }
+    this.pushToChildren(val);
   }
   addListener(node: Node<Observer<A>>): State {
     if (this.state === State.Done) {

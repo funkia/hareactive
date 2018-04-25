@@ -105,6 +105,11 @@ export abstract class Reactive<A> implements Observer<any> {
     return new CbObserver(push, beginPulling, endPulling, this);
   }
   abstract push(a: any): void;
+  pushToChildren(a: any): void {
+    for (const child of this.children) {
+      child.push(a);
+    }
+  }
   activate(): void {
     this.state = State.Push;
     for (const parent of this.parents) {
