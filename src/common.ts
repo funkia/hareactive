@@ -104,6 +104,11 @@ export abstract class Reactive<A> implements Observer<any> {
   }
   abstract push(a: any): void;
   abstract pull(): A;
+  pushToChildren(a: any): void {
+    for (const child of this.children) {
+      child.push(a);
+    }
+  }
   activate(): void {
     this.state = State.Push;
     for (const parent of this.parents) {
