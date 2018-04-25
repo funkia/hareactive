@@ -77,7 +77,7 @@ export abstract class Reactive<A> implements Observer<any> {
   }
   addListener(node: Node<Observer<any>>): State {
     const firstChild = this.children.head === undefined;
-    this.children.append(node);
+    this.children.prepend(node);
     if (firstChild) {
       this.activate();
     }

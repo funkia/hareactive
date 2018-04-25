@@ -28,16 +28,16 @@ export function fromArray<A>(values: A[]): Cons<A> {
 export class DoubleLinkedList<A> {
   head: Node<A> | undefined;
   tail: Node<A> | undefined;
-  append(node: Node<A>): DoubleLinkedList<A> {
-    if (this.head === undefined) {
-      this.head = node;
+  prepend(node: Node<A>): DoubleLinkedList<A> {
+    if (this.tail === undefined) {
+      this.tail = node;
     }
-    node.prev = this.tail;
-    node.next = undefined;
-    if (this.tail !== undefined) {
-      this.tail.next = node;
+    node.next = this.head;
+    if (this.head !== undefined) {
+      this.head.prev = node;
     }
-    this.tail = node;
+    node.prev = undefined;
+    this.head = node;
     return this;
   }
   remove(node: Node<A>): DoubleLinkedList<A> {
@@ -53,6 +53,8 @@ export class DoubleLinkedList<A> {
     if (this.tail === node) {
       this.tail = node.prev;
     }
+    node.prev = undefined;
+    node.next = undefined;
     return this;
   }
   *[Symbol.iterator](): IterableIterator<A> {

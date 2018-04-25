@@ -637,7 +637,7 @@ describe("Behavior and Stream", () => {
       const spy = subscribeSpy(t);
       assert.deepEqual(spy.args, [[12]]);
     });
-    it.skip("has old value in exact moment", () => {
+    it("has old value in exact moment", () => {
       const s = sinkStream();
       const b = stepper(0, s).at();
       const res = snapshot(b, s);
@@ -788,5 +788,4 @@ describe("Behavior and Stream", () => {
       assert.deepEqual(cb.args, [[false], [true], [false], [true]]);
     });
   });
-  
 });
