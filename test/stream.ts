@@ -97,7 +97,7 @@ describe("stream", () => {
       const cb2 = spy();
       s.subscribe(cb1);
       const listener = s.subscribe(cb2);
-      s.removeListener(listener);
+      s.removeListener(listener.node);
       publish(2, s);
       publish(3, s);
       assert.strictEqual(cb1.callCount, 2);
@@ -111,7 +111,7 @@ describe("stream", () => {
       s.subscribe(cb1);
       const listener = s.subscribe(cb2);
       s.subscribe(cb3);
-      s.removeListener(listener);
+      s.removeListener(listener.node);
       publish(2, s);
       publish(3, s);
       assert.strictEqual(cb1.callCount, 2);

@@ -1,7 +1,7 @@
 import { monad, Monad, Semigroup } from "@funkia/jabz";
 import { State } from "./common";
 import { Observer, Reactive } from "./common";
-import { cons, fromArray } from "./linkedlist";
+import { cons, fromArray, Node } from "./datastructures";
 import { Behavior } from "./behavior";
 
 export interface Consumer<A> {
@@ -26,16 +26,14 @@ export abstract class Future<A> extends Reactive<A>
   resolve(val: A): void {
     this.deactivate(true);
     this.value = val;
-    if (this.child !== undefined) {
-      this.child.push(val);
-    }
+    this.pushToChildren(val);
   }
-  addListener(c: Observer<A>): State {
+  addListener(node: Node<Observer<A>>): State {
     if (this.state === State.Done) {
-      c.push(this.value);
+      node.value.push(this.value);
       return State.Done;
     } else {
-      return super.addListener(c);
+      return super.addListener(node);
     }
   }
   combine(future: Future<A>): Future<A> {
@@ -145,6 +143,7 @@ class LiftFuture<A> extends Future<A> {
 
 class ChainFuture<A, B> extends Future<B> {
   private parentOccurred: boolean = false;
+  private node = new Node(this);
   constructor(private f: (a: A) => Future<B>, private parent: Future<A>) {
     super();
     this.parents = cons(parent);
@@ -155,7 +154,7 @@ class ChainFuture<A, B> extends Future<B> {
       // and listen to the future it returns.
       this.parentOccurred = true;
       const newFuture = this.f(val);
-      newFuture.addListener(this);
+      newFuture.addListener(this.node);
     } else {
       this.resolve(val);
     }
@@ -192,16 +191,17 @@ export function fromPromise<A>(p: Promise<A>): Future<A> {
  * @private
  */
 export class BehaviorFuture<A> extends SinkFuture<A> implements Observer<A> {
+  node = new Node(this);
   constructor(private b: Behavior<A>) {
     super();
-    b.addListener(this);
+    b.addListener(this.node);
   }
   /* istanbul ignore next */
   changeStateDown(): void {
     throw new Error("Behavior future does not support pushing behavior");
   }
   push(a: A): void {
-    this.b.removeListener(this);
+    this.b.removeListener(this.node);
     this.resolve(a);
   }
 }

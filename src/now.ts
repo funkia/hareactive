@@ -2,6 +2,7 @@ import { IO, runIO, Monad, monad } from "@funkia/jabz";
 import { placeholder, Placeholder } from "./placeholder";
 import { State, Time } from "./common";
 import { Future, fromPromise, sinkFuture } from "./future";
+import { Node } from "./datastructures";
 import { Behavior, at } from "./behavior";
 import { ActiveStream, Stream } from "./stream";
 
@@ -92,16 +93,15 @@ export function perform<A>(comp: IO<A>): Now<Future<A>> {
 }
 
 class PerformIOStream<A> extends ActiveStream<A> {
+  node = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
-    s.addListener(this);
+    s.addListener(this.node);
     this.state = State.Push;
   }
   push(io: IO<A>): void {
     runIO(io).then((a: A) => {
-      if (this.child !== undefined) {
-        this.child.push(a);
-      }
+      this.pushToChildren(a);
     });
   }
 }
@@ -120,9 +120,10 @@ export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
 }
 
 class PerformIOStreamLatest<A> extends ActiveStream<A> {
+  private node = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
-    s.addListener(this);
+    s.addListener(this.node);
   }
   next: number = 0;
   newest: number = 0;
@@ -139,9 +140,7 @@ class PerformIOStreamLatest<A> extends ActiveStream<A> {
         } else {
           this.newest = time;
         }
-        if (this.child !== undefined) {
-          this.child.push(a);
-        }
+        this.pushToChildren(a);
       }
     });
   }
@@ -161,9 +160,10 @@ export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
 }
 
 class PerformIOStreamOrdered<A> extends ActiveStream<A> {
+  private node = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
-    s.addListener(this);
+    s.addListener(this.node);
   }
   nextId: number = 0;
   next: number = 0;
@@ -182,9 +182,7 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   pushFromBuffer(): void {
     while (this.buffer[0] !== undefined) {
       const { value } = this.buffer.shift();
-      if (this.child !== undefined) {
-        this.child.push(value);
-      }
+      this.pushToChildren(value);
       this.next++;
     }
   }

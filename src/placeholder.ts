@@ -5,6 +5,7 @@ import {
   isBehavior,
   MapBehavior
 } from "./behavior";
+import { Node } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
 
 class SamplePlaceholderError {
@@ -17,9 +18,10 @@ class SamplePlaceholderError {
 
 export class Placeholder<A> extends Behavior<A> {
   source: Reactive<A>;
+  private node = new Node(this);
   replaceWith(parent: Reactive<A>): void {
     this.source = parent;
-    if (this.child !== undefined) {
+    if (this.children.head !== undefined) {
       this.activate();
       if (isBehavior(parent) && this.state === State.Push) {
         this.push(parent.at());
@@ -31,7 +33,9 @@ export class Placeholder<A> extends Behavior<A> {
   }
   push(a: any): void {
     this.last = a;
-    this.child.push(a);
+    for (const child of this.children) {
+      child.push(a);
+    }
   }
   pull(): A {
     if (this.source === undefined) {
@@ -41,7 +45,7 @@ export class Placeholder<A> extends Behavior<A> {
   }
   activate(): void {
     if (this.source !== undefined) {
-      this.source.addListener(this);
+      this.source.addListener(this.node);
       this.state = this.source.state;
       this.changeStateDown(this.state);
     }
@@ -49,7 +53,7 @@ export class Placeholder<A> extends Behavior<A> {
   deactivate(done = false): void {
     this.state = State.Inactive;
     if (this.source !== undefined) {
-      this.source.removeListener(this);
+      this.source.removeListener(this.node);
     }
   }
   changePullers(n: number): void {
