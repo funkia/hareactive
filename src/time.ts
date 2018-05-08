@@ -22,9 +22,7 @@ export class DelayStream<A> extends Stream<A> {
   }
   push(a: A): void {
     setTimeout(() => {
-      for (const child of this.children) {
-        child.push(a);
-      }
+      this.pushToChildren(a);
     }, this.ms);
   }
 }
@@ -41,9 +39,7 @@ class ThrottleStream<A> extends Stream<A> {
   private isSilenced: boolean = false;
   push(a: A): void {
     if (!this.isSilenced) {
-      for (const child of this.children) {
-        child.push(a);
-      }
+      this.pushToChildren(a);
       this.isSilenced = true;
       setTimeout(() => {
         this.isSilenced = false;
@@ -65,9 +61,7 @@ class DebounceStream<A> extends Stream<A> {
   push(a: A): void {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
-      for (const child of this.children) {
-        child.push(a);
-      }
+      this.pushToChildren(a);
     }, this.ms);
   }
 }

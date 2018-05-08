@@ -375,9 +375,7 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
   }
   push(a: A): void {
     const c = this.fn(a, this.behavior.at());
-    for (const child of this.children) {
-      child.push(c);
-    }
+    this.pushToChildren(c);
   }
   activate(): void {
     this.stream.addListener(this.node);
