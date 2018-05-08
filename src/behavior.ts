@@ -127,9 +127,7 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
     const changed = a !== this.last;
     this.last = a;
     if (this.state === State.Push && changed) {
-      for (const child of this.children) {
-        child.push(this.last);
-      }
+      this.pushToChildren(this.last);
     }
   }
   changePullers(n: number): void {

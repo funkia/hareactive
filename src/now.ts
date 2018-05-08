@@ -101,9 +101,7 @@ class PerformIOStream<A> extends ActiveStream<A> {
   }
   push(io: IO<A>): void {
     runIO(io).then((a: A) => {
-      for (const child of this.children) {
-        child.push(a);
-      }
+      this.pushToChildren(a);
     });
   }
 }
@@ -142,9 +140,7 @@ class PerformIOStreamLatest<A> extends ActiveStream<A> {
         } else {
           this.newest = time;
         }
-        for (const child of this.children) {
-          child.push(a);
-        }
+        this.pushToChildren(a);
       }
     });
   }
@@ -186,9 +182,7 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   pushFromBuffer(): void {
     while (this.buffer[0] !== undefined) {
       const { value } = this.buffer.shift();
-      for (const child of this.children) {
-        child.push(value);
-      }
+      this.pushToChildren(value);
       this.next++;
     }
   }
