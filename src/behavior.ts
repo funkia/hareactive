@@ -549,6 +549,9 @@ class IndexReactive<A> extends Reactive<A> {
       (<any>child).pushIdx(a, this.index);
     }
   }
+  pull(): A {
+    throw new Error("Pull should never be called here");
+  }
 }
 
 class ActiveScanCombineBehavior<A> extends ActiveBehavior<A> {
