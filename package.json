@@ -13,7 +13,7 @@
     "build": "npm run build-es6; npm run build-cmjs",
     "build-es6": "tsc -P ./tsconfig-release.json --outDir 'dist/es' --target es2015 --module es2015",
     "build-cmjs": "tsc -P ./tsconfig-release.json",
-    "prepare": "npm run clean; npm run build",
+    "prepublishOnly": "npm run clean; npm run build",
     "prebench": "npm run build-cmjs",
     "bench": "node benchmark",
     "clean": "rm -rf dist coverage .nyc_output",
