@@ -44,14 +44,15 @@ export abstract class Stream<A> extends Reactive<A> {
   semantic(): SemanticStream<A> {
     throw new Error("The stream does not have a semantic representation");
   }
-  pull(): A {
+  abstract push(t: number): void;
+  pull(t: number): void {
     throw new Error("Pull not implemented on stream");
   }
   // abstract semantic(): SemanticStream<A>;
 }
 
 export class MapStream<A, B> extends Stream<B> {
-  constructor(parent: Stream<A>, private f: (a: A) => B) {
+  constructor(private parent: Stream<A>, private f: (a: A) => B) {
     super();
     this.parents = cons(parent);
   }
@@ -59,23 +60,23 @@ export class MapStream<A, B> extends Stream<B> {
     const s = (<Stream<A>>this.parents.value).semantic();
     return s.map(({ time, value }) => ({ time, value: this.f(value) }));
   }
-  push(a: A): void {
-    const b = this.f(a);
-    this.pushToChildren(b);
+  push(t: number): void {
+    this.last = this.f(this.parent.last);
+    this.pushToChildren(t);
   }
 }
 
 export class MapToStream<A, B> extends Stream<B> {
-  constructor(parent: Stream<A>, private b: B) {
+  constructor(parent: Stream<A>, public last: B) {
     super();
     this.parents = cons(parent);
   }
   semantic(): SemanticStream<B> {
     const s = (<Stream<A>>this.parents.value).semantic();
-    return s.map(({ time }) => ({ time, value: this.b }));
+    return s.map(({ time }) => ({ time, value: this.last }));
   }
-  push(a: A): void {
-    this.pushToChildren(this.b);
+  push(t: number): void {
+    this.pushToChildren(t);
   }
 }
 
@@ -88,9 +89,11 @@ class FilterStream<A> extends Stream<A> {
     const s = (<Stream<A>>this.parent).semantic();
     return s.filter(({ value }) => this.fn(value));
   }
-  push(a: A): void {
-    if (this.fn(a) === true) {
-      this.pushToChildren(a);
+  push(t: number): void {
+    const v = this.parent.last;
+    if (this.fn(v) === true) {
+      this.last = v;
+      this.pushToChildren(t);
     }
   }
 }
@@ -152,7 +155,7 @@ class EmptyStream extends ActiveStream<any> {
     return [];
   }
   /* istanbul ignore next */
-  push(a: any): void {
+  push(t: number): void {
     throw new Error("You cannot push to an empty stream");
   }
 }
@@ -163,7 +166,7 @@ class ScanStream<A, B> extends ActiveStream<B> {
   private node = new Node(this);
   constructor(
     private fn: (a: A, b: B) => B,
-    private last: B,
+    public last: B,
     public parent: Stream<A>
   ) {
     super();
@@ -178,9 +181,9 @@ class ScanStream<A, B> extends ActiveStream<B> {
       return { time, value: acc };
     });
   }
-  push(a: A): void {
-    this.last = this.fn(a, this.last);
-    this.pushToChildren(this.last);
+  push(t: number): void {
+    this.last = this.fn(this.parent.last, this.last);
+    this.pushToChildren(t);
   }
 }
 
@@ -198,209 +201,209 @@ export function scanS<A, B>(
   return stream.scanS(fn, startingValue);
 }
 
-/** @private */
-class SwitchOuter<A> implements Observer<Stream<A>> {
-  node = new Node(this);
-  constructor(private s: SwitchBehaviorStream<A>) {}
-  changeStateDown(state: State): void {}
-  push(a: Stream<A>): void {
-    this.s.doSwitch(a);
-  }
-}
+// /** @private */
+// class SwitchOuter<A> implements Observer<Stream<A>> {
+//   node = new Node(this);
+//   constructor(private s: SwitchBehaviorStream<A>) {}
+//   changeStateDown(state: State): void {}
+//   push(a: Stream<A>): void {
+//     this.s.doSwitch(a);
+//   }
+// }
 
-class SwitchBehaviorStream<A> extends Stream<A> {
-  private node = new Node(this);
-  private currentSource: Stream<A>;
-  private outerConsumer: SwitchOuter<A>;
-  constructor(private b: Behavior<Stream<A>>) {
-    super();
-  }
-  activate(): void {
-    this.outerConsumer = new SwitchOuter(this);
-    this.b.addListener(this.outerConsumer.node);
-    this.currentSource = this.b.at();
-    this.currentSource.addListener(this.node);
-  }
-  deactivate(): void {
-    this.currentSource.removeListener(this.node);
-    this.b.removeListener(this.outerConsumer.node);
-  }
-  push(a: A): void {
-    this.pushToChildren(a);
-  }
-  public doSwitch(newStream: Stream<A>): void {
-    this.currentSource.removeListener(this.node);
-    newStream.addListener(this.node);
-    this.currentSource = newStream;
-  }
-}
+// class SwitchBehaviorStream<A> extends Stream<A> {
+//   private node = new Node(this);
+//   private currentSource: Stream<A>;
+//   private outerConsumer: SwitchOuter<A>;
+//   constructor(private b: Behavior<Stream<A>>) {
+//     super();
+//   }
+//   activate(): void {
+//     this.outerConsumer = new SwitchOuter(this);
+//     this.b.addListener(this.outerConsumer.node);
+//     this.currentSource = this.b.at();
+//     this.currentSource.addListener(this.node);
+//   }
+//   deactivate(): void {
+//     this.currentSource.removeListener(this.node);
+//     this.b.removeListener(this.outerConsumer.node);
+//   }
+//   push(a: A): void {
+//     this.pushToChildren(a);
+//   }
+//   public doSwitch(newStream: Stream<A>): void {
+//     this.currentSource.removeListener(this.node);
+//     newStream.addListener(this.node);
+//     this.currentSource = newStream;
+//   }
+// }
 
-export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
-  return new SwitchBehaviorStream(b);
-}
+// export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
+//   return new SwitchBehaviorStream(b);
+// }
 
-class ChangesStream<A> extends Stream<A> {
-  constructor(parent: Behavior<A>) {
-    super();
-    this.parents = cons(parent);
-  }
-  push(a: A): void {
-    this.pushToChildren(a);
-  }
-}
+// class ChangesStream<A> extends Stream<A> {
+//   constructor(parent: Behavior<A>) {
+//     super();
+//     this.parents = cons(parent);
+//   }
+//   push(a: A): void {
+//     this.pushToChildren(a);
+//   }
+// }
 
-export function changes<A>(b: Behavior<A>): Stream<A> {
-  return new ChangesStream(b);
-}
+// export function changes<A>(b: Behavior<A>): Stream<A> {
+//   return new ChangesStream(b);
+// }
 
-class CombineStream<A, B> extends Stream<A | B> {
-  constructor(private s1: Stream<A>, private s2: Stream<B>) {
-    super();
-    this.parents = cons<Stream<A | B>>(s1, cons(s2));
-  }
-  semantic(): SemanticStream<A | B> {
-    const result: Occurrence<A | B>[] = [];
-    const a = this.s1.semantic();
-    const b = this.s2.semantic();
-    for (let i = 0, j = 0; i < a.length || j < b.length; ) {
-      if (j === b.length || (i < a.length && a[i].time <= b[j].time)) {
-        result.push(a[i]);
-        i++;
-      } else {
-        result.push(b[j]);
-        j++;
-      }
-    }
-    return result;
-  }
-  push(a: A | B): void {
-    this.pushToChildren(a);
-  }
-}
+// class CombineStream<A, B> extends Stream<A | B> {
+//   constructor(private s1: Stream<A>, private s2: Stream<B>) {
+//     super();
+//     this.parents = cons<Stream<A | B>>(s1, cons(s2));
+//   }
+//   semantic(): SemanticStream<A | B> {
+//     const result: Occurrence<A | B>[] = [];
+//     const a = this.s1.semantic();
+//     const b = this.s2.semantic();
+//     for (let i = 0, j = 0; i < a.length || j < b.length; ) {
+//       if (j === b.length || (i < a.length && a[i].time <= b[j].time)) {
+//         result.push(a[i]);
+//         i++;
+//       } else {
+//         result.push(b[j]);
+//         j++;
+//       }
+//     }
+//     return result;
+//   }
+//   push(a: A | B): void {
+//     this.pushToChildren(a);
+//   }
+// }
 
-export abstract class ProducerStream<A> extends Stream<A> {
-  /* istanbul ignore next */
-  semantic(): SemanticStream<A> {
-    throw new Error(
-      "A producer stream does not have a semantic representation"
-    );
-  }
-  push(a: A): void {
-    this.pushToChildren(a);
-  }
-}
+// export abstract class ProducerStream<A> extends Stream<A> {
+//   /* istanbul ignore next */
+//   semantic(): SemanticStream<A> {
+//     throw new Error(
+//       "A producer stream does not have a semantic representation"
+//     );
+//   }
+//   push(a: A): void {
+//     this.pushToChildren(a);
+//   }
+// }
 
-export type ProducerStreamFunction<A> = (push: (a: A) => void) => () => void;
+// export type ProducerStreamFunction<A> = (push: (a: A) => void) => () => void;
 
-class ProducerStreamFromFunction<A> extends ProducerStream<A> {
-  constructor(private activateFn: ProducerStreamFunction<A>) {
-    super();
-  }
-  deactivateFn: () => void;
-  activate(): void {
-    this.state = State.Push;
-    this.deactivateFn = this.activateFn(this.push.bind(this));
-  }
-  deactivate(): void {
-    this.state = State.Inactive;
-    this.deactivateFn();
-  }
-}
+// class ProducerStreamFromFunction<A> extends ProducerStream<A> {
+//   constructor(private activateFn: ProducerStreamFunction<A>) {
+//     super();
+//   }
+//   deactivateFn: () => void;
+//   activate(): void {
+//     this.state = State.Push;
+//     this.deactivateFn = this.activateFn(this.push.bind(this));
+//   }
+//   deactivate(): void {
+//     this.state = State.Inactive;
+//     this.deactivateFn();
+//   }
+// }
 
-export function producerStream<A>(
-  activate: ProducerStreamFunction<A>
-): Stream<A> {
-  return new ProducerStreamFromFunction(activate);
-}
+// export function producerStream<A>(
+//   activate: ProducerStreamFunction<A>
+// ): Stream<A> {
+//   return new ProducerStreamFromFunction(activate);
+// }
 
-export class SinkStream<A> extends ProducerStream<A> {
-  private pushing: boolean;
-  constructor() {
-    super();
-    this.pushing = false;
-  }
-  push(a: A): void {
-    if (this.pushing === true) {
-      this.pushToChildren(a);
-    }
-  }
-  activate(): void {
-    this.pushing = true;
-  }
-  deactivate(): void {
-    this.pushing = false;
-  }
-}
+// export class SinkStream<A> extends ProducerStream<A> {
+//   private pushing: boolean;
+//   constructor() {
+//     super();
+//     this.pushing = false;
+//   }
+//   push(a: A): void {
+//     if (this.pushing === true) {
+//       this.pushToChildren(a);
+//     }
+//   }
+//   activate(): void {
+//     this.pushing = true;
+//   }
+//   deactivate(): void {
+//     this.pushing = false;
+//   }
+// }
 
-export function sinkStream<A>(): SinkStream<A> {
-  return new SinkStream<A>();
-}
+// export function sinkStream<A>(): SinkStream<A> {
+//   return new SinkStream<A>();
+// }
 
-export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
-  stream.subscribe(fn);
-}
+// export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
+//   stream.subscribe(fn);
+// }
 
-class SnapshotStream<B> extends Stream<B> {
-  private node = new Node(this);
-  constructor(private behavior: Behavior<B>, private stream: Stream<any>) {
-    super();
-  }
-  push(a: any): void {
-    const b = this.behavior.at();
-    this.pushToChildren(b);
-  }
-  activate(): void {
-    this.behavior.changePullers(1);
-    this.stream.addListener(this.node);
-  }
-  deactivate(): void {
-    this.behavior.changePullers(-1);
-    this.stream.removeListener(this.node);
-  }
-  semantic(): SemanticStream<B> {
-    const b = this.behavior.semantic();
-    return this.stream.semantic().map(({ time }) => ({ time, value: b(time) }));
-  }
-}
+// class SnapshotStream<B> extends Stream<B> {
+//   private node = new Node(this);
+//   constructor(private behavior: Behavior<B>, private stream: Stream<any>) {
+//     super();
+//   }
+//   push(a: any): void {
+//     const b = this.behavior.at();
+//     this.pushToChildren(b);
+//   }
+//   activate(): void {
+//     this.behavior.changePullers(1);
+//     this.stream.addListener(this.node);
+//   }
+//   deactivate(): void {
+//     this.behavior.changePullers(-1);
+//     this.stream.removeListener(this.node);
+//   }
+//   semantic(): SemanticStream<B> {
+//     const b = this.behavior.semantic();
+//     return this.stream.semantic().map(({ time }) => ({ time, value: b(time) }));
+//   }
+// }
 
-export function snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B> {
-  return new SnapshotStream(b, s);
-}
+// export function snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B> {
+//   return new SnapshotStream(b, s);
+// }
 
-class SnapshotWithStream<A, B, C> extends Stream<C> {
-  private node = new Node(this);
-  constructor(
-    private fn: (a: A, b: B) => C,
-    private behavior: Behavior<B>,
-    private stream: Stream<A>
-  ) {
-    super();
-  }
-  push(a: A): void {
-    const c = this.fn(a, this.behavior.at());
-    this.pushToChildren(c);
-  }
-  activate(): void {
-    this.stream.addListener(this.node);
-  }
-  deactivate(): void {
-    this.stream.removeListener(this.node);
-  }
-}
+// class SnapshotWithStream<A, B, C> extends Stream<C> {
+//   private node = new Node(this);
+//   constructor(
+//     private fn: (a: A, b: B) => C,
+//     private behavior: Behavior<B>,
+//     private stream: Stream<A>
+//   ) {
+//     super();
+//   }
+//   push(a: A): void {
+//     const c = this.fn(a, this.behavior.at());
+//     this.pushToChildren(c);
+//   }
+//   activate(): void {
+//     this.stream.addListener(this.node);
+//   }
+//   deactivate(): void {
+//     this.stream.removeListener(this.node);
+//   }
+// }
 
-export function snapshotWith<A, B, C>(
-  f: (a: A, b: B) => C,
-  b: Behavior<B>,
-  s: Stream<A>
-): Stream<C> {
-  return new SnapshotWithStream(f, b, s);
-}
+// export function snapshotWith<A, B, C>(
+//   f: (a: A, b: B) => C,
+//   b: Behavior<B>,
+//   s: Stream<A>
+// ): Stream<C> {
+//   return new SnapshotWithStream(f, b, s);
+// }
 
-export function combine<A>(...streams: Stream<A>[]): Stream<A> {
-  // FIXME: More performant implementation with benchmark
-  return streams.reduce((s1, s2) => s1.combine(s2), empty);
-}
+// export function combine<A>(...streams: Stream<A>[]): Stream<A> {
+//   // FIXME: More performant implementation with benchmark
+//   return streams.reduce((s1, s2) => s1.combine(s2), empty);
+// }
 
-export function isStream(s: any): s is Stream<any> {
-  return typeof s === "object" && "scanS" in s;
-}
+// export function isStream(s: any): s is Stream<any> {
+//   return typeof s === "object" && "scanS" in s;
+// }
