@@ -8,6 +8,8 @@ export interface Consumer<A> {
   push(a: A): void;
 }
 
+export type SemanticFuture<A> = { time: number; value: A };
+
 /**
  * A future is a thing that occurs at some point in time with a value.
  * It can be understood as a pair consisting of the time the future
@@ -50,6 +52,7 @@ export abstract class Future<A> extends Reactive<A>
   mapTo<B>(b: B): Future<B> {
     return new MapToFuture<B>(b, this);
   }
+  abstract semantic(): SemanticFuture<A>;
   // A future is an applicative. `of` gives a future that has always
   // occurred at all points in time.
   static of<B>(b: B): Future<B> {
@@ -93,25 +96,38 @@ class CombineFuture<A> extends Future<A> {
   push(val: A): void {
     this.resolve(val);
   }
+  semantic(): SemanticFuture<A> {
+    const a = this.future1.semantic();
+    const b = this.future2.semantic();
+    return a.time <= b.time ? a : b;
+  }
 }
 
 class MapFuture<A, B> extends Future<B> {
-  constructor(private f: (a: A) => B, parent: Future<A>) {
+  constructor(private f: (a: A) => B, private parent: Future<A>) {
     super();
     this.parents = cons(parent);
   }
   push(val: any): void {
     this.resolve(this.f(val));
   }
+  semantic(): SemanticFuture<B> {
+    const { time, value } = this.parent.semantic();
+    return { time, value: this.f(value) };
+  }
 }
 
 class MapToFuture<A> extends Future<A> {
-  constructor(public value: A, parent: Future<any>) {
+  constructor(public value: A, private parent: Future<any>) {
     super();
     this.parents = cons(parent);
   }
   push(_: any): void {
     this.resolve(this.value);
+  }
+  semantic(): SemanticFuture<A> {
+    const { time } = this.parent.semantic();
+    return { time, value: this.value };
   }
 }
 
@@ -123,6 +139,9 @@ class OfFuture<A> extends Future<A> {
   /* istanbul ignore next */
   push(_: any): void {
     throw new Error("A PureFuture should never be pushed to.");
+  }
+  semantic(): SemanticFuture<A> {
+    return { time: -Infinity, value: this.value };
   }
 }
 
@@ -141,6 +160,11 @@ class LiftFuture<A> extends Future<A> {
       }
       this.resolve(this.f.apply(undefined, this.futures));
     }
+  }
+  semantic(): SemanticFuture<A> {
+    const sems = this.futures.map((f) => f.semantic());
+    const time = Math.max(...sems.map((s) => s.time));
+    return { time, value: this.f(...sems.map((s) => s.value)) };
   }
 }
 
@@ -162,6 +186,11 @@ class ChainFuture<A, B> extends Future<B> {
       this.resolve(val);
     }
   }
+  semantic(): SemanticFuture<B> {
+    const a = this.parent.semantic();
+    const b = this.f(a.value).semantic();
+    return { time: Math.max(a.time, b.time), value: b.value };
+  }
 }
 
 /**
@@ -175,6 +204,9 @@ export class SinkFuture<A> extends Future<A> {
   }
   activate(): void {}
   deactivate(): void {}
+  semantic(): never {
+    throw new Error("The SinkFuture does not have a semantic representation");
+  }
 }
 
 export function sinkFuture<A>(): Future<A> {
@@ -206,5 +238,10 @@ export class BehaviorFuture<A> extends SinkFuture<A> implements Observer<A> {
   push(a: A): void {
     this.b.removeListener(this.node);
     this.resolve(a);
+  }
+  semantic(): never {
+    throw new Error(
+      "The BehaviorFuture does not have a semantic representation"
+    );
   }
 }

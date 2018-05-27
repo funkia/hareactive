@@ -1,4 +1,4 @@
-import { testStreamFromObject, testStreamFromArray } from "../src";
+import { testStreamFromObject, testStreamFromArray, testFuture } from "../src";
 import {
   Behavior,
   switchTo,
@@ -119,10 +119,8 @@ describe("Now", () => {
     it("can be tested", () => {
       const ref1 = createRef(1);
       const comp = perform(mutateRef(2, ref1));
-      testNow(comp, ["foo"]).subscribe((result) => {
-        assert.strictEqual(result, "foo");
-        assert.strictEqual(ref1.ref, 1);
-      });
+      const result = testNow(comp, [testFuture(0, "foo")]);
+      assert(result.semantic().value, "foo");
     });
   });
   describe("async", () => {

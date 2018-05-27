@@ -89,7 +89,7 @@ class PerformNow<A> extends Now<Future<A>> {
   }
 
   test([value, ...mocks]: any[], t: Time): { value: Future<A>; mocks: any[] } {
-    return { value: fromPromise(Promise.resolve(value)), mocks };
+    return { value, mocks };
   }
 }
 
