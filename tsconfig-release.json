@@ -3,8 +3,8 @@
   "compilerOptions": {
     "target": "es5",
     "moduleResolution": "node",
+    "sourceMap": false,
     "declaration": true,
-    "declarationDir": "./dist/defs",
     "outDir": "./dist",
     "rootDir": "./src"
   },

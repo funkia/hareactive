@@ -4,11 +4,14 @@
   "description": "Purely functional reactive library.",
   "main": "dist/index.js",
   "module": "dist/es/index.js",
-  "types": "dist/defs/index.d.ts",
+  "types": "dist/index.d.ts",
   "directories": {
     "test": "test",
     "dist": "dist"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "npm run build-es6; npm run build-cmjs",
     "build-es6": "tsc -P ./tsconfig-release.json --outDir 'dist/es' --target es2015 --module es2015",
