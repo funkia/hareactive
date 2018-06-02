@@ -45,8 +45,8 @@
   },
   "homepage": "https://github.com/paldepind/hareactive#readme",
   "dependencies": {
-    "@funkia/jabz": "0.0.23",
-    "tslib": "^1.8.0"
+    "@funkia/jabz": "0.0.24",
+    "tslib": "^1.9.2"
   },
   "devDependencies": {
     "@types/benchmark": "^1.0.31",
