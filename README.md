@@ -459,9 +459,9 @@ A stateful scan.
 
 #### `snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B>`
 
-Creates a streams that occurs exactly when `s` occurs. Every time the
-stream `s` has an occurrence the current value of `b` is sampled. The
-value in the occurrence is then replaced with the sampled value.
+Creates a stream that occurs exactly when `s` occurs. Every time the stream `s`
+has an occurrence the current value of `b` is sampled. The value in the
+occurrence is then replaced with the sampled value.
 
 ```js
 const stream = testStreamFromObject({
@@ -559,7 +559,7 @@ occurs after which it acts like the behavior it contains.
 
 A behavior of a behavior that switches to the latest behavior from `s`.
 
-#### `stepper<B>(initial: B, steps: Stream<B>): Behavior<B>`
+#### `stepper<B>(initial: B, steps: Stream<B>): Behavior<Behavior<B>>`
 
 Creates a behavior whose value is the last occurrence in the stream.
 
@@ -582,9 +582,8 @@ Returns `true` if `b` is a behavior and `false` otherwise.
 
 #### `time: Behavior<Time>`
 
-A behavior whose value is the number of milliseconds elapsed win UNIX
-epoch. I.e. its current value is equal to the value got by calling
-`Date.now`.
+A behavior whose value is the number of milliseconds elapsed since UNIX epoch.
+I.e. its current value is equal to the value got by calling `Date.now`.
 
 #### `timeFrom: Behavior<Behavior<Time>>`
 
