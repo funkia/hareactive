@@ -6,7 +6,8 @@
     "sourceMap": false,
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "downlevelIteration": true
   },
   "files": ["node_modules/@types/mocha/index.d.ts"],
   "include": ["src/**/*.ts"],
