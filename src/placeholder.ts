@@ -1,4 +1,4 @@
-import { Reactive, State } from "./common";
+import { Reactive, State, FListener, BListener, SListener } from "./common";
 import {
   Behavior,
   ConstantBehavior,
@@ -17,9 +17,11 @@ class SamplePlaceholderError {
 }
 
 export class Placeholder<A> extends Behavior<A> {
-  source: Reactive<A>;
+  source: Reactive<A, SListener<A> | FListener<A> | BListener>;
   private node = new Node(this);
-  replaceWith(parent: Reactive<A>): void {
+  replaceWith(
+    parent: Reactive<A, SListener<A> | FListener<A> | BListener>
+  ): void {
     this.source = parent;
     if (this.children.head !== undefined) {
       this.activate();
@@ -31,10 +33,20 @@ export class Placeholder<A> extends Behavior<A> {
       parent.changePullers(this.nrOfPullers);
     }
   }
-  push(a: any): void {
-    this.last = a;
+  push(t: number): void {
+    this.last = (<Behavior<A>>this.source).last;
     for (const child of this.children) {
-      child.push(a);
+      child.push(t);
+    }
+  }
+  pushS(t: number, a: A) {
+    for (const child of this.children) {
+      (<any>child).pushS(t, a);
+    }
+  }
+  pushF(t: number, a: A) {
+    for (const child of this.children) {
+      (<any>child).pushF(t, a);
     }
   }
   pull(): A {
@@ -42,6 +54,9 @@ export class Placeholder<A> extends Behavior<A> {
       throw new SamplePlaceholderError(this);
     }
     return (<any>this.source).pull();
+  }
+  update(t: number): A {
+    throw new Error("Update should never be called on a placeholder.");
   }
   activate(): void {
     if (this.source !== undefined) {

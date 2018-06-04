@@ -11,64 +11,64 @@ import {
 /*
  * Time related behaviors and functions
  */
-// export class DelayStream<A> extends Stream<A> {
-//   constructor(parent: Stream<A>, private ms: number) {
-//     super();
-//     this.parents = cons(parent);
-//   }
-//   semantic(): SemanticStream<A> {
-//     const s = (<Stream<A>>this.parents.value).semantic();
-//     return s.map(({ time, value }) => ({ time: time + this.ms, value }));
-//   }
-//   push(a: A): void {
-//     setTimeout(() => {
-//       this.pushToChildren(a);
-//     }, this.ms);
-//   }
-// }
+export class DelayStream<A> extends Stream<A> {
+  constructor(parent: Stream<A>, private ms: number) {
+    super();
+    this.parents = cons(parent);
+  }
+  semantic(): SemanticStream<A> {
+    const s = (<Stream<A>>this.parents.value).semantic();
+    return s.map(({ time, value }) => ({ time: time + this.ms, value }));
+  }
+  pushS(t: number, a: A): void {
+    setTimeout(() => {
+      this.pushSToChildren(t, a);
+    }, this.ms);
+  }
+}
 
-// export function delay<A>(ms: number, stream: Stream<A>): Stream<A> {
-//   return new DelayStream(stream, ms);
-// }
+export function delay<A>(ms: number, stream: Stream<A>): Stream<A> {
+  return new DelayStream(stream, ms);
+}
 
-// class ThrottleStream<A> extends Stream<A> {
-//   constructor(parent: Stream<A>, private ms: number) {
-//     super();
-//     this.parents = cons(parent);
-//   }
-//   private isSilenced: boolean = false;
-//   push(a: A): void {
-//     if (!this.isSilenced) {
-//       this.pushToChildren(a);
-//       this.isSilenced = true;
-//       setTimeout(() => {
-//         this.isSilenced = false;
-//       }, this.ms);
-//     }
-//   }
-// }
+class ThrottleStream<A> extends Stream<A> {
+  constructor(parent: Stream<A>, private ms: number) {
+    super();
+    this.parents = cons(parent);
+  }
+  private isSilenced: boolean = false;
+  pushS(t: number, a: A): void {
+    if (!this.isSilenced) {
+      this.pushSToChildren(t, a);
+      this.isSilenced = true;
+      setTimeout(() => {
+        this.isSilenced = false;
+      }, this.ms);
+    }
+  }
+}
 
-// export function throttle<A>(ms: number, stream: Stream<A>): Stream<A> {
-//   return new ThrottleStream<A>(stream, ms);
-// }
+export function throttle<A>(ms: number, stream: Stream<A>): Stream<A> {
+  return new ThrottleStream<A>(stream, ms);
+}
 
-// class DebounceStream<A> extends Stream<A> {
-//   constructor(parent: Stream<A>, private ms: number) {
-//     super();
-//     this.parents = cons(parent);
-//   }
-//   private timer: any = undefined;
-//   push(a: A): void {
-//     clearTimeout(this.timer);
-//     this.timer = setTimeout(() => {
-//       this.pushToChildren(a);
-//     }, this.ms);
-//   }
-// }
+class DebounceStream<A> extends Stream<A> {
+  constructor(parent: Stream<A>, private ms: number) {
+    super();
+    this.parents = cons(parent);
+  }
+  private timer: any = undefined;
+  pushS(t: number, a: A): void {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      this.pushSToChildren(t, a);
+    }, this.ms);
+  }
+}
 
-// export function debounce<A>(ms: number, stream: Stream<A>): Stream<A> {
-//   return new DebounceStream<A>(stream, ms);
-// }
+export function debounce<A>(ms: number, stream: Stream<A>): Stream<A> {
+  return new DebounceStream<A>(stream, ms);
+}
 
 // class TimeFromBehavior extends Behavior<Time> {
 //   private startTime: Time;

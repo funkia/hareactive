@@ -3,14 +3,14 @@ import { Behavior, SinkBehavior } from "./behavior";
 
 export * from "./common";
 export * from "./behavior";
-// export * from "./stream";
-// export * from "./future";
-// export * from "./now";
-// export * from "./dom";
+export * from "./stream";
+export * from "./future";
+export * from "./now";
+export * from "./dom";
 export * from "./time";
-// export * from "./placeholder";
-// export * from "./animation";
-// export * from "./test";
+export * from "./placeholder";
+export * from "./animation";
+export * from "./test";
 
 /**
  * Map a function over a behavior or stream. This means that if at some point in
@@ -23,6 +23,6 @@ export function map<A, B>(fn: (a: A) => B, b: any): any {
   return b.map(fn);
 }
 
-export function publish<A>(a: A, sink: SinkBehavior<A>): void {
+export function publish<A>(a: A, sink: SinkBehavior<A> | SinkStream<A>): void {
   sink.publish(a);
 }

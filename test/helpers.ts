@@ -5,7 +5,7 @@ import { spy } from "sinon";
 import { State, Reactive } from "../src/common";
 import { Behavior, ProducerBehavior } from "../src/behavior";
 
-export function subscribeSpy(b: Reactive<any>): sinon.SinonSpy {
+export function subscribeSpy(b: Reactive<any, any>): sinon.SinonSpy {
   const cb = spy();
   b.subscribe(cb);
   return cb;
@@ -31,7 +31,7 @@ export function createTestProducer() {
   const activate = spy();
   const deactivate = spy();
   const producer = new TestProducer(activate, deactivate);
-  const push = producer.push.bind(producer);
+  const push = producer.pushS.bind(producer);
   return { activate, deactivate, push, producer };
 }
 

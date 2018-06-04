@@ -1,7 +1,10 @@
-import { testStreamFromObject } from "../src";
-import { Behavior, switchTo, when, scan } from "../src/behavior";
-import { Future } from "../src/future";
 import {
+  testStreamFromObject,
+  Behavior,
+  switchTo,
+  when,
+  scan,
+  Future,
   perform,
   Now,
   performStream,
@@ -11,9 +14,11 @@ import {
   runNow,
   sample,
   testNow,
-  loopNow
-} from "../src/now";
-import { Stream, sinkStream } from "../src/stream";
+  loopNow,
+  Stream,
+  sinkStream,
+  sinkFuture
+} from "../src";
 import { assert } from "chai";
 import {
   lift,
@@ -180,7 +185,7 @@ describe("Now", () => {
       });
     });
   });
-  it("handles recursively defined behavior", () => {
+  it.only("handles recursively defined behavior", () => {
     let resolve: (n: number) => void;
     const getNextNr = withEffectsP((n: number) => {
       return new Promise((res) => {
@@ -231,11 +236,11 @@ describe("Now", () => {
       performStream(mappedS)
         .run()
         .subscribe((n) => results.push(n));
-      s.push(1);
+      s.publish(1);
       setTimeout(() => {
-        s.push(2);
+        s.publish(2);
         setTimeout(() => {
-          s.push(3);
+          s.publish(3);
           setTimeout(() => {
             assert.deepEqual(actions, [1, 2, 3]);
             assert.deepEqual(results, [3, 4, 5]);
@@ -257,7 +262,7 @@ describe("Now", () => {
       performStreamLatest(mappedS)
         .run()
         .subscribe((n) => results.push(n));
-      s.push(60);
+      s.publish(60);
       setTimeout(() => {
         assert.deepEqual(results, [60]);
         done();
@@ -277,9 +282,9 @@ describe("Now", () => {
       performStreamLatest(mappedS)
         .run()
         .subscribe((n) => results.push(n));
-      s.push(0);
-      s.push(1);
-      s.push(2);
+      s.publish(0);
+      s.publish(1);
+      s.publish(2);
       resolves[1](1);
       resolves[2](2);
       resolves[0](0);
@@ -301,7 +306,7 @@ describe("Now", () => {
       performStreamOrdered(mappedS)
         .run()
         .subscribe((n) => results.push(n));
-      s.push(60);
+      s.publish(60);
       setTimeout(() => {
         assert.deepEqual(results, [60]);
         done();
@@ -321,12 +326,12 @@ describe("Now", () => {
       performStreamOrdered(mappedS)
         .run()
         .subscribe((n) => results.push(n));
-      s.push(0);
-      s.push(1);
-      s.push(2);
-      s.push(3);
-      s.push(4);
-      s.push(5);
+      s.publish(0);
+      s.publish(1);
+      s.publish(2);
+      s.publish(3);
+      s.publish(4);
+      s.publish(5);
       resolves[3](3);
       resolves[1](1);
       resolves[0]("zero");
@@ -349,9 +354,9 @@ describe("Now", () => {
       performStreamOrdered(mappedS)
         .run()
         .subscribe((n) => results.push(n));
-      s.push(60);
-      s.push(undefined);
-      s.push(20);
+      s.publish(60);
+      s.publish(undefined);
+      s.publish(20);
       setTimeout(() => {
         assert.deepEqual(results, [60, undefined, 20]);
         done();
@@ -368,9 +373,9 @@ describe("Now", () => {
         return Now.of({ stream: s });
       });
       now.run();
-      s.push("a");
-      s.push("b");
-      s.push("c");
+      s.publish("a");
+      s.publish("b");
+      s.publish("c");
 
       assert.deepEqual(result, ["a", "b", "c"]);
     });
@@ -384,9 +389,9 @@ describe("Now", () => {
       });
       const { stream } = now.run();
       stream.subscribe((a) => result.push(a));
-      s.push("a");
-      s.push("b");
-      s.push("c");
+      s.publish("a");
+      s.publish("b");
+      s.publish("c");
 
       assert.deepEqual(result, ["a", "b", "c"]);
     });

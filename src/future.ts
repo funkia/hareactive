@@ -1,12 +1,9 @@
 import { monad, Monad, Semigroup } from "@funkia/jabz";
-import { State } from "./common";
-import { Observer, Reactive } from "./common";
-import { cons, fromArray, Node } from "./datastructures";
+import { State, FListener, Parent, BListener } from "./common";
+import { Reactive } from "./common";
+import { cons, fromArray, Node, DoubleLinkedList } from "./datastructures";
 import { Behavior } from "./behavior";
-
-export interface Consumer<A> {
-  push(a: A): void;
-}
+import { tick } from "./timestamp";
 
 /**
  * A future is a thing that occurs at some point in time with a value.
@@ -15,25 +12,30 @@ export interface Consumer<A> {
  * promise.
  */
 @monad
-export abstract class Future<A> extends Reactive<A>
-  implements Semigroup<Future<A>>, Monad<A> {
+export abstract class Future<A> extends Reactive<A, FListener<A>>
+  implements Semigroup<Future<A>>, Monad<A>, Parent<FListener<any>> {
   // The value of the future. Often `undefined` until occurrence.
   value: A;
   constructor() {
     super();
   }
-  abstract push(val: any): void;
+  abstract pushF(t: number, val: any): void;
   pull(): A {
     throw new Error("Pull not implemented on future");
   }
-  resolve(val: A): void {
+  resolve(val: A, t = tick()): void {
     this.deactivate(true);
     this.value = val;
-    this.pushToChildren(val);
+    this.pushFToChildren(t, val);
   }
-  addListener(node: Node<Observer<A>>): State {
+  pushFToChildren(t: number, val: A) {
+    for (const child of this.children) {
+      child.pushF(t, val);
+    }
+  }
+  addListener(node: Node<FListener<A>>): State {
     if (this.state === State.Done) {
-      node.value.push(this.value);
+      node.value.pushF(0, this.value);
       return State.Done;
     } else {
       return super.addListener(node);
@@ -90,7 +92,7 @@ class CombineFuture<A> extends Future<A> {
     super();
     this.parents = cons(future1, cons(future2));
   }
-  push(val: A): void {
+  pushF(t: number, val: A): void {
     this.resolve(val);
   }
 }
@@ -100,8 +102,8 @@ class MapFuture<A, B> extends Future<B> {
     super();
     this.parents = cons(parent);
   }
-  push(val: any): void {
-    this.resolve(this.f(val));
+  pushF(t: number, val: A): void {
+    this.resolve(this.f(val), t);
   }
 }
 
@@ -110,8 +112,8 @@ class MapToFuture<A> extends Future<A> {
     super();
     this.parents = cons(parent);
   }
-  push(_: any): void {
-    this.resolve(this.value);
+  pushF(t: any, _val: any): void {
+    this.resolve(this.value, t);
   }
 }
 
@@ -121,7 +123,7 @@ class OfFuture<A> extends Future<A> {
     this.state = State.Done;
   }
   /* istanbul ignore next */
-  push(_: any): void {
+  pushF(_: any): void {
     throw new Error("A PureFuture should never be pushed to.");
   }
 }
@@ -133,25 +135,25 @@ class LiftFuture<A> extends Future<A> {
     this.missing = futures.length;
     this.parents = fromArray(futures);
   }
-  push(_: any): void {
+  pushF(t: number, _val: any): void {
     if (--this.missing === 0) {
       // All the dependencies have occurred.
       for (let i = 0; i < this.futures.length; ++i) {
         this.futures[i] = this.futures[i].value;
       }
-      this.resolve(this.f.apply(undefined, this.futures));
+      this.resolve(this.f.apply(undefined, this.futures), t);
     }
   }
 }
 
-class ChainFuture<A, B> extends Future<B> {
+class ChainFuture<A, B> extends Future<B> implements FListener<A> {
   private parentOccurred: boolean = false;
   private node = new Node(this);
   constructor(private f: (a: A) => Future<B>, private parent: Future<A>) {
     super();
     this.parents = cons(parent);
   }
-  push(val: any): void {
+  pushF(t: number, val: any): void {
     if (this.parentOccurred === false) {
       // The first future occurred. We can now call `f` with its value
       // and listen to the future it returns.
@@ -159,7 +161,7 @@ class ChainFuture<A, B> extends Future<B> {
       const newFuture = this.f(val);
       newFuture.addListener(this.node);
     } else {
-      this.resolve(val);
+      this.resolve(val, t);
     }
   }
 }
@@ -170,7 +172,7 @@ class ChainFuture<A, B> extends Future<B> {
  */
 export class SinkFuture<A> extends Future<A> {
   /* istanbul ignore next */
-  push(val: any): void {
+  pushF(t: number, val: any): void {
     throw new Error("A sink should not be pushed to.");
   }
   activate(): void {}
@@ -193,18 +195,18 @@ export function fromPromise<A>(p: Promise<A>): Future<A> {
  * impure and should not be done directly.
  * @private
  */
-export class BehaviorFuture<A> extends SinkFuture<A> implements Observer<A> {
+export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
   node = new Node(this);
   constructor(private b: Behavior<A>) {
     super();
     b.addListener(this.node);
   }
   /* istanbul ignore next */
-  changeStateDown(): void {
-    throw new Error("Behavior future does not support pushing behavior");
+  changeStateDown(state: State): void {
+    throw new Error("Behavior future does not support pulling behavior");
   }
-  push(a: A): void {
+  push(t: number): void {
     this.b.removeListener(this.node);
-    this.resolve(a);
+    this.resolve(this.b.last, t);
   }
 }

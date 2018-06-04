@@ -1,5 +1,7 @@
 import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Behavior } from "./behavior";
+import { time } from ".";
+import { tick } from "./timestamp";
 
 export type Time = number;
 
@@ -23,21 +25,45 @@ export const enum State {
   Done
 }
 
-export interface Observer<A> {
-  push(t: number): void;
+export interface Parent<C> {
+  addListener(node: Node<C>): State;
+  removeListener(node: Node<C>): void;
+  state: State;
+}
+
+export interface Child {
   changeStateDown(state: State): void;
 }
 
-export class PushOnlyObserver<A> {
+export interface BListener extends Child {
+  push(t: number): void;
+}
+
+export interface SListener<A> extends Child {
+  pushS(t: number, value: A): void;
+}
+
+export interface FListener<A> extends Child {
+  pushF(t: number, value: A): void;
+}
+
+export class PushOnlyObserver<A>
+  implements BListener, SListener<A>, FListener<A> {
   node = new Node(this);
-  constructor(private callback: (a: A) => void, private source: Reactive<A>) {
+  constructor(private callback: (a: A) => void, private source: Parent<Child>) {
     source.addListener(this.node);
     if (isBehavior(source) && source.state === State.Push) {
       callback(source.at());
     }
   }
+  pushS(t: number, value: A): void {
+    this.callback(value);
+  }
   push(t: number): void {
-    this.callback(this.source.last);
+    this.callback((this.source as any).last);
+  }
+  pushF(t: number, value: A) {
+    this.callback(value);
   }
   deactivate(): void {
     this.source.removeListener(this.node);
@@ -45,13 +71,13 @@ export class PushOnlyObserver<A> {
   changeStateDown(state: State): void {}
 }
 
-export interface Subscriber<A> extends Observer<A> {
-  deactivate(): void;
-}
+// export interface Subscriber<A> extends Observer<A> {
+// deactivate(): void;
+// }
 
 export function changePullersParents(
   n: number,
-  parents: Cons<Reactive<any>>
+  parents: Cons<Parent<any>>
 ): void {
   if (parents === undefined) {
     return;
@@ -63,24 +89,22 @@ export function changePullersParents(
 }
 
 type NodeParentPair = {
-  parent: Reactive<any>;
+  parent: Parent<any>;
   node: Node<any>;
 };
 
-export abstract class Reactive<A> implements Observer<any> {
+export abstract class Reactive<A, C extends Child> implements Child {
   nrOfListeners: number;
-  last: A;
   state: State;
-  children: DoubleLinkedList<Observer<A>> = new DoubleLinkedList();
-  parents: Cons<Reactive<any>>;
+  //children: DoubleLinkedList<Observer<A>> = new DoubleLinkedList();
+  parents: Cons<Parent<any>>;
   listenerNodes: Cons<NodeParentPair> | undefined;
-  pulledAt: number = 0;
-  changedAt: number = 0;
+  children: DoubleLinkedList<C> = new DoubleLinkedList();
   constructor() {
     this.state = State.Inactive;
     this.nrOfListeners = 0;
   }
-  addListener(node: Node<Observer<any>>): State {
+  addListener(node: Node<C>): State {
     const firstChild = this.children.head === undefined;
     this.children.prepend(node);
     if (firstChild) {
@@ -88,7 +112,7 @@ export abstract class Reactive<A> implements Observer<any> {
     }
     return this.state;
   }
-  removeListener(node: Node<Observer<any>>): void {
+  removeListener(node: Node<C>): void {
     this.children.remove(node);
     if (this.children.head === undefined && this.state !== State.Done) {
       this.deactivate();
@@ -105,18 +129,12 @@ export abstract class Reactive<A> implements Observer<any> {
   observe(push: (a: A) => void, handlePulling: PullHandler): CbObserver<A> {
     return new CbObserver(push, handlePulling, this);
   }
-  abstract push(t: number): void;
-  abstract pull(t: number): void;
-  pushToChildren(t: number): void {
-    for (const child of this.children) {
-      child.push(t);
-    }
-  }
+
   activate(): void {
     for (const parent of this.parents) {
       const node = new Node(this);
       this.listenerNodes = cons({ node, parent }, this.listenerNodes);
-      parent.addListener(node);
+      parent.addListener(node as any);
       const parentState = parent.state;
       if (parentState !== State.Push || this.state === State.Inactive) {
         this.state = parentState;
@@ -133,32 +151,38 @@ export abstract class Reactive<A> implements Observer<any> {
   }
 }
 
-export class CbObserver<A> implements Observer<A> {
+export class CbObserver<A> implements BListener, SListener<A> {
   private endPulling = () => {};
-  node: Node<Observer<A>> = new Node(this);
+  node: Node<CbObserver<A>> = new Node(this);
   constructor(
-    private _push: (a: A) => void,
+    private callback: (a: A) => void,
     private handlePulling: PullHandler,
-    private source: Reactive<A>
+    private source: Parent<Child>
   ) {
     source.addListener(this.node);
     if (source.state === State.Pull || source.state === State.OnlyPull) {
       this.endPulling = handlePulling(this.pull.bind(this));
     } else if (isBehavior(source) && source.state === State.Push) {
-      _push(source.last);
+      callback(source.last);
     }
   }
-  pull(t: number = Date.now()) {
+  pull(t: number = tick()) {
     if (
       isBehavior(this.source) &&
       (this.source.state === State.Pull || this.source.state === State.OnlyPull)
     ) {
       this.source.pull(t);
-      this._push(this.source.last);
+      this.callback(this.source.last);
     }
   }
   push(t: number): void {
-    this._push(this.source.last);
+    this.callback((this.source as any).last);
+  }
+  pushS(t: number, value: A): void {
+    this.callback(value);
+  }
+  pushF(t: number, value: A): void {
+    this.callback(value);
   }
   changeStateDown(state: State): void {
     if (state === State.Pull || state === State.OnlyPull) {
@@ -182,7 +206,7 @@ export class CbObserver<A> implements Observer<A> {
 export function observe<A>(
   push: (a: A) => void,
   handlePulling: PullHandler,
-  behavior: Reactive<A>
+  behavior: Behavior<A>
 ): CbObserver<A> {
   return behavior.observe(push, handlePulling);
 }

@@ -1,10 +1,11 @@
 import { IO, runIO, Monad, monad } from "@funkia/jabz";
 import { placeholder, Placeholder } from "./placeholder";
-import { State, Time } from "./common";
+import { State, Time, SListener } from "./common";
 import { Future, fromPromise, sinkFuture } from "./future";
 import { Node } from "./datastructures";
 import { Behavior, at } from "./behavior";
 import { ActiveStream, Stream } from "./stream";
+import { tick } from "./timestamp";
 
 @monad
 export abstract class Now<A> implements Monad<A> {
@@ -92,16 +93,17 @@ export function perform<A>(comp: IO<A>): Now<Future<A>> {
   return new PerformNow(comp);
 }
 
-class PerformIOStream<A> extends ActiveStream<A> {
+class PerformIOStream<A> extends ActiveStream<A> implements SListener<IO<A>> {
   node = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this.node);
     this.state = State.Push;
   }
-  push(io: IO<A>): void {
+  pushS(_t: number, io: IO<A>): void {
     runIO(io).then((a: A) => {
-      this.pushToChildren(a);
+      const t = tick();
+      this.pushSToChildren(t, a);
     });
   }
 }
@@ -119,7 +121,8 @@ export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNow(s);
 }
 
-class PerformIOStreamLatest<A> extends ActiveStream<A> {
+class PerformIOStreamLatest<A> extends ActiveStream<A>
+  implements SListener<IO<A>> {
   private node = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
@@ -128,19 +131,20 @@ class PerformIOStreamLatest<A> extends ActiveStream<A> {
   next: number = 0;
   newest: number = 0;
   running: number = 0;
-  push(io: IO<A>): void {
+  pushS(_t: number, io: IO<A>): void {
     const time = ++this.next;
     this.running++;
     runIO(io).then((a: A) => {
       this.running--;
       if (time > this.newest) {
+        const t = tick();
         if (this.running === 0) {
           this.next = 0;
           this.newest = 0;
         } else {
           this.newest = time;
         }
-        this.pushToChildren(a);
+        this.pushSToChildren(t, a);
       }
     });
   }
@@ -168,7 +172,7 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   nextId: number = 0;
   next: number = 0;
   buffer: { value: A }[] = []; // Object-wrapper to support a result as undefined
-  push(io: IO<A>): void {
+  pushS(t: number, io: IO<A>): void {
     const id = this.nextId++;
     runIO(io).then((a: A) => {
       if (id === this.next) {
@@ -181,8 +185,9 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   }
   pushFromBuffer(): void {
     while (this.buffer[0] !== undefined) {
+      const t = tick();
       const { value } = this.buffer.shift();
-      this.pushToChildren(value);
+      this.pushSToChildren(t, value);
       this.next++;
     }
   }
@@ -220,7 +225,8 @@ export function plan<A>(future: Future<Now<A>>): Now<Future<A>> {
 
 export function runNow<A>(now: Now<Future<A>>): Promise<A> {
   return new Promise((resolve, reject) => {
-    now.run().subscribe(resolve);
+    const a = now.run();
+    a.subscribe(resolve);
   });
 }
 

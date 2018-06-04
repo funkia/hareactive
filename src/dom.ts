@@ -16,7 +16,7 @@ class DomEventStream<A> extends ProducerStream<A> {
     super();
   }
   handleEvent(event: Event): void {
-    this.push(this.extractor(event, this.target));
+    this.pushS(undefined, this.extractor(event, this.target));
   }
   activate(): void {
     this.target.addEventListener(this.eventName, this);
@@ -79,7 +79,7 @@ class DomEventBehavior<A> extends ProducerBehavior<A> {
     this.last = initial;
   }
   handleEvent(event: Event): void {
-    this.push(this.extractor(event, this.target));
+    this.newValue(this.extractor(event, this.target));
   }
   activateProducer(): void {
     this.target.addEventListener(this.eventName, this);
