@@ -505,50 +505,50 @@ describe("behavior", () => {
 });
 
 describe("Behavior and Future", () => {
-  // describe("when", () => {
-  // it("gives occurred future when behavior is true", () => {
-  //   let occurred = false;
-  //   const b = Behavior.of(true);
-  //   const w = B.when(b);
-  //   const fut = at(w);
-  //   fut.subscribe((_) => (occurred = true));
-  //   assert.strictEqual(occurred, true);
-  // });
-  //     it("future occurs when behavior turns true", () => {
-  //       let occurred = false;
-  //       const b = sinkBehavior(false);
-  //       const w = B.when(b);
-  //       const fut = at(w);
-  //       fut.subscribe((_) => (occurred = true));
-  //       assert.strictEqual(occurred, false);
-  //       b.push(true);
-  //       assert.strictEqual(occurred, true);
-  //     });
-  // });
-  //   describe("snapshotAt", () => {
-  //     it("snapshots behavior at future occurring in future", () => {
-  //       let result: number;
-  //       const bSink = sinkBehavior(1);
-  //       const futureSink = F.sinkFuture();
-  //       const mySnapshot = at(B.snapshotAt(bSink, futureSink));
-  //       mySnapshot.subscribe((res) => (result = res));
-  //       bSink.push(2);
-  //       bSink.push(3);
-  //       futureSink.resolve({});
-  //       bSink.push(4);
-  //       assert.strictEqual(result, 3);
-  //     });
-  //     it("uses current value when future occurred in the past", () => {
-  //       let result: number;
-  //       const bSink = sinkBehavior(1);
-  //       const occurredFuture = Future.of({});
-  //       bSink.push(2);
-  //       const mySnapshot = at(B.snapshotAt(bSink, occurredFuture));
-  //       mySnapshot.subscribe((res) => (result = res));
-  //       bSink.push(3);
-  //       assert.strictEqual(result, 2);
-  //     });
-  //   });
+  describe("when", () => {
+    it("gives occurred future when behavior is true", () => {
+      let occurred = false;
+      const b = Behavior.of(true);
+      const w = H.when(b);
+      const fut = at(w);
+      fut.subscribe((_) => (occurred = true));
+      assert.strictEqual(occurred, true);
+    });
+    it("future occurs when behavior turns true", () => {
+      let occurred = false;
+      const b = sinkBehavior(false);
+      const w = H.when(b);
+      const fut = at(w);
+      fut.subscribe((_) => (occurred = true));
+      assert.strictEqual(occurred, false);
+      b.publish(true);
+      assert.strictEqual(occurred, true);
+    });
+  });
+  describe("snapshotAt", () => {
+    it("snapshots behavior at future occurring in future", () => {
+      let result: number;
+      const bSink = sinkBehavior(1);
+      const futureSink = H.sinkFuture();
+      const mySnapshot = at(H.snapshotAt(bSink, futureSink));
+      mySnapshot.subscribe((res) => (result = res));
+      bSink.publish(2);
+      bSink.publish(3);
+      futureSink.resolve({});
+      bSink.publish(4);
+      assert.strictEqual(result, 3);
+    });
+    it("uses current value when future occurred in the past", () => {
+      let result: number;
+      const bSink = sinkBehavior(1);
+      const occurredFuture = H.Future.of({});
+      bSink.publish(2);
+      const mySnapshot = at(H.snapshotAt(bSink, occurredFuture));
+      mySnapshot.subscribe((res) => (result = res));
+      bSink.publish(3);
+      assert.strictEqual(result, 2);
+    });
+  });
   describe("switchTo", () => {
     it("switches to new behavior", () => {
       const b1 = sinkBehavior(1);
@@ -621,21 +621,21 @@ describe("Behavior and Future", () => {
   });
 });
 describe("Behavior and Stream", () => {
-  //   describe("switcher", () => {
-  //     it("switches to behavior", () => {
-  //       const result: number[] = [];
-  //       const stream = sinkStream<Behavior<number>>();
-  //       const initB = Behavior.of(1);
-  //       const outerSwitcher = switcher(initB, stream);
-  //       const switchingB = at(outerSwitcher);
-  //       switchingB.subscribe((n) => result.push(n));
-  //       const sinkB = sinkBehavior(2);
-  //       stream.push(sinkB);
-  //       sinkB.push(3);
-  //       assert.deepEqual(result, [1, 2, 3]);
-  //       assert.deepEqual(at(at(outerSwitcher)), 1);
-  //     });
-  //   });
+  describe("switcher", () => {
+    it("switches to behavior", () => {
+      const result: number[] = [];
+      const stream = H.sinkStream<Behavior<number>>();
+      const initB = Behavior.of(1);
+      const outerSwitcher = H.switcher(initB, stream);
+      const switchingB = at(outerSwitcher);
+      switchingB.subscribe((n) => result.push(n));
+      const sinkB = sinkBehavior(2);
+      stream.publish(sinkB);
+      sinkB.publish(3);
+      assert.deepEqual(result, [1, 2, 3]);
+      assert.deepEqual(at(at(outerSwitcher)), 1);
+    });
+  });
   describe("stepper", () => {
     it("steps to the last event value", () => {
       const s = H.sinkStream();
@@ -747,42 +747,44 @@ describe("Behavior and Stream", () => {
       assert.deepEqual(cb.args, [[1], [2], [3], [5], [6]]);
     });
   });
-  //   describe("continuous time", () => {
-  //     it("gives time from sample point", () => {
-  //       const [setTime, restore] = mockNow();
-  //       setTime(3);
-  //       const time = at(timeFrom);
-  //       assert.strictEqual(at(time), 0);
-  //       setTime(4);
-  //       assert.strictEqual(at(time), 1);
-  //       setTime(7);
-  //       assert.strictEqual(at(time), 4);
-  //       restore();
-  //     });
-  //     it("gives time since UNIX epoch", () => {
-  //       let beginPull = false;
-  //       let endPull = false;
-  //       let pushed: number[] = [];
-  //       observe(
-  //         (n: number) => pushed.push(n),
-  //         () => {
-  //           beginPull = true;
-  //           return () => {endPull = true}
-  //         },
-  //         time
-  //       );
-  //       assert.strictEqual(beginPull, true);
-  //       const t = at(time);
-  //       const now = Date.now();
-  //       assert(now - 2 <= t && t <= now);
-  //       assert.strictEqual(endPull, false);
-  //     });
-  //     it("has semantic representation", () => {
-  //       const f = time.semantic();
-  //       assert.strictEqual(f(0), 0);
-  //       assert.strictEqual(f(1.3), 1.3);
-  //     });
-  // });
+  describe("continuous time", () => {
+    it("gives time from sample point", () => {
+      const [setTime, restore] = mockNow();
+      setTime(3);
+      const time = at(H.timeFrom);
+      assert.strictEqual(at(time), 0);
+      setTime(4);
+      assert.strictEqual(at(time), 1);
+      setTime(7);
+      assert.strictEqual(at(time), 4);
+      restore();
+    });
+    it("gives time since UNIX epoch", () => {
+      let beginPull = false;
+      let endPull = false;
+      let pushed: number[] = [];
+      observe(
+        (n: number) => pushed.push(n),
+        () => {
+          beginPull = true;
+          return () => {
+            endPull = true;
+          };
+        },
+        H.time
+      );
+      assert.strictEqual(beginPull, true);
+      const t = at(H.time);
+      const now = Date.now();
+      assert(now - 2 <= t && t <= now);
+      assert.strictEqual(endPull, false);
+    });
+    it("has semantic representation", () => {
+      const f = H.time.semantic();
+      assert.strictEqual(f(0), 0);
+      assert.strictEqual(f(1.3), 1.3);
+    });
+  });
   describe("toggle", () => {
     it("has correct initial value", () => {
       const s1 = H.sinkStream();

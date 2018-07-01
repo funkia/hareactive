@@ -70,17 +70,20 @@ export function debounce<A>(ms: number, stream: Stream<A>): Stream<A> {
   return new DebounceStream<A>(stream, ms);
 }
 
-// class TimeFromBehavior extends Behavior<Time> {
-//   private startTime: Time;
-//   constructor() {
-//     super();
-//     this.startTime = Date.now();
-//     this.state = State.Pull;
-//   }
-//   pull(): Time {
-//     return Date.now() - this.startTime;
-//   }
-// }
+class TimeFromBehavior extends Behavior<Time> {
+  private startTime: Time;
+  constructor() {
+    super();
+    this.startTime = Date.now();
+    this.state = State.Pull;
+  }
+  pull(t: number) {
+    this.last = Date.now() - this.startTime;
+  }
+  update(t: number): Time {
+    throw new Error("TimeFrom should never call update");
+  }
+}
 
 class TimeBehavior extends FunctionBehavior<Time> {
   constructor() {
@@ -104,9 +107,9 @@ export const time: Behavior<Time> = new TimeBehavior();
  * between the current sample time and the time at which the outer
  * behavior was sampled.
  */
-// export const timeFrom: Behavior<Behavior<Time>> = fromFunction(
-//   () => new TimeFromBehavior()
-// );
+export const timeFrom: Behavior<Behavior<Time>> = fromFunction(
+  () => new TimeFromBehavior()
+);
 
 class IntegrateBehavior extends Behavior<number> {
   private lastPullTime: Time;

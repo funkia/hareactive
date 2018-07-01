@@ -365,49 +365,49 @@ export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
 }
 
-// // FIXME: This can probably be made less ugly.
-// /** @private */
-// class SnapshotBehavior<A> extends Behavior<Future<A>> {
-//   private afterFuture: boolean;
-//   private node = new Node(this);
-//   constructor(private parent: Behavior<A>, future: Future<any>) {
-//     super();
-//     if (future.state === State.Done) {
-//       // Future has occurred at some point in the past
-//       this.afterFuture = true;
-//       this.state = parent.state;
-//       parent.addListener(this.node);
-//       this.last = Future.of(at(parent));
-//     } else {
-//       this.afterFuture = false;
-//       this.state = State.Push;
-//       this.last = F.sinkFuture<A>();
-//       future.addListener(this.node);
-//     }
-//   }
-//   push(val: any): void {
-//     if (this.afterFuture === false) {
-//       // The push is coming from the Future, it has just occurred.
-//       this.afterFuture = true;
-//       this.last.resolve(at(this.parent));
-//       this.parent.addListener(this.node);
-//     } else {
-//       // We are receiving an update from `parent` after `future` has
-//       // occurred.
-//       this.last = Future.of(val);
-//     }
-//   }
-//   pull(): Future<A> {
-//     return this.last;
-//   }
-// }
+/** @private */
+class SnapshotBehavior<A> extends Behavior<Future<A>> {
+  private afterFuture: boolean;
+  private node = new Node(this);
+  constructor(private parent: Behavior<A>, future: Future<any>) {
+    super();
+    if (future.state === State.Done) {
+      // Future has occurred at some point in the past
+      this.afterFuture = true;
+      this.state = parent.state;
+      //parent.addListener(this.node);
+      this.parents = cons(parent);
+      this.last = Future.of(at(parent));
+    } else {
+      this.afterFuture = false;
+      this.state = State.Push;
+      this.last = F.sinkFuture<A>();
+      future.addListener(this.node);
+    }
+  }
+  pushF(t: number, val: A): void {
+    if (this.afterFuture === false) {
+      // The push is coming from the Future, it has just occurred.
+      this.afterFuture = true;
+      this.last.resolve(at(this.parent));
+      this.parent.addListener(this.node);
+    } else {
+      // We are receiving an update from `parent` after `future` has
+      // occurred.
+      this.last = Future.of(val);
+    }
+  }
+  update(t: number) {
+    return this.last;
+  }
+}
 
-// export function snapshotAt<A>(
-//   b: Behavior<A>,
-//   f: Future<any>
-// ): Behavior<Future<A>> {
-//   return new SnapshotBehavior(b, f);
-// }
+export function snapshotAt<A>(
+  b: Behavior<A>,
+  f: Future<any>
+): Behavior<Future<A>> {
+  return new SnapshotBehavior(b, f);
+}
 
 /** Behaviors that are always active */
 export abstract class ActiveBehavior<A> extends Behavior<A> {
@@ -596,56 +596,6 @@ export function scan<A, B>(
 ): Behavior<Behavior<B>> {
   return new ScanBehavior<A, B>(f, initial, source);
 }
-
-// class IndexReactive<A> extends Reactive<A> {
-//   constructor(private index: number, parent: Reactive<A>) {
-//     super();
-//     this.parents = cons(parent);
-//   }
-//   push(a: A): void {
-//     for (const child of this.children) {
-//       (<any>child).pushIdx(a, this.index);
-//     }
-//   }
-//   pull(): A {
-//     throw new Error("Pull should never be called here");
-//   }
-// }
-
-// class ActiveScanCombineBehavior<A> extends ActiveBehavior<A>
-//   implements SListener<A> {
-//   private nodes: Node<any>[] = [];
-//   private accumulators: ((a: any, b: A) => A)[];
-//   constructor(streams: ScanPair<A>[], public last: A) {
-//     super();
-//     this.state = State.Push;
-//     this.accumulators = [];
-//     for (let i = 0; i < streams.length; ++i) {
-//       const [s, f] = streams[i];
-//       this.accumulators.push(f);
-//       const node = new Node(this);
-//       this.nodes.push(node);
-//       const indexReactive = new IndexReactive(i, s);
-//       indexReactive.addListener(node);
-//       this.parents = cons(indexReactive, this.parents);
-//     }
-//   }
-//   pushS(t: number, value: A): void {}
-//   changeStateDown(state: State): void {
-//     throw new Error("Method not implemented.");
-//   }
-
-//   pushIdx(a: A, index: number): void {
-//     this.last = this.accumulators[index](a, this.last);
-//     this.pushToChildren(this.last);
-//   }
-// }
-
-// class ScanCombineBehavior<B> extends StatefulBehavior<Behavior<B>> {
-//   pull(): Behavior<B> {
-//     return new ActiveScanCombineBehavior(this.a, this.b);
-//   }
-// }
 
 export type ScanPair<A> = [Stream<any>, (a: any, b: A) => A];
 

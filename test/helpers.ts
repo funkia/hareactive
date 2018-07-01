@@ -56,6 +56,6 @@ export function createTestProducerBehavior<A>(initial: A) {
   const activate = spy();
   const deactivate = spy();
   const producer = new TestProducerBehavior(initial, activate, deactivate);
-  const push = producer.push.bind(producer);
-  return { activate, deactivate, push, producer };
+  const publish = producer.newValue.bind(producer);
+  return { activate, deactivate, publish, producer };
 }

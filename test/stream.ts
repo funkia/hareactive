@@ -1,36 +1,13 @@
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
-import { State } from "../src/common";
 import {
   map,
   publish,
-  // placeholder,
-  // apply,
-  // changes,
-  // debounce,
-  // delay,
-  // empty,
-  // filter,
-  // filterApply,
-  // isStream,
-  // keepWhen,
-  // producerStream,
-  // ProducerStream,
-  // scanS,
   Behavior,
-  ProducerBehavior,
   fromFunction,
   sinkBehavior,
   testBehavior,
-  // sinkStream,
-  // snapshot,
-  // snapshotWith,
-  // split,
-  // subscribe,
   testStreamFromArray
-  // testStreamFromObject,
-  // throttle,
-  // combine
 } from "../src/index";
 
 import * as H from "../src";
@@ -489,55 +466,55 @@ describe("stream", () => {
       publish(4, e);
       assert.deepEqual(callback.args, [[0], [0], [1], [2], [2]]);
     });
-    //     it("activates producer", () => {
-    //       const { activate, push, producer } = createTestProducerBehavior(0);
-    //       const mapped = map(addTwo, producer);
-    //       const s = sinkStream<undefined>();
-    //       const shot = snapshot(mapped, s);
-    //       const callback = spy();
-    //       shot.subscribe(callback);
-    //       s.push(undefined);
-    //       push(1);
-    //       s.push(undefined);
-    //       push(2);
-    //       s.push(undefined);
-    //       push(3);
-    //       push(4);
-    //       s.push(undefined);
-    //       assert(activate.calledOnce, "called once");
-    //       assert.deepEqual(callback.args, [[2], [3], [4], [6]]);
-    //     });
-    //     it("applies function in snapshotWith to pull based Behavior", () => {
-    //       let n = 0;
-    //       const b: Behavior<number> = fromFunction(() => n);
-    //       const e = sinkStream<number>();
-    //       const shot = snapshotWith<number, number, number>(sum, b, e);
-    //       const callback = spy();
-    //       subscribe(callback, shot);
-    //       publish(0, e);
-    //       publish(1, e);
-    //       n = 1;
-    //       publish(2, e);
-    //       n = 2;
-    //       publish(3, e);
-    //       publish(4, e);
-    //       assert.deepEqual(callback.args, [[0], [1], [3], [5], [6]]);
-    //     });
-    //     it("has semantic representation", () => {
-    //       const b = testBehavior((t) => t * t);
-    //       const s = testStreamFromObject({
-    //         1: 1,
-    //         4: 4,
-    //         8: 8
-    //       });
-    //       const shot = snapshot(b, s);
-    //       const expected = testStreamFromObject({
-    //         1: 1,
-    //         4: 16,
-    //         8: 8 * 8
-    //       });
-    //       assert.deepEqual(shot.semantic(), expected.semantic());
-    //     });
+    it("activates producer", () => {
+      const { activate, publish, producer } = createTestProducerBehavior(0);
+      const mapped = map(addTwo, producer);
+      const s = H.sinkStream<undefined>();
+      const shot = H.snapshot(mapped, s);
+      const callback = spy();
+      shot.subscribe(callback);
+      s.publish(undefined);
+      publish(1);
+      s.publish(undefined);
+      publish(2);
+      s.publish(undefined);
+      publish(3);
+      publish(4);
+      s.publish(undefined);
+      assert(activate.calledOnce, "called once");
+      assert.deepEqual(callback.args, [[2], [3], [4], [6]]);
+    });
+    it("applies function in snapshotWith to pull based Behavior", () => {
+      let n = 0;
+      const b: Behavior<number> = fromFunction(() => n);
+      const e = H.sinkStream<number>();
+      const shot = H.snapshotWith<number, number, number>(sum, b, e);
+      const callback = spy();
+      H.subscribe(callback, shot);
+      publish(0, e);
+      publish(1, e);
+      n = 1;
+      publish(2, e);
+      n = 2;
+      publish(3, e);
+      publish(4, e);
+      assert.deepEqual(callback.args, [[0], [1], [3], [5], [6]]);
+    });
+    it("has semantic representation", () => {
+      const b = testBehavior((t) => t * t);
+      const s = H.testStreamFromObject({
+        1: 1,
+        4: 4,
+        8: 8
+      });
+      const shot = H.snapshot(b, s);
+      const expected = H.testStreamFromObject({
+        1: 1,
+        4: 16,
+        8: 8 * 8
+      });
+      assert.deepEqual(shot.semantic(), expected.semantic());
+    });
   });
   describe("changes", () => {
     it("gives changes from pushing behavior", () => {
