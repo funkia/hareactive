@@ -466,50 +466,40 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     next: Future<Behavior<A>> | Stream<Behavior<A>>
   ) {
     super();
+    this.parents = cons(b);
     b.addListener(this.bNode);
     this.state = b.state;
     if (this.state === State.Push) {
       this.last = at(b);
     }
-    // FIXME: Using `bind` is hardly optimal for performance.
-    //next.subscribe(this.doSwitch.bind(this));
     // @ts-ignore
     next.addListener(this.nNode);
   }
   update(t: number): A {
-    throw new Error("Method not implemented.");
-  }
-  push(t: number): void {
-    if (this.last !== this.b.last) {
-      this.last = this.b.last;
-      this.pushToChildren(t);
-    }
+    return this.b.last;
   }
   pushS(t: number, value: Behavior<A>): void {
     this.doSwitch(t, value);
   }
   pushF(t: number, value: Behavior<A>): void {
-    this.doSwitch(t, value); // FIXME: should use a timestamp other than 0
+    this.doSwitch(t, value);
   }
   changeStateDown(state: State): void {
     for (const child of this.children) {
       child.changeStateDown(state);
     }
   }
-
   private doSwitch(t: number, newB: Behavior<A>): void {
     this.b.removeListener(this.bNode);
     this.b = newB;
+    this.parents = cons(newB);
     newB.addListener(this.bNode);
     const newState = newB.state;
-    if (newState === State.Push) {
-      this.last = newB.last;
-      this.push(t);
-    }
     if (newState !== this.state) {
       this.state = newState;
       this.changeStateDown(this.state);
     }
+    this.push(t);
   }
 }
 

@@ -185,7 +185,7 @@ describe("Now", () => {
       });
     });
   });
-  it.only("handles recursively defined behavior", () => {
+  it("handles recursively defined behavior", () => {
     let resolve: (n: number) => void;
     const getNextNr = withEffectsP((n: number) => {
       return new Promise((res) => {
@@ -194,9 +194,9 @@ describe("Now", () => {
     });
     function loop(n: number): Now<Behavior<number>> {
       return go(function*() {
-        const e = yield perform(getNextNr(1));
-        const e1 = yield plan(e.map(loop));
-        return switchTo(Behavior.of(n), e1);
+        const nextNumber = yield perform(getNextNr(1));
+        const future = yield plan(nextNumber.map(loop));
+        return switchTo(Behavior.of(n), future);
       });
     }
     function main(): Now<Future<number>> {
