@@ -329,7 +329,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
   }
   update(t: number) {
     const outerChanged = this.outer.changedAt > this.changedAt;
-    if (outerChanged) {
+    if (outerChanged || this.changedAt === undefined) {
       if (this.innerB !== undefined) {
         this.innerB.removeListener(this.innerNode);
       }
@@ -428,6 +428,7 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
   constructor(public last: A) {
     super();
     this.state = State.Push;
+    this.changedAt = tick();
   }
   update(_t: number) {
     return this.last;
