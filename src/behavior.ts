@@ -560,6 +560,7 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
       this.pushToChildren(t);
     }
   }
+  pull(t: number) {}
   update(t: number): B {
     throw new Error("Update should never be called.");
   }

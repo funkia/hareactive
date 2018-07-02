@@ -7,6 +7,7 @@ import {
 } from "./behavior";
 import { Node } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
+import { tick } from "./timestamp";
 
 class SamplePlaceholderError {
   message: string = "Attempt to sample non-replaced placeholder";
@@ -26,7 +27,8 @@ export class Placeholder<A> extends Behavior<A> {
     if (this.children.head !== undefined) {
       this.activate();
       if (isBehavior(parent) && this.state === State.Push) {
-        this.push(parent.at());
+        const t = tick();
+        this.push(t);
       }
     }
     if (isBehavior(parent)) {
@@ -49,11 +51,15 @@ export class Placeholder<A> extends Behavior<A> {
       (<any>child).pushF(t, a);
     }
   }
-  pull(): A {
+  pull(t: number) {
     if (this.source === undefined) {
       throw new SamplePlaceholderError(this);
+    } else if (isBehavior(this.source)) {
+      this.source.pull(t);
+      this.last = this.source.last;
+    } else {
+      throw new Error("Unsupported pulling on placeholder");
     }
-    return (<any>this.source).pull();
   }
   update(t: number): A {
     throw new Error("Update should never be called on a placeholder.");
@@ -85,9 +91,20 @@ export class Placeholder<A> extends Behavior<A> {
   }
 }
 
-class MapPlaceholder<A, B> extends MapBehavior<A, B> {}
+class MapPlaceholder<A, B> extends MapBehavior<A, B> {
+  pushS(t: number, a: A) {
+    // @ts-ignore
+    this.pushSToChildren(t, this.f(a));
+  }
+}
 
-class MapToPlaceholder<A, B> extends MapToStream<A, B> {}
+class MapToPlaceholder<A, B> extends MapToStream<A, B> {
+  last: B;
+  update() {
+    return (<any>this).b;
+  }
+  pull() {}
+}
 
 function install(target: Function, source: Function): void {
   for (const key of Object.getOwnPropertyNames(source.prototype)) {

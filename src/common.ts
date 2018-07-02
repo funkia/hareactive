@@ -119,6 +119,7 @@ export abstract class Reactive<A, C extends Child> implements Child {
     }
   }
   changeStateDown(state: State): void {
+    this.state = state;
     for (const child of this.children) {
       child.changeStateDown(state);
     }

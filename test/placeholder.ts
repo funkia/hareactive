@@ -1,9 +1,9 @@
 import { subscribeSpy } from "./helpers";
-import { spy, useFakeTimers } from "sinon";
+import { useFakeTimers } from "sinon";
 import { assert } from "chai";
 
 import { placeholder } from "../src/placeholder";
-import { State, observe } from "../src/common";
+import { observe } from "../src/common";
 import {
   isBehavior,
   Behavior,
@@ -11,26 +11,12 @@ import {
   fromFunction,
   sinkBehavior,
   ap,
-  map,
   publish,
-  apply,
   debounce,
   delay,
-  empty,
-  filter,
-  filterApply,
   isStream,
-  keepWhen,
-  ProducerStream,
-  scanS,
   sinkStream,
   snapshot,
-  snapshotWith,
-  split,
-  Stream,
-  subscribe,
-  testStreamFromArray,
-  testStreamFromObject,
   throttle
 } from "../src/index";
 
@@ -104,7 +90,9 @@ describe("placeholder", () => {
       b.replaceWith(Behavior.of(3));
     });
     it("should work with consumers that only wants to pull", () => {
-      const { activate, push, producer } = createTestProducerBehavior(0);
+      const { activate, publish: push, producer } = createTestProducerBehavior(
+        0
+      );
       const pB = placeholder();
       const s = sinkStream<string>();
       const shot = snapshot(pB, s);
@@ -121,7 +109,7 @@ describe("placeholder", () => {
       assert.deepEqual(callback.args, [[0], [0], [1], [1], [4]]);
     });
     it("adds puller to the behavior it has been replaced with", () => {
-      const { activate, push, producer } = createTestProducerBehavior(0);
+      const { activate, publish, producer } = createTestProducerBehavior(0);
       const pB = placeholder();
       const s = sinkStream<string>();
       pB.replaceWith(producer);
