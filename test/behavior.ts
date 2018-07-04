@@ -479,22 +479,21 @@ describe("behavior", () => {
       nr3.publish(3);
       assert.deepEqual(cb.args, [[0], [9], [11], [6], [7]]);
     });
-    // it("works with placeholders", () => {
-    //   const p = placeholder<number>();
-    //   const b0 = sinkBehavior(3);
-    //   const b1 = sinkBehavior(1);
-    //   const b2 = sinkBehavior(2);
-    //   const derived = moment((at) => {
-    //     return at(b1) + at(p) + at(b2);
-    //   });
-    //   const cb = spy();
-    //   derived.subscribe(cb);
-    //   b1.publish(2, 1);
-    //   p.replaceWith(b0);
-    //   // @ts-ignore
-    //   p.publish(0, 2);
-    //   assert.deepEqual(cb.args, [[7], [4]]);
-    // });
+    it("works with placeholders", () => {
+      const p = placeholder<number>();
+      const b0 = sinkBehavior(3);
+      const b1 = sinkBehavior(1);
+      const b2 = sinkBehavior(2);
+      const derived = moment((at) => {
+        return at(b1) + at(p) + at(b2);
+      });
+      const cb = spy();
+      derived.subscribe(cb);
+      b1.publish(2);
+      p.replaceWith(b0);
+      b0.publish(0);
+      assert.deepEqual(cb.args, [[7], [4]]);
+    });
     it("works with snapshot", () => {
       const b1 = H.sinkBehavior(1);
       const b2 = H.moment((at) => at(b1) * 2);

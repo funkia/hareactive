@@ -686,7 +686,7 @@ class MomentBehavior<A> extends Behavior<A> {
     const node = new Node(this);
     this.listenerNodes = cons({ node, parent: b }, this.listenerNodes);
     b.addListener(node);
-
+    b.pull(tick());
     this.parents = cons(b, this.parents);
     return b.last;
   }
