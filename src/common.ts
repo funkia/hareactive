@@ -1,6 +1,5 @@
 import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Behavior } from "./behavior";
-import { time } from ".";
 import { tick } from "./timestamp";
 
 export type Time = number;
@@ -36,19 +35,14 @@ export interface Child {
 }
 
 export interface BListener extends Child {
-  push(t: number): void;
+  pushB(t: number): void;
 }
 
 export interface SListener<A> extends Child {
   pushS(t: number, value: A): void;
 }
 
-export interface FListener<A> extends Child {
-  pushF(t: number, value: A): void;
-}
-
-export class PushOnlyObserver<A>
-  implements BListener, SListener<A>, FListener<A> {
+export class PushOnlyObserver<A> implements BListener, SListener<A> {
   node = new Node(this);
   constructor(private callback: (a: A) => void, private source: Parent<Child>) {
     source.addListener(this.node);
@@ -56,13 +50,10 @@ export class PushOnlyObserver<A>
       callback(source.at());
     }
   }
-  pushS(t: number, value: A): void {
-    this.callback(value);
-  }
-  push(t: number): void {
+  pushB(t: number): void {
     this.callback((this.source as any).last);
   }
-  pushF(t: number, value: A) {
+  pushS(t: number, value: A) {
     this.callback(value);
   }
   deactivate(): void {
@@ -176,13 +167,10 @@ export class CbObserver<A> implements BListener, SListener<A> {
       this.callback(this.source.last);
     }
   }
-  push(t: number): void {
+  pushB(t: number): void {
     this.callback((this.source as any).last);
   }
   pushS(t: number, value: A): void {
-    this.callback(value);
-  }
-  pushF(t: number, value: A): void {
     this.callback(value);
   }
   changeStateDown(state: State): void {

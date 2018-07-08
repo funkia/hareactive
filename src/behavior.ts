@@ -1,15 +1,13 @@
 import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Monad, monad, combine } from "@funkia/jabz";
 import {
-  // Observer,
   State,
   Reactive,
   Time,
   changePullersParents,
   BListener,
   Parent,
-  SListener,
-  FListener
+  SListener
 } from "./common";
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
@@ -103,7 +101,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
     return this.last;
   }
   abstract update(t: number): A;
-  push(t: number): void {
+  pushB(t: number): void {
     if (this.state === State.Push) {
       const newValue = this.update(t);
       this.pulledAt = t;
@@ -116,7 +114,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   }
   pushToChildren(t: number): void {
     for (const child of this.children) {
-      child.push(t);
+      child.pushB(t);
     }
   }
   pull(t: number): void {
@@ -250,6 +248,9 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
       this.pushToChildren(t);
     }
   }
+  push(a: A) {
+    this.publish(a);
+  }
   activateProducer(): void {}
   deactivateProducer(): void {}
 }
@@ -316,7 +317,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
     super();
     this.parents = cons(this.outer);
   }
-  push(t: number) {
+  pushB(t: number) {
     const newValue = this.update(t);
     this.pulledAt = t;
     if (this.last !== newValue) {
@@ -366,7 +367,7 @@ export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
 }
 
 /** @private */
-class SnapshotBehavior<A> extends Behavior<Future<A>> {
+class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
   private afterFuture: boolean;
   private node = new Node(this);
   constructor(private parent: Behavior<A>, future: Future<any>) {
@@ -385,7 +386,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
       future.addListener(this.node);
     }
   }
-  pushF(t: number, val: A): void {
+  pushS(t: number, val: A): void {
     if (this.afterFuture === false) {
       // The push is coming from the Future, it has just occurred.
       this.afterFuture = true;
@@ -459,7 +460,7 @@ export function fromFunction<B>(fn: () => B): Behavior<B> {
 
 /** @private */
 class SwitcherBehavior<A> extends ActiveBehavior<A>
-  implements BListener, FListener<Behavior<A>>, SListener<Behavior<A>> {
+  implements BListener, SListener<Behavior<A>> {
   private bNode = new Node(this);
   private nNode = new Node(this);
   constructor(
@@ -482,9 +483,6 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
   pushS(t: number, value: Behavior<A>): void {
     this.doSwitch(t, value);
   }
-  pushF(t: number, value: Behavior<A>): void {
-    this.doSwitch(t, value);
-  }
   changeStateDown(state: State): void {
     for (const child of this.children) {
       child.changeStateDown(state);
@@ -500,7 +498,7 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
       this.state = newState;
       this.changeStateDown(this.state);
     }
-    this.push(t);
+    this.pushB(t);
   }
 }
 

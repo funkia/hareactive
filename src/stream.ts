@@ -1,7 +1,6 @@
 import { Reactive, State, Time, SListener, Parent, BListener } from "./common";
 import { cons, Node, DoubleLinkedList } from "./datastructures";
 import { Behavior, fromFunction } from "./behavior";
-// import { DelayStream } from "./time";
 import { tick } from "./timestamp";
 
 export type Occurrence<A> = {
@@ -207,7 +206,7 @@ export function scanS<A, B>(
   return stream.scanS(fn, startingValue);
 }
 
-class SwitchBehaviorStream<A> extends Stream<A> {
+class SwitchBehaviorStream<A> extends Stream<A> implements BListener {
   private bNode = new Node(this);
   private sNode = new Node(this);
   private currentSource: Stream<A>;
@@ -223,7 +222,7 @@ class SwitchBehaviorStream<A> extends Stream<A> {
     this.b.removeListener(this.bNode);
     this.currentSource.removeListener(this.sNode);
   }
-  push(t: number): void {
+  pushB(t: number): void {
     this.doSwitch(this.b.last);
   }
   pushS(t: number, a: A): void {
@@ -254,7 +253,7 @@ class ChangesStream<A> extends Stream<A> implements BListener {
   changeStateDown(state: State): void {
     throw new Error("Method not implemented.");
   }
-  push(t: number): void {
+  pushB(t: number): void {
     this.pushSToChildren(t, this.parent.last);
   }
   pushS(t: number, a: A): void {
@@ -349,6 +348,9 @@ export class SinkStream<A> extends ProducerStream<A> {
   publish(a: A): void {
     const t = tick();
     this.pushSToChildren(t, a);
+  }
+  push(a: A) {
+    this.publish(a);
   }
   activate(): void {
     this.pushing = true;

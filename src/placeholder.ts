@@ -1,10 +1,5 @@
-import { Reactive, State, FListener, BListener, SListener } from "./common";
-import {
-  Behavior,
-  ConstantBehavior,
-  isBehavior,
-  MapBehavior
-} from "./behavior";
+import { Reactive, State, SListener, BListener } from "./common";
+import { Behavior, isBehavior, MapBehavior } from "./behavior";
 import { Node } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
 import { tick } from "./timestamp";
@@ -18,37 +13,32 @@ class SamplePlaceholderError {
 }
 
 export class Placeholder<A> extends Behavior<A> {
-  source: Reactive<A, SListener<A> | FListener<A> | BListener>;
+  source: Reactive<A, SListener<A> | SListener<A> | BListener>;
   private node = new Node(this);
   replaceWith(
-    parent: Reactive<A, SListener<A> | FListener<A> | BListener>
+    parent: Reactive<A, SListener<A> | SListener<A> | BListener>
   ): void {
     this.source = parent;
     if (this.children.head !== undefined) {
       this.activate();
       if (isBehavior(parent) && this.state === State.Push) {
         const t = tick();
-        this.push(t);
+        this.pushB(t);
       }
     }
     if (isBehavior(parent)) {
       parent.changePullers(this.nrOfPullers);
     }
   }
-  push(t: number): void {
+  pushB(t: number): void {
     this.last = (<Behavior<A>>this.source).last;
     for (const child of this.children) {
-      child.push(t);
+      child.pushB(t);
     }
   }
   pushS(t: number, a: A) {
     for (const child of this.children) {
       (<any>child).pushS(t, a);
-    }
-  }
-  pushF(t: number, a: A) {
-    for (const child of this.children) {
-      (<any>child).pushF(t, a);
     }
   }
   pull(t: number) {

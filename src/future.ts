@@ -1,7 +1,7 @@
 import { monad, Monad, Semigroup } from "@funkia/jabz";
-import { State, FListener, Parent, BListener } from "./common";
+import { State, SListener, Parent, BListener } from "./common";
 import { Reactive } from "./common";
-import { cons, fromArray, Node, DoubleLinkedList } from "./datastructures";
+import { cons, fromArray, Node } from "./datastructures";
 import { Behavior } from "./behavior";
 import { tick } from "./timestamp";
 
@@ -12,30 +12,30 @@ import { tick } from "./timestamp";
  * promise.
  */
 @monad
-export abstract class Future<A> extends Reactive<A, FListener<A>>
-  implements Semigroup<Future<A>>, Monad<A>, Parent<FListener<any>> {
+export abstract class Future<A> extends Reactive<A, SListener<A>>
+  implements Semigroup<Future<A>>, Monad<A>, Parent<SListener<any>> {
   // The value of the future. Often `undefined` until occurrence.
   value: A;
   constructor() {
     super();
   }
-  abstract pushF(t: number, val: any): void;
+  abstract pushS(t: number, val: any): void;
   pull(): A {
     throw new Error("Pull not implemented on future");
   }
   resolve(val: A, t = tick()): void {
     this.deactivate(true);
     this.value = val;
-    this.pushFToChildren(t, val);
+    this.pushSToChildren(t, val);
   }
-  pushFToChildren(t: number, val: A) {
+  pushSToChildren(t: number, val: A) {
     for (const child of this.children) {
-      child.pushF(t, val);
+      child.pushS(t, val);
     }
   }
-  addListener(node: Node<FListener<A>>): State {
+  addListener(node: Node<SListener<A>>): State {
     if (this.state === State.Done) {
-      node.value.pushF(0, this.value);
+      node.value.pushS(0, this.value);
       return State.Done;
     } else {
       return super.addListener(node);
@@ -92,7 +92,7 @@ class CombineFuture<A> extends Future<A> {
     super();
     this.parents = cons(future1, cons(future2));
   }
-  pushF(t: number, val: A): void {
+  pushS(t: number, val: A): void {
     this.resolve(val);
   }
 }
@@ -102,7 +102,7 @@ class MapFuture<A, B> extends Future<B> {
     super();
     this.parents = cons(parent);
   }
-  pushF(t: number, val: A): void {
+  pushS(t: number, val: A): void {
     this.resolve(this.f(val), t);
   }
 }
@@ -112,7 +112,7 @@ class MapToFuture<A> extends Future<A> {
     super();
     this.parents = cons(parent);
   }
-  pushF(t: any, _val: any): void {
+  pushS(t: any, _val: any): void {
     this.resolve(this.value, t);
   }
 }
@@ -123,7 +123,7 @@ class OfFuture<A> extends Future<A> {
     this.state = State.Done;
   }
   /* istanbul ignore next */
-  pushF(_: any): void {
+  pushS(_: any): void {
     throw new Error("A PureFuture should never be pushed to.");
   }
 }
@@ -135,7 +135,7 @@ class LiftFuture<A> extends Future<A> {
     this.missing = futures.length;
     this.parents = fromArray(futures);
   }
-  pushF(t: number, _val: any): void {
+  pushS(t: number, _val: any): void {
     if (--this.missing === 0) {
       // All the dependencies have occurred.
       for (let i = 0; i < this.futures.length; ++i) {
@@ -146,14 +146,14 @@ class LiftFuture<A> extends Future<A> {
   }
 }
 
-class ChainFuture<A, B> extends Future<B> implements FListener<A> {
+class ChainFuture<A, B> extends Future<B> implements SListener<A> {
   private parentOccurred: boolean = false;
   private node = new Node(this);
   constructor(private f: (a: A) => Future<B>, private parent: Future<A>) {
     super();
     this.parents = cons(parent);
   }
-  pushF(t: number, val: any): void {
+  pushS(t: number, val: any): void {
     if (this.parentOccurred === false) {
       // The first future occurred. We can now call `f` with its value
       // and listen to the future it returns.
@@ -172,7 +172,7 @@ class ChainFuture<A, B> extends Future<B> implements FListener<A> {
  */
 export class SinkFuture<A> extends Future<A> {
   /* istanbul ignore next */
-  pushF(t: number, val: any): void {
+  pushS(t: number, val: any): void {
     throw new Error("A sink should not be pushed to.");
   }
   activate(): void {}
@@ -205,7 +205,7 @@ export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
   changeStateDown(state: State): void {
     throw new Error("Behavior future does not support pulling behavior");
   }
-  push(t: number): void {
+  pushB(t: number): void {
     this.b.removeListener(this.node);
     this.resolve(this.b.last, t);
   }
