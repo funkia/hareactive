@@ -1,6 +1,6 @@
 import { Reactive, State, Time, SListener, Parent, BListener } from "./common";
 import { cons, Node, DoubleLinkedList } from "./datastructures";
-import { Behavior, fromFunction } from "./behavior";
+import { Behavior, fromFunction, scan } from "./behavior";
 import { tick } from "./timestamp";
 
 export type Occurrence<A> = {
@@ -37,7 +37,7 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
     return fromFunction(() => new ScanStream(fn, startingValue, this));
   }
   scan<B>(fn: (a: A, b: B) => B, init: B): Behavior<Behavior<B>> {
-    return; //scan(fn, init, this);
+    return scan(fn, init, this);
   }
   log(prefix?: string): Stream<A> {
     this.subscribe((a) => console.log(`${prefix || ""} `, a));
@@ -345,12 +345,9 @@ export class SinkStream<A> extends ProducerStream<A> {
       this.pushSToChildren(t, a);
     }
   }
-  publish(a: A): void {
+  push(a: A): void {
     const t = tick();
     this.pushSToChildren(t, a);
-  }
-  push(a: A) {
-    this.publish(a);
   }
   activate(): void {
     this.pushing = true;

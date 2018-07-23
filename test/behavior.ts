@@ -267,8 +267,8 @@ describe("behavior", () => {
       const b2 = b1.chain((x) => Behavior.of(x * x));
       const cb = spy();
       b2.observe(cb, () => () => {});
-      b1.publish(2);
-      b1.publish(3);
+      b1.push(2);
+      b1.push(3);
       assert.deepEqual(cb.args, [[0], [4], [9]]);
     });
     it("handles changing inner behavior", () => {
@@ -277,9 +277,9 @@ describe("behavior", () => {
       const cb = spy();
       b.observe(cb, () => () => {});
       assert.strictEqual(at(b), 0);
-      inner.publish(2);
+      inner.push(2);
       assert.strictEqual(at(b), 2);
-      inner.publish(3);
+      inner.push(3);
       assert.strictEqual(at(b), 3);
       assert.deepEqual(cb.args, [[0], [2], [3]]);
     });
@@ -289,11 +289,11 @@ describe("behavior", () => {
       const b = outer.chain((n) => (n === 1 ? inner : Behavior.of(6)));
       b.observe(() => {}, () => () => {});
       assert.strictEqual(at(b), 0);
-      inner.publish(2);
+      inner.push(2);
       assert.strictEqual(at(b), 2);
-      outer.publish(2);
+      outer.push(2);
       assert.strictEqual(at(b), 6);
-      inner.publish(3);
+      inner.push(3);
       assert.strictEqual(at(b), 6);
     });
     it("handles changes from both inner and outer", () => {
@@ -311,15 +311,15 @@ describe("behavior", () => {
       });
       b.observe(() => {}, () => () => {});
       assert.strictEqual(at(b), 0);
-      outer.publish(1);
+      outer.push(1);
       assert.strictEqual(at(b), 1);
-      inner1.publish(2);
+      inner1.push(2);
       assert.strictEqual(at(b), 2);
-      outer.publish(2);
+      outer.push(2);
       assert.strictEqual(at(b), 3);
-      inner1.publish(7); // Pushing to previous inner should have no effect
+      inner1.push(7); // Pushing to previous inner should have no effect
       assert.strictEqual(at(b), 3);
-      inner2.publish(4);
+      inner2.push(4);
       assert.strictEqual(at(b), 4);
     });
     it("can switch between pulling and pushing", () => {
@@ -337,17 +337,17 @@ describe("behavior", () => {
       };
       // Test that several observers are notified
       chained.observe(pushSpy, handlePulling);
-      pushingB.publish(1);
-      pushingB.publish(2);
-      outer.publish(false);
+      pushingB.push(1);
+      pushingB.push(2);
+      outer.push(false);
       assert.strictEqual(at(chained), 7);
       variable = 8;
       assert.strictEqual(at(chained), 8);
-      pushingB.publish(3);
-      pushingB.publish(4);
-      outer.publish(true);
-      pushingB.publish(5);
-      outer.publish(false);
+      pushingB.push(3);
+      pushingB.push(4);
+      outer.push(true);
+      pushingB.push(5);
+      outer.push(false);
       variable = 9;
       assert.strictEqual(at(chained), 9);
       assert.deepEqual(pushSpy.args, [[0], [1], [2], [4], [5]]);
@@ -362,7 +362,7 @@ describe("behavior", () => {
       });
       const cb = spy();
       b.subscribe(cb);
-      a.publish(7);
+      a.push(7);
       assert.deepEqual(cb.args, [[2], [14]]);
     });
     it("supports adding pullers", () => {
@@ -391,7 +391,7 @@ describe("behavior", () => {
       clock.tick(1000);
       assert.strictEqual(at(integration), 3);
       clock.tick(500);
-      acceleration.publish(2);
+      acceleration.push(2);
       assert.strictEqual(at(integration), 4);
 
       clock.restore();
@@ -404,8 +404,8 @@ describe("behavior", () => {
       const b = format`${bs1} and ${bs2}!`;
       const cb = spy();
       b.subscribe(cb);
-      bs1.publish("Hello");
-      bs2.publish("goodbye");
+      bs1.push("Hello");
+      bs2.push("goodbye");
       assert.deepEqual(cb.args, [
         ["foo and bar!"],
         ["Hello and bar!"],
@@ -418,8 +418,8 @@ describe("behavior", () => {
       const b = format`first ${bs1} then ${bs2}!`;
       const cb = spy();
       b.subscribe(cb);
-      bs1.publish("bar");
-      bs2.publish(24);
+      bs1.push("bar");
+      bs2.push(24);
       assert.deepEqual(cb.args, [
         ["first foo then 12!"],
         ["first bar then 12!"],
@@ -436,8 +436,8 @@ describe("behavior", () => {
       });
       const cb = spy();
       derived.subscribe(cb);
-      b1.publish(2);
-      b2.publish(3);
+      b1.push(2);
+      b2.push(3);
       assert.deepEqual(cb.args, [[1], [3], [5]]);
     });
     it("adds and removes dependencies", () => {
@@ -449,10 +449,10 @@ describe("behavior", () => {
       });
       const cb = spy();
       derived.subscribe(cb);
-      b1.publish(4);
-      flag.publish(false);
-      b2.publish(5);
-      b1.publish(6);
+      b1.push(4);
+      flag.push(false);
+      b2.push(5);
+      b1.push(6);
       assert.deepEqual(cb.args, [[2], [4], [3], [5]]);
     });
     it("can combine behaviors from array", () => {
@@ -472,11 +472,11 @@ describe("behavior", () => {
       });
       const cb = spy();
       derived.subscribe(cb);
-      list.publish([count1, count2, count3]);
-      nr2.publish(5);
-      list.publish([count1, count3]);
-      nr2.publish(10);
-      nr3.publish(3);
+      list.push([count1, count2, count3]);
+      nr2.push(5);
+      list.push([count1, count3]);
+      nr2.push(10);
+      nr3.push(3);
       assert.deepEqual(cb.args, [[0], [9], [11], [6], [7]]);
     });
     it("works with placeholders", () => {
@@ -489,9 +489,9 @@ describe("behavior", () => {
       });
       const cb = spy();
       derived.subscribe(cb);
-      b1.publish(2);
+      b1.push(2);
       p.replaceWith(b0);
-      b0.publish(0);
+      b0.push(0);
       assert.deepEqual(cb.args, [[7], [4]]);
     });
     it("works with snapshot", () => {
@@ -520,7 +520,7 @@ describe("Behavior and Future", () => {
       const fut = at(w);
       fut.subscribe((_) => (occurred = true));
       assert.strictEqual(occurred, false);
-      b.publish(true);
+      b.push(true);
       assert.strictEqual(occurred, true);
     });
   });
@@ -531,20 +531,20 @@ describe("Behavior and Future", () => {
       const futureSink = H.sinkFuture();
       const mySnapshot = at(H.snapshotAt(bSink, futureSink));
       mySnapshot.subscribe((res) => (result = res));
-      bSink.publish(2);
-      bSink.publish(3);
+      bSink.push(2);
+      bSink.push(3);
       futureSink.resolve({});
-      bSink.publish(4);
+      bSink.push(4);
       assert.strictEqual(result, 3);
     });
     it("uses current value when future occurred in the past", () => {
       let result: number;
       const bSink = sinkBehavior(1);
       const occurredFuture = H.Future.of({});
-      bSink.publish(2);
+      bSink.push(2);
       const mySnapshot = at(H.snapshotAt(bSink, occurredFuture));
       mySnapshot.subscribe((res) => (result = res));
-      bSink.publish(3);
+      bSink.push(3);
       assert.strictEqual(result, 2);
     });
   });
@@ -556,12 +556,12 @@ describe("Behavior and Future", () => {
       const switching = switchTo(b1, futureSink);
       const cb = subscribeSpy(switching);
       assert.strictEqual(at(switching), 1);
-      b2.publish(9);
+      b2.push(9);
       assert.strictEqual(at(switching), 1);
-      b1.publish(2);
-      b1.publish(3);
+      b1.push(2);
+      b1.push(3);
       futureSink.resolve(b2);
-      b2.publish(10);
+      b2.push(10);
       assert.deepEqual(cb.args, [[1], [2], [3], [9], [10]]);
     });
     it("changes from push to pull", () => {
@@ -579,7 +579,7 @@ describe("Behavior and Future", () => {
       const switching = switchTo(pushingB, futureSink);
       observe(pushSpy, handlePulling, switching);
       assert.strictEqual(at(switching), 0);
-      pushingB.publish(1);
+      pushingB.push(1);
       assert.strictEqual(at(switching), 1);
       futureSink.resolve(pullingB);
       assert.strictEqual(at(switching), 7);
@@ -614,7 +614,7 @@ describe("Behavior and Future", () => {
       assert.strictEqual(endPull, false);
       futureSink.resolve(b2);
       assert.strictEqual(endPull, true);
-      b2.publish(3);
+      b2.push(3);
       assert.deepEqual(pushed, [2, 3]);
     });
   });
@@ -629,8 +629,8 @@ describe("Behavior and Stream", () => {
       const switchingB = at(outerSwitcher);
       switchingB.subscribe((n) => result.push(n));
       const sinkB = sinkBehavior(2);
-      stream.publish(sinkB);
-      sinkB.publish(3);
+      stream.push(sinkB);
+      sinkB.push(3);
       assert.deepEqual(result, [1, 2, 3]);
       assert.deepEqual(at(at(outerSwitcher)), 1);
     });
@@ -640,14 +640,14 @@ describe("Behavior and Stream", () => {
       const s = H.sinkStream();
       const b = H.stepper(0, s).at();
       const cb = subscribeSpy(b);
-      s.publish(1);
-      s.publish(2);
+      s.push(1);
+      s.push(2);
       assert.deepEqual(cb.args, [[0], [1], [2]]);
     });
     it("saves last occurrence from stream", () => {
       const s = H.sinkStream();
       const t = H.stepper(1, s).at();
-      s.publish(12);
+      s.push(12);
       const spy = subscribeSpy(t);
       assert.deepEqual(spy.args, [[12]]);
     });
@@ -656,9 +656,9 @@ describe("Behavior and Stream", () => {
       const b = H.stepper(0, s).at();
       const res = H.snapshot(b, s);
       const spy = subscribeSpy(res);
-      s.publish(1);
+      s.push(1);
       assert.strictEqual(b.at(), 1);
-      s.publish(2);
+      s.push(2);
       assert.strictEqual(b.at(), 2);
       assert.deepEqual(spy.args, [[0], [1]]);
     });
@@ -673,11 +673,11 @@ describe("Behavior and Stream", () => {
       const b1 = scanned.at();
       const spy = subscribeSpy(b1);
       assert.strictEqual(at(b1), 1);
-      s.publish(2);
+      s.push(2);
       assert.strictEqual(at(b1), 3);
       const b2 = at(scanned);
       assert.strictEqual(at(b2), 1);
-      s.publish(4);
+      s.push(4);
       assert.strictEqual(at(b1), 7);
       assert.strictEqual(at(b2), 5);
       assert.deepEqual(spy.args, [[1], [3], [7]]);
@@ -720,9 +720,9 @@ describe("Behavior and Stream", () => {
         1
       );
       const cb = subscribeSpy(b.at());
-      add.publish(3);
-      mul.publish(3);
-      sub.publish(5);
+      add.push(3);
+      mul.push(3);
+      sub.push(5);
       assert.deepEqual(cb.args, [[1], [4], [12], [7]]);
     });
   });
@@ -735,14 +735,14 @@ describe("Behavior and Stream", () => {
       const switching = H.switchStream(b);
       const cb = spy();
       switching.subscribe(cb);
-      s1.publish(1);
-      s1.publish(2);
-      b.publish(s2);
-      s2.publish(3);
-      b.publish(s3);
-      s2.publish(4);
-      s3.publish(5);
-      s3.publish(6);
+      s1.push(1);
+      s1.push(2);
+      b.push(s2);
+      s2.push(3);
+      b.push(s3);
+      s2.push(4);
+      s3.push(5);
+      s3.push(6);
       assert.deepEqual(cb.args, [[1], [2], [3], [5], [6]]);
     });
   });
@@ -798,9 +798,9 @@ describe("Behavior and Stream", () => {
       const s2 = H.sinkStream();
       const flipper = H.toggle(false, s1, s2).at();
       const cb = subscribeSpy(flipper);
-      s1.publish(1);
-      s2.publish(2);
-      s1.publish(3);
+      s1.push(1);
+      s2.push(2);
+      s1.push(3);
       assert.deepEqual(cb.args, [[false], [true], [false], [true]]);
     });
   });

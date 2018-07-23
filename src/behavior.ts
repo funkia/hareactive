@@ -24,16 +24,15 @@ export type SemanticBehavior<A> = (time: Time) => A;
 @monad
 export abstract class Behavior<A> extends Reactive<A, BListener>
   implements Parent<BListener>, Monad<A> {
-  // Push behaviors cache their last value in `last`.
-  // Pull behaviors do not use `last`.
+  // Behaviors cache their last value in `last`.
   last: A;
   children: DoubleLinkedList<BListener> = new DoubleLinkedList();
-  // Amount of nodes that wants to pull the behavior without actively
-  nrOfListeners: number;
   // listening for updates
+  nrOfListeners: number;
+  // Amount of nodes that wants to pull the behavior without actively
   nrOfPullers: number;
-  pulledAt: number;
-  changedAt: number;
+  pulledAt: number | undefined;
+  changedAt: number | undefined;
 
   constructor() {
     super();
@@ -178,7 +177,6 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
   pull(t: number) {}
   update(t: number): A {
     throw new Error("A producer behavior does not have an update method");
-    //    return this.last;
   }
   changePullers(n: number): void {
     this.nrOfPullers += n;
@@ -239,7 +237,7 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
   constructor(public last: A) {
     super();
   }
-  publish(a: A) {
+  push(a: A) {
     if (this.last !== a) {
       const t = tick();
       this.last = a;
@@ -247,9 +245,6 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
       this.pulledAt = t;
       this.pushToChildren(t);
     }
-  }
-  push(a: A) {
-    this.publish(a);
   }
   activateProducer(): void {}
   deactivateProducer(): void {}
@@ -312,7 +307,6 @@ class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
   private innerNode = new Node(this);
-  // private outerConsumer: ChainOuter<A>;
   constructor(private outer: Behavior<A>, private fn: (a: A) => Behavior<B>) {
     super();
     this.parents = cons(this.outer);
@@ -376,7 +370,6 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
       // Future has occurred at some point in the past
       this.afterFuture = true;
       this.state = parent.state;
-      //parent.addListener(this.node);
       this.parents = cons(parent);
       this.last = Future.of(at(parent));
     } else {
@@ -474,7 +467,6 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     if (this.state === State.Push) {
       this.last = at(b);
     }
-    // @ts-ignore
     next.addListener(this.nNode);
   }
   update(t: number): A {
@@ -606,7 +598,6 @@ export function scanCombine<B>(
   pairs: ScanPair<B>[],
   initial: B
 ): Behavior<Behavior<B>> {
-  //return new ScanCombineBehavior<B>(pairs, initial);
   return scan((a, b) => a(b), initial, combine(...pairs.map(scanPairToApp)));
 }
 

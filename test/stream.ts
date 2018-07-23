@@ -65,8 +65,8 @@ describe("stream", () => {
       const cb2 = spy();
       s.subscribe(cb1);
       s.subscribe(cb2);
-      s.publish(2);
-      s.publish(3);
+      s.push(2);
+      s.push(3);
       assert.strictEqual(cb1.callCount, 2);
       assert.strictEqual(cb2.callCount, 2);
     });
@@ -77,8 +77,8 @@ describe("stream", () => {
       s.subscribe(cb1);
       const listener = s.subscribe(cb2);
       s.removeListener(listener.node);
-      s.publish(2);
-      s.publish(3);
+      s.push(2);
+      s.push(3);
       assert.strictEqual(cb1.callCount, 2);
       assert.strictEqual(cb2.callCount, 0);
     });
@@ -91,8 +91,8 @@ describe("stream", () => {
       const listener = s.subscribe(cb2);
       s.subscribe(cb3);
       s.removeListener(listener.node);
-      s.publish(2);
-      s.publish(3);
+      s.push(2);
+      s.push(3);
       assert.strictEqual(cb1.callCount, 2);
       assert.strictEqual(cb2.callCount, 0);
       assert.strictEqual(cb3.callCount, 2);
@@ -193,8 +193,8 @@ describe("stream", () => {
       const callback = spy();
       const combinedS = stream2.combine(stream1);
       combinedS.subscribe(callback);
-      stream1.publish(1);
-      stream2.publish("2");
+      stream1.push(1);
+      stream2.push("2");
       assert.deepEqual(callback.args, [[1], ["2"]]);
     });
     it("should combine three streams", () => {
@@ -203,9 +203,9 @@ describe("stream", () => {
       const stream3 = H.sinkStream();
       const combinedS = H.combine(stream1, stream2, stream3);
       const callback = subscribeSpy(combinedS);
-      stream1.publish(1);
-      stream2.publish(2);
-      stream3.publish(3);
+      stream1.push(1);
+      stream2.push(2);
+      stream3.push(3);
       assert.deepEqual(callback.args, [[1], [2], [3]]);
     });
   });
@@ -224,7 +224,7 @@ describe("stream", () => {
       const mappedObs = map(addTwo, obs);
       mappedObs.subscribe(callback);
       for (let i = 0; i < 5; i++) {
-        obs.publish(i);
+        obs.push(i);
       }
       assert.deepEqual(callback.args, [[2], [3], [4], [5], [6]]);
     });
@@ -233,9 +233,9 @@ describe("stream", () => {
       const callback = spy();
       const mapped = stream.mapTo(7);
       mapped.subscribe(callback);
-      stream.publish(1);
-      stream.publish(2);
-      stream.publish(3);
+      stream.push(1);
+      stream.push(2);
+      stream.push(3);
       assert.deepEqual(callback.args, [[7], [7], [7]]);
     });
     it("maps to constant semantically", () => {
@@ -254,16 +254,16 @@ describe("stream", () => {
       const applied = H.apply(fnB, origin);
       const callback = spy();
       applied.subscribe(callback);
-      origin.publish(2);
-      origin.publish(3);
-      fnB.publish((n: number) => 2 * n);
-      origin.publish(4);
-      origin.publish(5);
-      fnB.publish((n: number) => n / 2);
-      origin.publish(4);
-      fnB.publish(Math.sqrt);
-      origin.publish(25);
-      origin.publish(36);
+      origin.push(2);
+      origin.push(3);
+      fnB.push((n: number) => 2 * n);
+      origin.push(4);
+      origin.push(5);
+      fnB.push((n: number) => n / 2);
+      origin.push(4);
+      fnB.push(Math.sqrt);
+      origin.push(25);
+      origin.push(36);
       assert.deepEqual(callback.args, [[4], [9], [8], [10], [2], [5], [6]]);
     });
   });
@@ -283,7 +283,7 @@ describe("stream", () => {
       const filteredObs = H.filter(isEven, sink);
       H.subscribe(callback, filteredObs);
       for (let i = 0; i < 10; i++) {
-        sink.publish(i);
+        sink.push(i);
       }
       assert.deepEqual(callback.args, [[0], [2], [4], [6], [8]]);
     });
@@ -296,10 +296,10 @@ describe("stream", () => {
       const [a, b] = H.split((n) => n % 2 === 0, sink);
       a.subscribe(callbackA);
       b.subscribe(callbackB);
-      sink.publish(1);
-      sink.publish(4);
-      sink.publish(7);
-      sink.publish(10);
+      sink.push(1);
+      sink.push(4);
+      sink.push(7);
+      sink.push(10);
       assert.deepEqual(callbackA.args, [[4], [10]]);
       assert.deepEqual(callbackB.args, [[1], [7]]);
     });
@@ -313,10 +313,10 @@ describe("stream", () => {
       H.subscribe(callback, filtered);
       publish(2, origin);
       publish(3, origin);
-      predB.publish((n: number) => n % 3 === 0);
+      predB.push((n: number) => n % 3 === 0);
       publish(4, origin);
       publish(6, origin);
-      predB.publish((n: number) => n % 4 === 0);
+      predB.push((n: number) => n % 4 === 0);
       publish(6, origin);
       publish(12, origin);
       assert.deepEqual(callback.args, [[2], [6], [12]]);
@@ -385,7 +385,7 @@ describe("stream", () => {
         const delayedS = H.delay(50, s);
         delayedS.subscribe(() => (n = 2));
         s.subscribe(() => (n = 1));
-        s.publish(0);
+        s.push(0);
         assert.strictEqual(n, 1);
         clock.tick(49);
         assert.strictEqual(n, 1);
@@ -400,16 +400,16 @@ describe("stream", () => {
         const throttleS = H.throttle(100, s);
         throttleS.subscribe((v) => (n = v));
         assert.strictEqual(n, 0);
-        s.publish(1);
+        s.push(1);
         assert.strictEqual(n, 1);
         clock.tick(80);
-        s.publish(2);
+        s.push(2);
         assert.strictEqual(n, 1);
         clock.tick(19);
-        s.publish(3);
+        s.push(3);
         assert.strictEqual(n, 1);
         clock.tick(1);
-        s.publish(4);
+        s.push(4);
         assert.strictEqual(n, 4);
       });
     });
@@ -420,12 +420,12 @@ describe("stream", () => {
         const debouncedS = H.debounce(100, s);
         debouncedS.subscribe((v) => (n = v));
         assert.strictEqual(n, 0);
-        s.publish(1);
+        s.push(1);
         clock.tick(80);
         assert.strictEqual(n, 0);
         clock.tick(30);
         assert.strictEqual(n, 1);
-        s.publish(2);
+        s.push(2);
         assert.strictEqual(n, 1);
         clock.tick(99);
         assert.strictEqual(n, 1);
@@ -473,14 +473,14 @@ describe("stream", () => {
       const shot = H.snapshot(mapped, s);
       const callback = spy();
       shot.subscribe(callback);
-      s.publish(undefined);
+      s.push(undefined);
       publish(1);
-      s.publish(undefined);
+      s.push(undefined);
       publish(2);
-      s.publish(undefined);
+      s.push(undefined);
       publish(3);
       publish(4);
-      s.publish(undefined);
+      s.push(undefined);
       assert(activate.calledOnce, "called once");
       assert.deepEqual(callback.args, [[2], [3], [4], [6]]);
     });
@@ -522,26 +522,26 @@ describe("stream", () => {
       const s = H.changes(b);
       const cb = spy();
       H.subscribe(cb, s);
-      b.publish(1);
-      b.publish(2);
-      b.publish(2);
-      b.publish(2);
-      b.publish(3);
+      b.push(1);
+      b.push(2);
+      b.push(2);
+      b.push(2);
+      b.push(3);
       assert.deepEqual(cb.args, [[1], [2], [3]]);
     });
     /*
-        it("gives changes from pulling behavior", () => {
-          let x = 0;
-          const b = fromFunction(() => x);
-          const s = changes(b);
-          const cb = spy();
-          observe
-          x = 1;
-          x = 2;
-          x = 3;
-          assert.deepEqual(cb.args, [[1], [2], [3]]);
-        });
-        */
+    it("gives changes from pulling behavior", () => {
+      let x = 0;
+      const b = fromFunction(() => x);
+      const s = changes(b);
+      const cb = spy();
+      observe
+      x = 1;
+      x = 2;
+      x = 3;
+      assert.deepEqual(cb.args, [[1], [2], [3]]);
+    });
+    */
   });
   it("works", () => {
     function foobar(stream1, stream2) {

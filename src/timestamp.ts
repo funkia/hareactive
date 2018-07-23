@@ -1,4 +1,4 @@
-export let timestamp = 1;
+let timestamp = 1;
 
 export function tick() {
   return ++timestamp;

@@ -135,7 +135,7 @@ describe("placeholder", () => {
       const s = sinkStream();
       p.replaceWith(s);
       assert.strictEqual(result, 0);
-      s.publish(1);
+      s.push(1);
       assert.strictEqual(result, 2);
     });
     it("mapTo", () => {
@@ -146,8 +146,8 @@ describe("placeholder", () => {
       const cb = subscribeSpy(mapped);
       p.replaceWith(sink);
       assert.deepEqual(cb.args, []);
-      sink.publish(12);
-      sink.publish(12);
+      sink.push(12);
+      sink.push(12);
       assert.deepEqual(cb.args, [[12], [12]]);
     });
     it("snapshot", () => {
@@ -159,7 +159,7 @@ describe("placeholder", () => {
       const s = sinkStream();
       p.replaceWith(s);
       assert.strictEqual(result, 0);
-      s.publish(1);
+      s.push(1);
       assert.strictEqual(result, 7);
     });
     describe("timing operators", () => {
@@ -178,7 +178,7 @@ describe("placeholder", () => {
         p.subscribe(() => (n = 1));
         const s = sinkStream<number>();
         p.replaceWith(s);
-        s.publish(0);
+        s.push(0);
         assert.strictEqual(n, 1);
         clock.tick(49);
         assert.strictEqual(n, 1);
@@ -194,12 +194,12 @@ describe("placeholder", () => {
         assert.strictEqual(n, 0);
         const s = sinkStream<number>();
         p.replaceWith(s);
-        s.publish(1);
+        s.push(1);
         clock.tick(99);
-        s.publish(2);
+        s.push(2);
         assert.strictEqual(n, 1);
         clock.tick(1);
-        s.publish(3);
+        s.push(3);
         assert.strictEqual(n, 3);
       });
       it("should work with placeholder", () => {
@@ -210,12 +210,12 @@ describe("placeholder", () => {
         const s = sinkStream<number>();
         p.replaceWith(s);
         assert.strictEqual(n, 0);
-        s.publish(1);
+        s.push(1);
         clock.tick(80);
         assert.strictEqual(n, 0);
         clock.tick(30);
         assert.strictEqual(n, 1);
-        s.publish(2);
+        s.push(2);
         assert.strictEqual(n, 1);
         clock.tick(99);
         assert.strictEqual(n, 1);

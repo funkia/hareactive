@@ -19,9 +19,9 @@ describe("animation", () => {
       const t = transitionBehavior(config, 0, target, time).flatten();
       t.subscribe(() => "");
       assert.strictEqual(at(t), 0);
-      time.publish(10);
+      time.push(10);
       assert.strictEqual(at(t), 0);
-      time.publish(20);
+      time.push(20);
       assert.strictEqual(at(t), 0);
     });
     it("should make a simple linear transition", () => {
@@ -37,17 +37,17 @@ describe("animation", () => {
       const tB = transitionBehavior(config, 0, target, time);
       const t = tB.at();
       t.subscribe(() => "");
-      target.publish(10);
+      target.push(10);
       assert.strictEqual(t.at(), 0);
-      time.publish(10);
+      time.push(10);
       assert.strictEqual(t.at(), 1);
-      time.publish(50);
+      time.push(50);
       assert.strictEqual(t.at(), 5);
-      time.publish(90);
+      time.push(90);
       assert.strictEqual(t.at(), 9);
-      time.publish(100);
+      time.push(100);
       assert.strictEqual(t.at(), 10);
-      time.publish(140);
+      time.push(140);
       assert.strictEqual(t.at(), 10);
     });
 
@@ -63,17 +63,17 @@ describe("animation", () => {
 
       const t = transitionBehavior(config, 0, target, time).at();
       t.subscribe(() => "");
-      target.publish(10);
+      target.push(10);
       assert.strictEqual(t.at(), 0);
-      time.publish(90);
+      time.push(90);
       assert.strictEqual(t.at(), 0);
-      time.publish(100);
+      time.push(100);
       assert.strictEqual(t.at(), 0);
-      time.publish(110);
+      time.push(110);
       assert.strictEqual(t.at(), 1);
-      time.publish(190);
+      time.push(190);
       assert.strictEqual(t.at(), 9);
-      time.publish(200);
+      time.push(200);
       assert.strictEqual(t.at(), 10);
     });
   });
