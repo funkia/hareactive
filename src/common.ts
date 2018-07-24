@@ -75,7 +75,7 @@ export function changePullersParents(
   changePullersParents(n, parents.tail);
 }
 
-type NodeParentPair = {
+export type NodeParentPair = {
   parent: Parent<any>;
   node: Node<any>;
 };
@@ -83,7 +83,6 @@ type NodeParentPair = {
 export abstract class Reactive<A, C extends Child> implements Child {
   nrOfListeners: number;
   state: State;
-  //children: DoubleLinkedList<Observer<A>> = new DoubleLinkedList();
   parents: Cons<Parent<any>>;
   listenerNodes: Cons<NodeParentPair> | undefined;
   children: DoubleLinkedList<C> = new DoubleLinkedList();

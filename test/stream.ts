@@ -467,19 +467,19 @@ describe("stream", () => {
       assert.deepEqual(callback.args, [[0], [0], [1], [2], [2]]);
     });
     it("activates producer", () => {
-      const { activate, publish, producer } = createTestProducerBehavior(0);
+      const { activate, push, producer } = createTestProducerBehavior(0);
       const mapped = map(addTwo, producer);
       const s = H.sinkStream<undefined>();
       const shot = H.snapshot(mapped, s);
       const callback = spy();
       shot.subscribe(callback);
       s.push(undefined);
-      publish(1);
+      push(1);
       s.push(undefined);
-      publish(2);
+      push(2);
       s.push(undefined);
-      publish(3);
-      publish(4);
+      push(3);
+      push(4);
       s.push(undefined);
       assert(activate.calledOnce, "called once");
       assert.deepEqual(callback.args, [[2], [3], [4], [6]]);

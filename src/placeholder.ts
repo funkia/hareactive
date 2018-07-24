@@ -20,9 +20,9 @@ export class Placeholder<A> extends Behavior<A> {
   ): void {
     this.source = parent;
     if (this.children.head !== undefined) {
-      this.activate();
+      const t = tick();
+      this.activate(t);
       if (isBehavior(parent) && this.state === State.Push) {
-        const t = tick();
         this.pushB(t);
       }
     }
@@ -54,9 +54,9 @@ export class Placeholder<A> extends Behavior<A> {
   update(t: number): A {
     throw new Error("Update should never be called on a placeholder.");
   }
-  activate(): void {
+  activate(t: number): void {
     if (this.source !== undefined) {
-      this.source.addListener(this.node);
+      this.source.addListener(this.node, t);
       this.state = this.source.state;
       this.changeStateDown(this.state);
     }

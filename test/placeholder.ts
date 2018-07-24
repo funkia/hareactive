@@ -90,9 +90,7 @@ describe("placeholder", () => {
       b.replaceWith(Behavior.of(3));
     });
     it("should work with consumers that only wants to pull", () => {
-      const { activate, publish: push, producer } = createTestProducerBehavior(
-        0
-      );
+      const { activate, push, producer } = createTestProducerBehavior(0);
       const pB = placeholder();
       const s = sinkStream<string>();
       const shot = snapshot(pB, s);
@@ -109,7 +107,7 @@ describe("placeholder", () => {
       assert.deepEqual(callback.args, [[0], [0], [1], [1], [4]]);
     });
     it("adds puller to the behavior it has been replaced with", () => {
-      const { activate, publish, producer } = createTestProducerBehavior(0);
+      const { activate, push, producer } = createTestProducerBehavior(0);
       const pB = placeholder();
       const s = sinkStream<string>();
       pB.replaceWith(producer);
