@@ -2,7 +2,7 @@ import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
 import {
   map,
-  publish,
+  push,
   Behavior,
   fromFunction,
   sinkBehavior,
@@ -311,14 +311,14 @@ describe("stream", () => {
       const filtered = H.filterApply(predB, origin);
       const callback = spy();
       H.subscribe(callback, filtered);
-      publish(2, origin);
-      publish(3, origin);
+      push(2, origin);
+      push(3, origin);
       predB.push((n: number) => n % 3 === 0);
-      publish(4, origin);
-      publish(6, origin);
+      push(4, origin);
+      push(6, origin);
       predB.push((n: number) => n % 4 === 0);
-      publish(6, origin);
-      publish(12, origin);
+      push(6, origin);
+      push(12, origin);
       assert.deepEqual(callback.args, [[2], [6], [12]]);
     });
   });
@@ -331,7 +331,7 @@ describe("stream", () => {
       const currentSumE = H.scanS(sumF, 0, eventS).at();
       H.subscribe(callback, currentSumE);
       for (let i = 0; i < 10; i++) {
-        publish(i, eventS);
+        push(i, eventS);
       }
       assert.deepEqual(callback.args, [
         [0],
@@ -356,17 +356,17 @@ describe("stream", () => {
       const filtered = H.keepWhen(origin, bool);
       const callback = spy();
       H.subscribe(callback, filtered);
-      publish(0, origin);
-      publish(1, origin);
+      push(0, origin);
+      push(1, origin);
       flag = false;
-      publish(2, origin);
-      publish(3, origin);
+      push(2, origin);
+      push(3, origin);
       flag = true;
-      publish(4, origin);
+      push(4, origin);
       flag = false;
-      publish(5, origin);
+      push(5, origin);
       flag = true;
-      publish(6, origin);
+      push(6, origin);
       assert.deepEqual(callback.args, [[0], [1], [4], [6]]);
     });
   });
@@ -442,13 +442,13 @@ describe("stream", () => {
       const shot = H.snapshot<number>(b, e);
       const callback = spy();
       H.subscribe(callback, shot);
-      publish(0, e);
-      publish(1, e);
+      push(0, e);
+      push(1, e);
       n = 1;
-      publish(2, e);
+      push(2, e);
       n = 2;
-      publish(3, e);
-      publish(4, e);
+      push(3, e);
+      push(4, e);
       assert.deepEqual(callback.args, [[0], [0], [1], [2], [2]]);
     });
     it("snapshots push based Behavior", () => {
@@ -457,13 +457,13 @@ describe("stream", () => {
       const shot = H.snapshot<number>(b, e);
       const callback = spy();
       H.subscribe(callback, shot);
-      publish(0, e);
-      publish(1, e);
-      publish(1, b);
-      publish(2, e);
-      publish(2, b);
-      publish(3, e);
-      publish(4, e);
+      push(0, e);
+      push(1, e);
+      push(1, b);
+      push(2, e);
+      push(2, b);
+      push(3, e);
+      push(4, e);
       assert.deepEqual(callback.args, [[0], [0], [1], [2], [2]]);
     });
     it("activates producer", () => {
@@ -491,13 +491,13 @@ describe("stream", () => {
       const shot = H.snapshotWith<number, number, number>(sum, b, e);
       const callback = spy();
       H.subscribe(callback, shot);
-      publish(0, e);
-      publish(1, e);
+      push(0, e);
+      push(1, e);
       n = 1;
-      publish(2, e);
+      push(2, e);
       n = 2;
-      publish(3, e);
-      publish(4, e);
+      push(3, e);
+      push(4, e);
       assert.deepEqual(callback.args, [[0], [1], [3], [5], [6]]);
     });
     it("has semantic representation", () => {

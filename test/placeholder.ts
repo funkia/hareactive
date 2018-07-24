@@ -11,7 +11,7 @@ import {
   fromFunction,
   sinkBehavior,
   ap,
-  publish,
+  push,
   debounce,
   delay,
   isStream,
@@ -97,13 +97,13 @@ describe("placeholder", () => {
       const callback = subscribeSpy(shot);
       pB.replaceWith(producer);
       assert.isTrue(activate.calledOnce);
-      publish("a", s);
-      publish("b", s);
+      s.push("a");
+      s.push("b");
       push(1);
-      publish("c", s);
-      publish("d", s);
+      s.push("c");
+      s.push("d");
       push(4);
-      publish("e", s);
+      s.push("e");
       assert.deepEqual(callback.args, [[0], [0], [1], [1], [4]]);
     });
     it("adds puller to the behavior it has been replaced with", () => {

@@ -9,7 +9,7 @@ import {
   observe,
   ProducerBehavior,
   producerBehavior,
-  publish,
+  push,
   sinkBehavior,
   integrate,
   moment,
@@ -121,9 +121,9 @@ describe("behavior", () => {
         const mapped = map(double, b);
         const cb = spy();
         mapped.subscribe(cb);
-        publish(1, b);
-        publish(2, b);
-        publish(3, b);
+        push(1, b);
+        push(2, b);
+        push(3, b);
         assert.deepEqual(cb.args, [[0], [2], [4], [6]]);
       });
       it("maps time function", () => {
@@ -186,11 +186,11 @@ describe("behavior", () => {
         const cb = spy();
         applied.subscribe(cb);
         assert.equal(H.at(applied, 1), 4);
-        publish(add(2), fnB);
+        push(add(2), fnB);
         assert.equal(H.at(applied, 2), 5);
-        publish(4, numE);
+        push(4, numE);
         assert.equal(H.at(applied, 3), 6);
-        publish(double, fnB);
+        push(double, fnB);
         assert.equal(H.at(applied, 4), 8);
         assert.deepEqual(cb.args, [[4], [5], [6], [8]]);
       });
@@ -223,11 +223,11 @@ describe("behavior", () => {
         const cb = spy();
         applied.observe(cb, (pull) => {
           pull(1);
-          publish(add(2), fnB);
+          push(add(2), fnB);
           pull(2);
           n = 4;
           pull(3);
-          publish(double, fnB);
+          push(double, fnB);
           pull(4);
           n = 8;
           pull(5);
@@ -245,11 +245,11 @@ describe("behavior", () => {
         const cb = spy();
         lifted.subscribe(cb);
         assert.strictEqual(at(lifted), 2);
-        publish(2, b2);
+        push(2, b2);
         assert.strictEqual(at(lifted), 3);
-        publish(3, b1);
+        push(3, b1);
         assert.strictEqual(at(lifted), 7);
-        publish(3, b3);
+        push(3, b3);
         assert.strictEqual(at(lifted), 9);
         assert.deepEqual(cb.args, [[2], [3], [7], [9]]);
       });
