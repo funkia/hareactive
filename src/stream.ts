@@ -176,7 +176,7 @@ class ScanStream<A, B> extends ActiveStream<B> {
   ) {
     super();
     this.parents = cons(parent);
-    parent.addListener(this.node);
+    parent.addListener(this.node, tick());
   }
   semantic(): SemanticStream<B> {
     const s = this.parent.semantic();
@@ -213,25 +213,23 @@ class SwitchBehaviorStream<A> extends Stream<A> implements BListener {
   constructor(private b: Behavior<Stream<A>>) {
     super();
   }
-  activate(): void {
-    this.b.addListener(this.bNode);
+  activate(t: number): void {
+    this.b.addListener(this.bNode, t);
     this.currentSource = this.b.last;
-    this.currentSource.addListener(this.sNode);
+    this.currentSource.addListener(this.sNode, t);
   }
   deactivate(): void {
     this.b.removeListener(this.bNode);
     this.currentSource.removeListener(this.sNode);
   }
   pushB(t: number): void {
-    this.doSwitch(this.b.last);
+    const newStream = this.b.last;
+    this.currentSource.removeListener(this.sNode);
+    newStream.addListener(this.sNode, t);
+    this.currentSource = newStream;
   }
   pushS(t: number, a: A): void {
     this.pushSToChildren(t, a);
-  }
-  public doSwitch(newStream: Stream<A>): void {
-    this.currentSource.removeListener(this.sNode);
-    newStream.addListener(this.sNode);
-    this.currentSource = newStream;
   }
 }
 
@@ -375,9 +373,9 @@ class SnapshotStream<B> extends Stream<B> {
     const b = this.behavior.at(t);
     this.pushSToChildren(t, b);
   }
-  activate(): void {
+  activate(t: number): void {
     this.behavior.changePullers(1);
-    this.stream.addListener(this.node);
+    this.stream.addListener(this.node, t);
   }
   deactivate(): void {
     this.behavior.changePullers(-1);
@@ -406,8 +404,8 @@ class SnapshotWithStream<A, B, C> extends Stream<C> {
     const c = this.fn(a, this.behavior.at(t));
     this.pushSToChildren(t, c);
   }
-  activate(): void {
-    this.stream.addListener(this.node);
+  activate(t: number): void {
+    this.stream.addListener(this.node, t);
   }
   deactivate(): void {
     this.stream.removeListener(this.node);

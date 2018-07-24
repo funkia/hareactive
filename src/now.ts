@@ -97,7 +97,7 @@ class PerformIOStream<A> extends ActiveStream<A> implements SListener<IO<A>> {
   node = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
-    s.addListener(this.node);
+    s.addListener(this.node, tick());
     this.state = State.Push;
   }
   pushS(_t: number, io: IO<A>): void {
@@ -126,7 +126,7 @@ class PerformIOStreamLatest<A> extends ActiveStream<A>
   private node = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
-    s.addListener(this.node);
+    s.addListener(this.node, tick());
   }
   next: number = 0;
   newest: number = 0;
@@ -167,7 +167,7 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   private node = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
-    s.addListener(this.node);
+    s.addListener(this.node, tick());
   }
   nextId: number = 0;
   next: number = 0;

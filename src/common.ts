@@ -25,7 +25,7 @@ export const enum State {
 }
 
 export interface Parent<C> {
-  addListener(node: Node<C>): State;
+  addListener(node: Node<C>, t: number): State;
   removeListener(node: Node<C>): void;
   state: State;
 }
@@ -45,7 +45,7 @@ export interface SListener<A> extends Child {
 export class PushOnlyObserver<A> implements BListener, SListener<A> {
   node = new Node(this);
   constructor(private callback: (a: A) => void, private source: Parent<Child>) {
-    source.addListener(this.node);
+    source.addListener(this.node, tick());
     if (isBehavior(source) && source.state === State.Push) {
       callback(source.at());
     }
@@ -61,10 +61,6 @@ export class PushOnlyObserver<A> implements BListener, SListener<A> {
   }
   changeStateDown(state: State): void {}
 }
-
-// export interface Subscriber<A> extends Observer<A> {
-// deactivate(): void;
-// }
 
 export function changePullersParents(
   n: number,
@@ -95,11 +91,11 @@ export abstract class Reactive<A, C extends Child> implements Child {
     this.state = State.Inactive;
     this.nrOfListeners = 0;
   }
-  addListener(node: Node<C>): State {
+  addListener(node: Node<C>, t: number): State {
     const firstChild = this.children.head === undefined;
     this.children.prepend(node);
     if (firstChild) {
-      this.activate();
+      this.activate(t);
     }
     return this.state;
   }
@@ -122,11 +118,11 @@ export abstract class Reactive<A, C extends Child> implements Child {
     return new CbObserver(push, handlePulling, this);
   }
 
-  activate(): void {
+  activate(t: number): void {
     for (const parent of this.parents) {
       const node = new Node(this);
       this.listenerNodes = cons({ node, parent }, this.listenerNodes);
-      parent.addListener(node as any);
+      parent.addListener(node as any, t);
       const parentState = parent.state;
       if (parentState !== State.Push || this.state === State.Inactive) {
         this.state = parentState;
@@ -151,7 +147,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
     private handlePulling: PullHandler,
     private source: Parent<Child>
   ) {
-    source.addListener(this.node);
+    source.addListener(this.node, tick());
     if (source.state === State.Pull || source.state === State.OnlyPull) {
       this.endPulling = handlePulling(this.pull.bind(this));
     } else if (isBehavior(source) && source.state === State.Push) {

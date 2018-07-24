@@ -138,10 +138,10 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       this.last = newValue;
     }
   }
-  activate(): void {
-    super.activate();
+  activate(t: number): void {
+    super.activate(t);
     if (this.state === State.Push) {
-      this.refresh(tick());
+      this.refresh(t);
     }
   }
   changePullers(n: number): void {
@@ -329,7 +329,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
         this.innerB.removeListener(this.innerNode);
       }
       this.innerB = this.fn(this.outer.last);
-      this.innerB.addListener(this.innerNode);
+      this.innerB.addListener(this.innerNode, t);
       if (this.state !== this.innerB.state) {
         this.state = this.innerB.state;
         this.changeStateDown(this.state);
@@ -376,7 +376,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
       this.afterFuture = false;
       this.state = State.Push;
       this.last = F.sinkFuture<A>();
-      future.addListener(this.node);
+      future.addListener(this.node, tick());
     }
   }
   pushS(t: number, val: A): void {
@@ -384,7 +384,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
       // The push is coming from the Future, it has just occurred.
       this.afterFuture = true;
       this.last.resolve(at(this.parent));
-      this.parent.addListener(this.node);
+      this.parent.addListener(this.node, t);
     } else {
       // We are receiving an update from `parent` after `future` has
       // occurred.
@@ -461,13 +461,14 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     next: Future<Behavior<A>> | Stream<Behavior<A>>
   ) {
     super();
+    const t = tick();
     this.parents = cons(b);
-    b.addListener(this.bNode);
+    b.addListener(this.bNode, t);
     this.state = b.state;
     if (this.state === State.Push) {
       this.last = at(b);
     }
-    next.addListener(this.nNode);
+    next.addListener(this.nNode, t);
   }
   update(t: number): A {
     return this.b.last;
@@ -484,7 +485,7 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     this.b.removeListener(this.bNode);
     this.b = newB;
     this.parents = cons(newB);
-    newB.addListener(this.bNode);
+    newB.addListener(this.bNode, t);
     const newState = newB.state;
     if (newState !== this.state) {
       this.state = newState;
@@ -539,8 +540,9 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
     private parent: Stream<A>
   ) {
     super();
+    const t = tick();
     this.state = State.Push;
-    parent.addListener(this.node);
+    parent.addListener(this.node, t);
   }
   pushS(t: number, value: A): void {
     const newValue = this.f(value, this.last);
@@ -674,8 +676,9 @@ class MomentBehavior<A> extends Behavior<A> {
   sample<B>(b: Behavior<B>): B {
     const node = new Node(this);
     this.listenerNodes = cons({ node, parent: b }, this.listenerNodes);
-    b.addListener(node);
-    b.pull(tick());
+    const t = tick();
+    b.addListener(node, t);
+    b.pull(t);
     this.parents = cons(b, this.parents);
     return b.last;
   }

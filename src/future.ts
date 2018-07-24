@@ -33,12 +33,12 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
       child.pushS(t, val);
     }
   }
-  addListener(node: Node<SListener<A>>): State {
+  addListener(node: Node<SListener<A>>, t: number): State {
     if (this.state === State.Done) {
-      node.value.pushS(0, this.value);
+      node.value.pushS(t, this.value);
       return State.Done;
     } else {
-      return super.addListener(node);
+      return super.addListener(node, t);
     }
   }
   combine(future: Future<A>): Future<A> {
@@ -159,7 +159,7 @@ class ChainFuture<A, B> extends Future<B> implements SListener<A> {
       // and listen to the future it returns.
       this.parentOccurred = true;
       const newFuture = this.f(val);
-      newFuture.addListener(this.node);
+      newFuture.addListener(this.node, t);
     } else {
       this.resolve(val, t);
     }
@@ -199,7 +199,7 @@ export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
   node = new Node(this);
   constructor(private b: Behavior<A>) {
     super();
-    b.addListener(this.node);
+    b.addListener(this.node, tick());
   }
   /* istanbul ignore next */
   changeStateDown(state: State): void {
