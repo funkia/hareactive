@@ -17,7 +17,7 @@ class TestStream<A> extends Stream<A> {
     throw new Error("You cannot deactivate a TestStream");
   }
   /* istanbul ignore next */
-  push(a: A): void {
+  pushS(t: number, a: A): void {
     throw new Error("You cannot push to a TestStream");
   }
 }

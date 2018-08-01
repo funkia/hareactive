@@ -20,9 +20,9 @@ export class DelayStream<A> extends Stream<A> {
     const s = (<Stream<A>>this.parents.value).semantic();
     return s.map(({ time, value }) => ({ time: time + this.ms, value }));
   }
-  push(a: A): void {
+  pushS(t: number, a: A): void {
     setTimeout(() => {
-      this.pushToChildren(a);
+      this.pushSToChildren(t, a);
     }, this.ms);
   }
 }
@@ -37,9 +37,9 @@ class ThrottleStream<A> extends Stream<A> {
     this.parents = cons(parent);
   }
   private isSilenced: boolean = false;
-  push(a: A): void {
+  pushS(t: number, a: A): void {
     if (!this.isSilenced) {
-      this.pushToChildren(a);
+      this.pushSToChildren(t, a);
       this.isSilenced = true;
       setTimeout(() => {
         this.isSilenced = false;
@@ -58,10 +58,10 @@ class DebounceStream<A> extends Stream<A> {
     this.parents = cons(parent);
   }
   private timer: any = undefined;
-  push(a: A): void {
+  pushS(t: number, a: A): void {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
-      this.pushToChildren(a);
+      this.pushSToChildren(t, a);
     }, this.ms);
   }
 }
@@ -77,14 +77,17 @@ class TimeFromBehavior extends Behavior<Time> {
     this.startTime = Date.now();
     this.state = State.Pull;
   }
-  pull(): Time {
-    return Date.now() - this.startTime;
+  pull(t: number) {
+    this.last = Date.now() - this.startTime;
+  }
+  update(t: number): Time {
+    throw new Error("TimeFrom should never call update");
   }
 }
 
 class TimeBehavior extends FunctionBehavior<Time> {
   constructor() {
-    super(Date.now);
+    super(() => Date.now());
   }
   semantic(): SemanticBehavior<Time> {
     return (time: Time) => time;
@@ -115,14 +118,15 @@ class IntegrateBehavior extends Behavior<number> {
     super();
     this.lastPullTime = Date.now();
     this.state = State.Pull;
-    this.value = 0;
+    this.last = 0;
+    this.parents = cons(parent, cons(time));
   }
-  pull(): Time {
-    const currentPullTime = Date.now();
+  update(t) {
+    const currentPullTime = time.last;
     const deltaSeconds = (currentPullTime - this.lastPullTime) / 1000;
-    this.value += deltaSeconds * this.parent.at();
+    const value = this.last + deltaSeconds * this.parent.last;
     this.lastPullTime = currentPullTime;
-    return this.value;
+    return value;
   }
 }
 

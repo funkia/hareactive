@@ -23,9 +23,6 @@ export function map<A, B>(fn: (a: A) => B, b: any): any {
   return b.map(fn);
 }
 
-export function publish<A>(
-  a: A,
-  stream: SinkStream<A> | SinkBehavior<A>
-): void {
-  stream.push(a);
+export function push<A>(a: A, sink: SinkBehavior<A> | SinkStream<A>): void {
+  sink.push(a);
 }

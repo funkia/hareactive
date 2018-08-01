@@ -1,12 +1,8 @@
-import { Reactive, State } from "./common";
-import {
-  Behavior,
-  ConstantBehavior,
-  isBehavior,
-  MapBehavior
-} from "./behavior";
+import { Reactive, State, SListener, BListener } from "./common";
+import { Behavior, isBehavior, MapBehavior } from "./behavior";
 import { Node } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
+import { tick } from "./clock";
 
 class SamplePlaceholderError {
   message: string = "Attempt to sample non-replaced placeholder";
@@ -17,35 +13,50 @@ class SamplePlaceholderError {
 }
 
 export class Placeholder<A> extends Behavior<A> {
-  source: Reactive<A>;
+  source: Reactive<A, SListener<A> | SListener<A> | BListener>;
   private node = new Node(this);
-  replaceWith(parent: Reactive<A>): void {
+  replaceWith(
+    parent: Reactive<A, SListener<A> | SListener<A> | BListener>
+  ): void {
     this.source = parent;
     if (this.children.head !== undefined) {
-      this.activate();
+      const t = tick();
+      this.activate(t);
       if (isBehavior(parent) && this.state === State.Push) {
-        this.push(parent.at());
+        this.pushB(t);
       }
     }
     if (isBehavior(parent)) {
       parent.changePullers(this.nrOfPullers);
     }
   }
-  push(a: any): void {
-    this.last = a;
+  pushB(t: number): void {
+    this.last = (<Behavior<A>>this.source).last;
     for (const child of this.children) {
-      child.push(a);
+      child.pushB(t);
     }
   }
-  pull(): A {
+  pushS(t: number, a: A) {
+    for (const child of this.children) {
+      (<any>child).pushS(t, a);
+    }
+  }
+  pull(t: number) {
     if (this.source === undefined) {
       throw new SamplePlaceholderError(this);
+    } else if (isBehavior(this.source)) {
+      this.source.pull(t);
+      this.last = this.source.last;
+    } else {
+      throw new Error("Unsupported pulling on placeholder");
     }
-    return (<any>this.source).pull();
   }
-  activate(): void {
+  update(t: number): A {
+    throw new Error("Update should never be called on a placeholder.");
+  }
+  activate(t: number): void {
     if (this.source !== undefined) {
-      this.source.addListener(this.node);
+      this.source.addListener(this.node, t);
       this.state = this.source.state;
       this.changeStateDown(this.state);
     }
@@ -70,9 +81,20 @@ export class Placeholder<A> extends Behavior<A> {
   }
 }
 
-class MapPlaceholder<A, B> extends MapBehavior<A, B> {}
+class MapPlaceholder<A, B> extends MapBehavior<A, B> {
+  pushS(t: number, a: A) {
+    // @ts-ignore
+    this.pushSToChildren(t, this.f(a));
+  }
+}
 
-class MapToPlaceholder<A, B> extends MapToStream<A, B> {}
+class MapToPlaceholder<A, B> extends MapToStream<A, B> {
+  last: B;
+  update() {
+    return (<any>this).b;
+  }
+  pull() {}
+}
 
 function install(target: Function, source: Function): void {
   for (const key of Object.getOwnPropertyNames(source.prototype)) {

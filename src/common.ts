@@ -1,5 +1,6 @@
 import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Behavior } from "./behavior";
+import { tick } from "./clock";
 
 export type Time = number;
 
@@ -7,7 +8,7 @@ function isBehavior(b: any): b is Behavior<any> {
   return typeof b === "object" && "at" in b;
 }
 
-export type PullHandler = (pull: () => void) => () => void;
+export type PullHandler = (pull: (t?: number) => void) => () => void;
 
 export const enum State {
   // Values are pushed to listeners
@@ -23,21 +24,37 @@ export const enum State {
   Done
 }
 
-export interface Observer<A> {
-  push(a: A): void;
+export interface Parent<C> {
+  addListener(node: Node<C>, t: number): State;
+  removeListener(node: Node<C>): void;
+  state: State;
+}
+
+export interface Child {
   changeStateDown(state: State): void;
 }
 
-export class PushOnlyObserver<A> {
+export interface BListener extends Child {
+  pushB(t: number): void;
+}
+
+export interface SListener<A> extends Child {
+  pushS(t: number, value: A): void;
+}
+
+export class PushOnlyObserver<A> implements BListener, SListener<A> {
   node = new Node(this);
-  constructor(private callback: (a: A) => void, private source: Reactive<A>) {
-    source.addListener(this.node);
+  constructor(private callback: (a: A) => void, private source: Parent<Child>) {
+    source.addListener(this.node, tick());
     if (isBehavior(source) && source.state === State.Push) {
       callback(source.at());
     }
   }
-  push(a: any): void {
-    this.callback(a);
+  pushB(t: number): void {
+    this.callback((this.source as any).last);
+  }
+  pushS(t: number, value: A) {
+    this.callback(value);
   }
   deactivate(): void {
     this.source.removeListener(this.node);
@@ -45,13 +62,9 @@ export class PushOnlyObserver<A> {
   changeStateDown(state: State): void {}
 }
 
-export interface Subscriber<A> extends Observer<A> {
-  deactivate(): void;
-}
-
 export function changePullersParents(
   n: number,
-  parents: Cons<Reactive<any>>
+  parents: Cons<Parent<any>>
 ): void {
   if (parents === undefined) {
     return;
@@ -62,36 +75,37 @@ export function changePullersParents(
   changePullersParents(n, parents.tail);
 }
 
-type NodeParentPair = {
-  parent: Reactive<any>;
+export type NodeParentPair = {
+  parent: Parent<any>;
   node: Node<any>;
 };
 
-export abstract class Reactive<A> implements Observer<any> {
+export abstract class Reactive<A, C extends Child> implements Child {
   nrOfListeners: number;
   state: State;
-  children: DoubleLinkedList<Observer<A>> = new DoubleLinkedList();
-  parents: Cons<Reactive<any>>;
+  parents: Cons<Parent<any>>;
   listenerNodes: Cons<NodeParentPair> | undefined;
+  children: DoubleLinkedList<C> = new DoubleLinkedList();
   constructor() {
     this.state = State.Inactive;
     this.nrOfListeners = 0;
   }
-  addListener(node: Node<Observer<any>>): State {
+  addListener(node: Node<C>, t: number): State {
     const firstChild = this.children.head === undefined;
     this.children.prepend(node);
     if (firstChild) {
-      this.activate();
+      this.activate(t);
     }
     return this.state;
   }
-  removeListener(node: Node<Observer<any>>): void {
+  removeListener(node: Node<C>): void {
     this.children.remove(node);
     if (this.children.head === undefined && this.state !== State.Done) {
       this.deactivate();
     }
   }
   changeStateDown(state: State): void {
+    this.state = state;
     for (const child of this.children) {
       child.changeStateDown(state);
     }
@@ -102,21 +116,14 @@ export abstract class Reactive<A> implements Observer<any> {
   observe(push: (a: A) => void, handlePulling: PullHandler): CbObserver<A> {
     return new CbObserver(push, handlePulling, this);
   }
-  abstract push(a: any): void;
-  abstract pull(): A;
-  pushToChildren(a: any): void {
-    for (const child of this.children) {
-      child.push(a);
-    }
-  }
-  activate(): void {
-    this.state = State.Push;
+
+  activate(t: number): void {
     for (const parent of this.parents) {
       const node = new Node(this);
       this.listenerNodes = cons({ node, parent }, this.listenerNodes);
-      parent.addListener(node);
+      parent.addListener(node as any, t);
       const parentState = parent.state;
-      if (parentState !== State.Push) {
+      if (parentState !== State.Push || this.state === State.Inactive) {
         this.state = parentState;
       }
     }
@@ -131,27 +138,35 @@ export abstract class Reactive<A> implements Observer<any> {
   }
 }
 
-export class CbObserver<A> implements Observer<A> {
+export class CbObserver<A> implements BListener, SListener<A> {
   private endPulling = () => {};
-  node: Node<Observer<A>> = new Node(this);
+  node: Node<CbObserver<A>> = new Node(this);
   constructor(
-    private _push: (a: A) => void,
+    private callback: (a: A) => void,
     private handlePulling: PullHandler,
-    private source: Reactive<A>
+    private source: Parent<Child>
   ) {
-    source.addListener(this.node);
+    source.addListener(this.node, tick());
     if (source.state === State.Pull || source.state === State.OnlyPull) {
       this.endPulling = handlePulling(this.pull.bind(this));
     } else if (isBehavior(source) && source.state === State.Push) {
-      _push(source.last);
+      callback(source.last);
     }
   }
-  pull() {
-    const val = this.source.pull();
-    this._push(val);
+  pull(t: number = tick()) {
+    if (
+      isBehavior(this.source) &&
+      (this.source.state === State.Pull || this.source.state === State.OnlyPull)
+    ) {
+      this.source.pull(t);
+      this.callback(this.source.last);
+    }
   }
-  push(a: A): void {
-    this._push(a);
+  pushB(t: number): void {
+    this.callback((this.source as any).last);
+  }
+  pushS(t: number, value: A): void {
+    this.callback(value);
   }
   changeStateDown(state: State): void {
     if (state === State.Pull || state === State.OnlyPull) {
@@ -175,7 +190,7 @@ export class CbObserver<A> implements Observer<A> {
 export function observe<A>(
   push: (a: A) => void,
   handlePulling: PullHandler,
-  behavior: Reactive<A>
+  behavior: Behavior<A>
 ): CbObserver<A> {
   return behavior.observe(push, handlePulling);
 }

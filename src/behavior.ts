@@ -1,15 +1,18 @@
 import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
-import { Monad, monad } from "@funkia/jabz";
+import { Monad, monad, combine } from "@funkia/jabz";
 import {
-  Observer,
   State,
   Reactive,
   Time,
-  changePullersParents
+  changePullersParents,
+  BListener,
+  Parent,
+  SListener
 } from "./common";
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import { Stream } from "./stream";
+import { tick } from "./clock";
 
 /**
  * A behavior is a value that changes over time. Conceptually it can
@@ -19,17 +22,17 @@ import { Stream } from "./stream";
 export type SemanticBehavior<A> = (time: Time) => A;
 
 @monad
-export abstract class Behavior<A> extends Reactive<A>
-  implements Observer<A>, Monad<A> {
-  // Push behaviors cache their last value in `last`.
-  // Pull behaviors do not use `last`.
+export abstract class Behavior<A> extends Reactive<A, BListener>
+  implements Parent<BListener>, Monad<A> {
+  // Behaviors cache their last value in `last`.
   last: A;
+  children: DoubleLinkedList<BListener> = new DoubleLinkedList();
   nrOfListeners: number;
-  // The streams and behaviors that this behavior depends upon
-  dependencies: Cons<Reactive<any>>;
   // Amount of nodes that wants to pull the behavior without actively
   // listening for updates
   nrOfPullers: number;
+  pulledAt: number | undefined;
+  changedAt: number | undefined;
 
   constructor() {
     super();
@@ -89,20 +92,56 @@ export abstract class Behavior<A> extends Reactive<A>
     return new ChainBehavior<A, B>(this, fn);
   }
   flatten: <B>(this: Behavior<Behavior<B>>) => Behavior<B>;
-  at(): A {
-    return this.state === State.Push ? this.last : this.pull();
-  }
-  push(a: any): void {
-    this.last = this.pull();
-    this.pushToChildren(this.last);
-  }
-  pull(): A {
+  at(t?: number): A {
+    if (this.state !== State.Push) {
+      const time = t === undefined ? tick() : t;
+      this.pull(time);
+    }
     return this.last;
   }
-  activate(): void {
-    super.activate();
+  abstract update(t: number): A;
+  pushB(t: number): void {
     if (this.state === State.Push) {
-      this.last = this.pull();
+      const newValue = this.update(t);
+      this.pulledAt = t;
+      if (this.last !== newValue) {
+        this.changedAt = t;
+        this.last = newValue;
+        this.pushToChildren(t);
+      }
+    }
+  }
+  pushToChildren(t: number): void {
+    for (const child of this.children) {
+      child.pushB(t);
+    }
+  }
+  pull(t: number): void {
+    let shouldRefresh = this.changedAt === undefined;
+    for (const parent of this.parents) {
+      if (isBehavior(parent)) {
+        if (parent.state !== State.Push && parent.pulledAt !== t) {
+          parent.pull(t);
+        }
+        shouldRefresh = shouldRefresh || parent.changedAt > this.changedAt;
+      }
+    }
+    if (shouldRefresh) {
+      this.refresh(t);
+    }
+    this.pulledAt = t;
+  }
+  refresh(t: number) {
+    const newValue = this.update(t);
+    if (newValue !== this.last) {
+      this.changedAt = t;
+      this.last = newValue;
+    }
+  }
+  activate(t: number): void {
+    super.activate(t);
+    if (this.state === State.Push) {
+      this.refresh(t);
     }
   }
   changePullers(n: number): void {
@@ -123,12 +162,21 @@ export function isBehavior(b: any): b is Behavior<any> {
 }
 
 export abstract class ProducerBehavior<A> extends Behavior<A> {
-  push(a: A): void {
+  newValue(a: A) {
     const changed = a !== this.last;
-    this.last = a;
-    if (this.state === State.Push && changed) {
-      this.pushToChildren(this.last);
+    if (changed) {
+      const t = tick();
+      this.last = a;
+      this.changedAt = t;
+      if (this.state === State.Push) {
+        this.pulledAt = t;
+        this.pushToChildren(t);
+      }
     }
+  }
+  pull(t: number) {}
+  update(t: number): A {
+    throw new Error("A producer behavior does not have an update method");
   }
   changePullers(n: number): void {
     this.nrOfPullers += n;
@@ -170,7 +218,7 @@ class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
   deactivateFn: () => void;
   activateProducer(): void {
     this.state = State.Push;
-    this.deactivateFn = this.activateFn(this.push.bind(this));
+    this.deactivateFn = this.activateFn(this.newValue.bind(this));
   }
   deactivateProducer(): void {
     this.state = State.Inactive;
@@ -189,6 +237,15 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
   constructor(public last: A) {
     super();
   }
+  push(a: A) {
+    if (this.last !== a) {
+      const t = tick();
+      this.last = a;
+      this.changedAt = t;
+      this.pulledAt = t;
+      this.pushToChildren(t);
+    }
+  }
   activateProducer(): void {}
   deactivateProducer(): void {}
 }
@@ -204,28 +261,17 @@ export function sinkBehavior<A>(initial: A): SinkBehavior<A> {
  * Impure function that gets the current value of a behavior. For a
  * pure variant see `sample`.
  */
-export function at<B>(b: Behavior<B>): B {
-  return b.at();
+export function at<B>(b: Behavior<B>, t?: number): B {
+  return b.at(t);
 }
 
 export class MapBehavior<A, B> extends Behavior<B> {
-  private oldVal: A;
-  private cached: B;
   constructor(private parent: Behavior<any>, private f: (a: A) => B) {
     super();
     this.parents = cons(parent);
   }
-  push(a: A): void {
-    this.last = this.f(a);
-    this.pushToChildren(this.last);
-  }
-  pull(): B {
-    const newVal = this.parent.at();
-    if (this.oldVal !== newVal) {
-      this.oldVal = newVal;
-      this.cached = this.f(newVal);
-    }
-    return this.cached;
+  update(t: number) {
+    return this.f(this.parent.last);
   }
   semantic(): SemanticBehavior<B> {
     const g = this.parent.semantic();
@@ -238,14 +284,8 @@ class ApBehavior<A, B> extends Behavior<B> {
     super();
     this.parents = cons<any>(fn, cons(val));
   }
-  push(): void {
-    const fn = at(this.fn);
-    const val = at(this.val);
-    this.last = fn(val);
-    this.pushToChildren(this.last);
-  }
-  pull(): B {
-    return this.fn.at()(this.val.at());
+  update(t: number) {
+    return this.fn.last(this.val.last);
   }
 }
 
@@ -263,63 +303,43 @@ export function ap<A, B>(
   return valB.ap(fnB);
 }
 
-class ChainOuter<A> extends Behavior<A> {
-  node = new Node(this);
-  constructor(
-    public child: ChainBehavior<A, any>,
-    public parent: Behavior<any>
-  ) {
-    super();
-    this.parents = cons(parent);
-  }
-  push(a: A): void {
-    this.child.pushOuter(a);
-  }
-}
-
 class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
   private innerNode = new Node(this);
-  private outerConsumer: ChainOuter<A>;
   constructor(private outer: Behavior<A>, private fn: (a: A) => Behavior<B>) {
     super();
-    // Create the outer consumer
-    this.outerConsumer = new ChainOuter(this, outer);
-    this.parents = cons(this.outerConsumer);
+    this.parents = cons(this.outer);
   }
-  activate(): void {
-    // Make the consumers listen to inner and outer behavior
-    this.outer.addListener(this.outerConsumer.node);
-    if (this.outer.state === State.Push) {
-      this.innerB = this.fn(this.outer.at());
-      this.innerB.addListener(this.innerNode);
-      this.state = this.innerB.state;
-      this.last = at(this.innerB);
+  pushB(t: number) {
+    const newValue = this.update(t);
+    this.pulledAt = t;
+    if (this.last !== newValue) {
+      this.changedAt = t;
+      this.last = newValue;
+      if (this.state === State.Push) {
+        this.pushToChildren(t);
+      }
     }
   }
-  pushOuter(a: A): void {
-    // The outer behavior has changed. This means that we will have to
-    // call our function, which will result in a new inner behavior.
-    // We therefore stop listening to the old inner behavior and begin
-    // listening to the new one.
-    if (this.innerB !== undefined) {
-      this.innerB.removeListener(this.innerNode);
+  update(t: number) {
+    const outerChanged = this.outer.changedAt > this.changedAt;
+    if (outerChanged || this.changedAt === undefined) {
+      if (this.innerB !== undefined) {
+        this.innerB.removeListener(this.innerNode);
+      }
+      this.innerB = this.fn(this.outer.last);
+      this.innerB.addListener(this.innerNode, t);
+      if (this.state !== this.innerB.state) {
+        this.state = this.innerB.state;
+        this.changeStateDown(this.state);
+      }
+      this.parents = cons<Parent<BListener>>(this.outer, cons(this.innerB));
+      if (this.innerB.state !== State.Push) {
+        this.innerB.pull(t);
+      }
     }
-    const newInner = (this.innerB = this.fn(a));
-    newInner.addListener(this.innerNode);
-    this.state = newInner.state;
-    this.changeStateDown(this.state);
-    if (this.state === State.Push) {
-      this.push(newInner.at());
-    }
-  }
-  push(b: B): void {
-    this.last = b;
-    this.pushToChildren(this.last);
-  }
-  pull(): B {
-    return this.fn(this.outer.at()).at();
+    return this.innerB.last;
   }
 }
 
@@ -327,17 +347,12 @@ class ChainBehavior<A, B> extends Behavior<B> {
 class WhenBehavior extends Behavior<Future<{}>> {
   constructor(private parent: Behavior<boolean>) {
     super();
-    this.push(at(parent));
+    this.parents = cons(parent);
   }
-  push(val: boolean): void {
-    if (val === true) {
-      this.last = Future.of({});
-    } else {
-      this.last = new BehaviorFuture(this.parent);
-    }
-  }
-  pull(): Future<{}> {
-    return this.last;
+  update(t: number) {
+    return this.parent.last === true
+      ? Future.of({})
+      : new BehaviorFuture(this.parent);
   }
 }
 
@@ -345,9 +360,8 @@ export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
 }
 
-// FIXME: This can probably be made less ugly.
 /** @private */
-class SnapshotBehavior<A> extends Behavior<Future<A>> {
+class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
   private afterFuture: boolean;
   private node = new Node(this);
   constructor(private parent: Behavior<A>, future: Future<any>) {
@@ -356,28 +370,28 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> {
       // Future has occurred at some point in the past
       this.afterFuture = true;
       this.state = parent.state;
-      parent.addListener(this.node);
+      this.parents = cons(parent);
       this.last = Future.of(at(parent));
     } else {
       this.afterFuture = false;
       this.state = State.Push;
       this.last = F.sinkFuture<A>();
-      future.addListener(this.node);
+      future.addListener(this.node, tick());
     }
   }
-  push(val: any): void {
+  pushS(t: number, val: A): void {
     if (this.afterFuture === false) {
       // The push is coming from the Future, it has just occurred.
       this.afterFuture = true;
       this.last.resolve(at(this.parent));
-      this.parent.addListener(this.node);
+      this.parent.addListener(this.node, t);
     } else {
       // We are receiving an update from `parent` after `future` has
       // occurred.
       this.last = Future.of(val);
     }
   }
-  pull(): Future<A> {
+  update(t: number) {
     return this.last;
   }
 }
@@ -408,6 +422,10 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
   constructor(public last: A) {
     super();
     this.state = State.Push;
+    this.changedAt = tick();
+  }
+  update(_t: number) {
+    return this.last;
   }
   semantic(): SemanticBehavior<A> {
     return (_) => this.last;
@@ -420,7 +438,11 @@ export class FunctionBehavior<A> extends ActiveBehavior<A> {
     super();
     this.state = State.OnlyPull;
   }
-  pull(): A {
+  pull(t) {
+    this.refresh(t);
+    this.pulledAt = t;
+  }
+  update(t): A {
     return this.fn();
   }
 }
@@ -430,38 +452,46 @@ export function fromFunction<B>(fn: () => B): Behavior<B> {
 }
 
 /** @private */
-class SwitcherBehavior<A> extends ActiveBehavior<A> {
-  node = new Node(this);
+class SwitcherBehavior<A> extends ActiveBehavior<A>
+  implements BListener, SListener<Behavior<A>> {
+  private bNode = new Node(this);
+  private nNode = new Node(this);
   constructor(
     private b: Behavior<A>,
     next: Future<Behavior<A>> | Stream<Behavior<A>>
   ) {
     super();
-    b.addListener(this.node);
+    const t = tick();
+    this.parents = cons(b);
+    b.addListener(this.bNode, t);
     this.state = b.state;
     if (this.state === State.Push) {
       this.last = at(b);
     }
-    // FIXME: Using `bind` is hardly optimal for performance.
-    next.subscribe(this.doSwitch.bind(this));
+    next.addListener(this.nNode, t);
   }
-  push(val: A): void {
-    this.last = val;
-    this.pushToChildren(this.last);
+  update(t: number): A {
+    return this.b.last;
   }
-  pull(): A {
-    return at(this.b);
+  pushS(t: number, value: Behavior<A>): void {
+    this.doSwitch(t, value);
   }
-  private doSwitch(newB: Behavior<A>): void {
-    this.b.removeListener(this.node);
-    this.b = newB;
-    newB.addListener(this.node);
-    const newState = newB.state;
-    if (newState === State.Push) {
-      this.push(newB.at());
+  changeStateDown(state: State): void {
+    for (const child of this.children) {
+      child.changeStateDown(state);
     }
-    this.state = newState;
-    this.changeStateDown(this.state);
+  }
+  private doSwitch(t: number, newB: Behavior<A>): void {
+    this.b.removeListener(this.bNode);
+    this.b = newB;
+    this.parents = cons(newB);
+    newB.addListener(this.bNode, t);
+    const newState = newB.state;
+    if (newState !== this.state) {
+      this.state = newState;
+      this.changeStateDown(this.state);
+    }
+    this.pushB(t);
   }
 }
 
@@ -488,6 +518,9 @@ class TestBehavior<A> extends Behavior<A> {
   constructor(private semanticBehavior: SemanticBehavior<A>) {
     super();
   }
+  update(_t: number): A {
+    throw new Error("Test behavior never updates");
+  }
   semantic(): SemanticBehavior<A> {
     return this.semanticBehavior;
   }
@@ -498,26 +531,44 @@ export function testBehavior<A>(b: SemanticBehavior<A>): Behavior<A> {
 }
 
 /** @private */
-class ActiveScanBehavior<A, B> extends ActiveBehavior<B> {
-  node = new Node(this);
+class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
+  implements SListener<A> {
+  private node = new Node(this);
   constructor(
     private f: (a: A, b: B) => B,
     public last: B,
     private parent: Stream<A>
   ) {
     super();
+    const t = tick();
     this.state = State.Push;
-    parent.addListener(this.node);
+    parent.addListener(this.node, t);
   }
-  push(val: A): void {
-    this.last = this.f(val, this.last);
-    this.pushToChildren(this.last);
+  pushS(t: number, value: A): void {
+    const newValue = this.f(value, this.last);
+    if (newValue !== this.last) {
+      this.changedAt = t;
+      this.last = newValue;
+      this.pushToChildren(t);
+    }
+  }
+  pull(t: number) {}
+  update(t: number): B {
+    throw new Error("Update should never be called.");
+  }
+  changeStateDown(state: State): void {
+    throw new Error("Method not implemented.");
   }
 }
 
 class ScanBehavior<A, B> extends StatefulBehavior<Behavior<B>> {
-  pull(): Behavior<B> {
+  update(t: number): Behavior<B> {
     return new ActiveScanBehavior(this.a, this.b, this.c);
+  }
+  pull(t) {
+    this.last = this.update(t);
+    this.changedAt = t;
+    this.pulledAt = t;
   }
   semantic(): SemanticBehavior<Behavior<B>> {
     const stream = this.c.semantic();
@@ -539,57 +590,17 @@ export function scan<A, B>(
   return new ScanBehavior<A, B>(f, initial, source);
 }
 
-class IndexReactive<A> extends Reactive<A> {
-  constructor(private index: number, parent: Reactive<A>) {
-    super();
-    this.parents = cons(parent);
-  }
-  push(a: A): void {
-    for (const child of this.children) {
-      (<any>child).pushIdx(a, this.index);
-    }
-  }
-  pull(): A {
-    throw new Error("Pull should never be called here");
-  }
-}
-
-class ActiveScanCombineBehavior<A> extends ActiveBehavior<A> {
-  private nodes: Node<any>[] = [];
-  private accumulators: ((a: any, b: A) => A)[];
-  constructor(streams: ScanPair<A>[], public last: A) {
-    super();
-    this.state = State.Push;
-    this.accumulators = [];
-    for (let i = 0; i < streams.length; ++i) {
-      const [s, f] = streams[i];
-      this.accumulators.push(f);
-      const node = new Node(this);
-      this.nodes.push(node);
-      const indexReactive = new IndexReactive(i, s);
-      indexReactive.addListener(node);
-      this.parents = cons(indexReactive, this.parents);
-    }
-  }
-  pushIdx(a: A, index: number): void {
-    this.last = this.accumulators[index](a, this.last);
-    this.pushToChildren(this.last);
-  }
-}
-
-class ScanCombineBehavior<B> extends StatefulBehavior<Behavior<B>> {
-  pull(): Behavior<B> {
-    return new ActiveScanCombineBehavior(this.a, this.b);
-  }
-}
-
 export type ScanPair<A> = [Stream<any>, (a: any, b: A) => A];
+
+function scanPairToApp<A>([stream, fn]: ScanPair<A>) {
+  return stream.map((a) => (b: A) => fn(a, b));
+}
 
 export function scanCombine<B>(
   pairs: ScanPair<B>[],
   initial: B
 ): Behavior<Behavior<B>> {
-  return new ScanCombineBehavior<B>(pairs, initial);
+  return scan((a, b) => a(b), initial, combine(...pairs.map(scanPairToApp)));
 }
 
 const firstArg = (a, b) => a;
@@ -652,23 +663,24 @@ class MomentBehavior<A> extends Behavior<A> {
       }
     }
   }
-  push(): void {
+  update(t: number) {
     if (this.listenerNodes !== undefined) {
       for (const { node, parent } of this.listenerNodes) {
         parent.removeListener(node);
       }
     }
     this.parents = undefined;
-    this.last = this.f(this.sampleBound);
-    this.pushToChildren(this.last);
+    const value = this.f(this.sampleBound);
+    return value;
   }
   sample<B>(b: Behavior<B>): B {
     const node = new Node(this);
     this.listenerNodes = cons({ node, parent: b }, this.listenerNodes);
-    b.addListener(node);
-
+    const t = tick();
+    b.addListener(node, t);
+    b.pull(t);
     this.parents = cons(b, this.parents);
-    return b.at();
+    return b.last;
   }
 }
 
@@ -688,12 +700,12 @@ class FormatBehavior extends Behavior<string> {
     }
     this.parents = parents;
   }
-  pull(): string {
+  update(t: number): string {
     let resultString = this.strings[0];
     for (let i = 0; i < this.behaviors.length; ++i) {
-      resultString += at(this.behaviors[i]) + this.strings[i + 1];
+      resultString += this.behaviors[i].last + this.strings[i + 1];
     }
-    return (this.last = resultString);
+    return resultString;
   }
 }
 

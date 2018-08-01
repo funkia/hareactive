@@ -9,7 +9,7 @@ import {
   snapshot,
   Now,
   sample
-} from "./";
+} from ".";
 
 export type TimingFunction = (t: number) => number;
 

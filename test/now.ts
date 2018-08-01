@@ -1,7 +1,10 @@
-import { testStreamFromObject } from "../src";
-import { Behavior, switchTo, when, scan } from "../src/behavior";
-import { Future } from "../src/future";
 import {
+  testStreamFromObject,
+  Behavior,
+  switchTo,
+  when,
+  scan,
+  Future,
   perform,
   Now,
   performStream,
@@ -11,13 +14,14 @@ import {
   runNow,
   sample,
   testNow,
-  loopNow
-} from "../src/now";
-import { Stream, sinkStream } from "../src/stream";
+  loopNow,
+  Stream,
+  sinkStream,
+  SinkStream
+} from "../src";
 import { assert } from "chai";
 import {
   lift,
-  Either,
   callP,
   IO,
   withEffects,
@@ -189,9 +193,9 @@ describe("Now", () => {
     });
     function loop(n: number): Now<Behavior<number>> {
       return go(function*() {
-        const e = yield perform(getNextNr(1));
-        const e1 = yield plan(e.map(loop));
-        return switchTo(Behavior.of(n), e1);
+        const nextNumber = yield perform(getNextNr(1));
+        const future = yield plan(nextNumber.map(loop));
+        return switchTo(Behavior.of(n), future);
       });
     }
     function main(): Now<Future<number>> {
@@ -361,7 +365,7 @@ describe("Now", () => {
   describe("loopNow", () => {
     it("should loop the reactives", () => {
       let result = [];
-      let s;
+      let s: SinkStream<string>;
       const now = loopNow(({ stream }) => {
         stream.subscribe((a) => result.push(a));
         s = sinkStream();
@@ -376,7 +380,7 @@ describe("Now", () => {
     });
     it("should return the reactives", () => {
       let result = [];
-      let s;
+      let s: SinkStream<string>;
       const now = loopNow(({ stream }) => {
         stream.subscribe((a) => a);
         s = sinkStream();
