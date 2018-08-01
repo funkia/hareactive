@@ -1,6 +1,6 @@
 import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Behavior } from "./behavior";
-import { tick } from "./timestamp";
+import { tick } from "./clock";
 
 export type Time = number;
 

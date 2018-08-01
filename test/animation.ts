@@ -34,8 +34,7 @@ describe("animation", () => {
         duration: 100
       };
 
-      const tB = transitionBehavior(config, 0, target, time);
-      const t = tB.at();
+      const t = transitionBehavior(config, 0, target, time).at();
       t.subscribe(() => "");
       target.push(10);
       assert.strictEqual(t.at(), 0);
@@ -50,7 +49,29 @@ describe("animation", () => {
       time.push(140);
       assert.strictEqual(t.at(), 10);
     });
-
+    it("should make a simple linear transition", () => {
+      const time = sinkBehavior(0);
+      const target = sinkStream<number>();
+      const config: TransitionConfig = {
+        delay: 0,
+        timingFunction: linear,
+        duration: 100
+      };
+      const t = transitionBehavior(config, 0, target, time).at();
+      t.subscribe(() => "");
+      target.push(10);
+      assert.strictEqual(t.at(), 0);
+      time.push(10);
+      assert.strictEqual(t.at(), 1);
+      time.push(50);
+      assert.strictEqual(t.at(), 5);
+      time.push(90);
+      assert.strictEqual(t.at(), 9);
+      time.push(100);
+      assert.strictEqual(t.at(), 10);
+      time.push(140);
+      assert.strictEqual(t.at(), 10);
+    });
     it("should delay the transition", () => {
       const time = sinkBehavior(0);
       const target = sinkStream<number>();

@@ -3,7 +3,7 @@ import { State, SListener, Parent, BListener } from "./common";
 import { Reactive } from "./common";
 import { cons, fromArray, Node } from "./datastructures";
 import { Behavior } from "./behavior";
-import { tick } from "./timestamp";
+import { tick } from "./clock";
 
 /**
  * A future is a thing that occurs at some point in time with a value.

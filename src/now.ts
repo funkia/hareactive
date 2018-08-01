@@ -5,7 +5,7 @@ import { Future, fromPromise, sinkFuture } from "./future";
 import { Node } from "./datastructures";
 import { Behavior, at } from "./behavior";
 import { ActiveStream, Stream } from "./stream";
-import { tick } from "./timestamp";
+import { tick } from "./clock";
 
 @monad
 export abstract class Now<A> implements Monad<A> {

@@ -12,7 +12,7 @@ import {
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import { Stream } from "./stream";
-import { tick } from "./timestamp";
+import { tick } from "./clock";
 
 /**
  * A behavior is a value that changes over time. Conceptually it can
@@ -27,9 +27,9 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   // Behaviors cache their last value in `last`.
   last: A;
   children: DoubleLinkedList<BListener> = new DoubleLinkedList();
-  // listening for updates
   nrOfListeners: number;
   // Amount of nodes that wants to pull the behavior without actively
+  // listening for updates
   nrOfPullers: number;
   pulledAt: number | undefined;
   changedAt: number | undefined;

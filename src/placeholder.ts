@@ -2,7 +2,7 @@ import { Reactive, State, SListener, BListener } from "./common";
 import { Behavior, isBehavior, MapBehavior } from "./behavior";
 import { Node } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
-import { tick } from "./timestamp";
+import { tick } from "./clock";
 
 class SamplePlaceholderError {
   message: string = "Attempt to sample non-replaced placeholder";

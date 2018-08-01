@@ -8,7 +8,7 @@ import {
   sinkBehavior,
   testBehavior,
   testStreamFromArray
-} from "../src/index";
+} from "../src";
 
 import * as H from "../src";
 

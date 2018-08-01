@@ -18,7 +18,7 @@ import {
   sinkStream,
   snapshot,
   throttle
-} from "../src/index";
+} from "../src";
 
 import { createTestProducerBehavior } from "./helpers";
 

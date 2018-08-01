@@ -1,7 +1,7 @@
 import { Reactive, State, Time, SListener, Parent, BListener } from "./common";
 import { cons, Node, DoubleLinkedList } from "./datastructures";
 import { Behavior, fromFunction, scan } from "./behavior";
-import { tick } from "./timestamp";
+import { tick } from "./clock";
 
 export type Occurrence<A> = {
   time: Time;
