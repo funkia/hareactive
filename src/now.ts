@@ -4,7 +4,7 @@ import { State, Time, SListener } from "./common";
 import { Future, fromPromise, sinkFuture } from "./future";
 import { Node } from "./datastructures";
 import { Behavior, at } from "./behavior";
-import { ActiveStream, Stream } from "./stream";
+import { ActiveStream, Stream, performCb } from "./stream";
 import { tick } from "./clock";
 
 @monad
@@ -93,27 +93,12 @@ export function perform<A>(comp: IO<A>): Now<Future<A>> {
   return new PerformNow(comp);
 }
 
-class PerformIOStream<A> extends ActiveStream<A> implements SListener<IO<A>> {
-  node = new Node(this);
-  constructor(s: Stream<IO<A>>) {
-    super();
-    s.addListener(this.node, tick());
-    this.state = State.Push;
-  }
-  pushS(_t: number, io: IO<A>): void {
-    runIO(io).then((a: A) => {
-      const t = tick();
-      this.pushSToChildren(t, a);
-    });
-  }
-}
-
 class PerformStreamNow<A> extends Now<Stream<A>> {
   constructor(private s: Stream<IO<A>>) {
     super();
   }
   run(): Stream<A> {
-    return new PerformIOStream(this.s);
+    return performCb<IO<A>, A>((io, cb) => runIO(io).then(cb), this.s);
   }
 }
 

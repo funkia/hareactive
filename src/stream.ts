@@ -428,3 +428,31 @@ export function combine<A>(...streams: Stream<A>[]): Stream<A> {
 export function isStream(s: any): s is Stream<any> {
   return typeof s === "object" && "scanS" in s;
 }
+
+class PerformCbStream<A, B> extends ActiveStream<B> implements SListener<A> {
+  node = new Node(this);
+  doneCb = (result: B): void => this.pushSToChildren(tick(), result);
+  constructor(
+    private cb: (value: A, done: (result: B) => void) => void,
+    s: Stream<A>
+  ) {
+    super();
+    s.addListener(this.node, tick());
+  }
+  pushS(_: number, value: A): void {
+    this.cb(value, this.doneCb);
+  }
+}
+
+/**
+ * Invokes the callback for each occurrence on the given stream.
+ *
+ * This function is intended to be a low-level function used as the
+ * basis for other operators.
+ */
+export function performCb<A, B>(
+  cb: (value: A, done: (result: B) => void) => void,
+  s: Stream<A>
+): Stream<B> {
+  return new PerformCbStream(cb, s);
+}
