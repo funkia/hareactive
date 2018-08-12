@@ -93,7 +93,7 @@ class CombineFuture<A> extends Future<A> {
     this.parents = cons(future1, cons(future2));
   }
   pushS(t: number, val: A): void {
-    this.resolve(val);
+    this.resolve(val, t);
   }
 }
 
