@@ -3,8 +3,9 @@ export class Cons<A> {
   *[Symbol.iterator](): IterableIterator<A> {
     let head: Cons<A> = this;
     while (head !== undefined) {
-      yield head.value;
+      const v = head.value;
       head = head.tail;
+      yield v;
     }
   }
 }
@@ -60,8 +61,9 @@ export class DoubleLinkedList<A> {
   *[Symbol.iterator](): IterableIterator<A> {
     let { head } = this;
     while (head !== undefined) {
-      yield head.value;
+      const v = head.value;
       head = head.next;
+      yield v;
     }
   }
 }

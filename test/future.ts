@@ -47,6 +47,19 @@ describe("Future", () => {
       future1.resolve(1);
       assert.strictEqual(result, 2);
     });
+    it("returns when only one occurs", () => {
+      let result1: number;
+      let result2: number;
+      const future1 = sinkFuture<number>();
+      const future2 = sinkFuture<number>();
+      const combined = future1.combine(future2);
+      future1.subscribe((a) => {
+        result1 = a;
+      });
+      combined.subscribe((a) => (result2 = a));
+      future1.resolve(1);
+      assert.strictEqual(result1, 1);
+    });
   });
   describe("Functor", () => {
     it("maps over value", () => {
