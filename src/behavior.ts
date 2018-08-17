@@ -514,6 +514,20 @@ export function switcher<A>(
   return fromFunction(() => new SwitcherBehavior(init, stream));
 }
 
+export function freezeTo<A>(
+  init: Behavior<A>,
+  freezeValue: Future<A>
+): Behavior<A> {
+  return switchTo(init, freezeValue.map(Behavior.of));
+}
+
+export function freezeAt<A>(
+  behavior: Behavior<A>,
+  shouldFreeze: Future<any>
+): Behavior<Behavior<A>> {
+  return snapshotAt(behavior, shouldFreeze).map((f) => freezeTo(behavior, f));
+}
+
 class TestBehavior<A> extends Behavior<A> {
   constructor(private semanticBehavior: SemanticBehavior<A>) {
     super();

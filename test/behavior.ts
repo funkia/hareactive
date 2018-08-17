@@ -16,7 +16,9 @@ import {
   format,
   switchTo,
   fromFunction,
-  sinkFuture
+  sinkFuture,
+  freezeTo,
+  freezeAt
 } from "../src";
 
 import * as H from "../src";
@@ -616,6 +618,32 @@ describe("Behavior and Future", () => {
       assert.strictEqual(endPull, true);
       b2.push(3);
       assert.deepEqual(pushed, [2, 3]);
+    });
+  });
+  describe("freezeTo", () => {
+    it("freezes to the future's resolve value", () => {
+      const cb = spy();
+      const b = sinkBehavior("a");
+      const f = sinkFuture<string>();
+      const frozenBehavior = freezeTo(b, f);
+      frozenBehavior.subscribe(cb);
+      b.push("b");
+      f.resolve("c");
+      b.push("d");
+      assert.deepEqual(cb.args, [["a"], ["b"], ["c"]]);
+    });
+  });
+  describe("freezeAt", () => {
+    it("freezes to the value of the behavior when the future resolved", () => {
+      const cb = spy();
+      const b = sinkBehavior("a");
+      const f = sinkFuture<string>();
+      const frozenBehavior = freezeAt(b, f).at();
+      frozenBehavior.subscribe(cb);
+      b.push("b");
+      f.resolve("c");
+      b.push("d");
+      assert.deepEqual(cb.args, [["a"], ["b"]]);
     });
   });
 });
