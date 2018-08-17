@@ -26,9 +26,6 @@ export class Placeholder<A> extends Behavior<A> {
         this.pushB(t);
       }
     }
-    if (isBehavior(parent)) {
-      parent.changePullers(this.nrOfPullers);
-    }
   }
   pushB(t: number): void {
     this.last = (<Behavior<A>>this.source).last;
@@ -65,12 +62,6 @@ export class Placeholder<A> extends Behavior<A> {
     this.state = State.Inactive;
     if (this.source !== undefined) {
       this.source.removeListener(this.node);
-    }
-  }
-  changePullers(n: number): void {
-    this.nrOfPullers += n;
-    if (this.source !== undefined) {
-      (<Behavior<any>>this.source).changePullers(n);
     }
   }
   map<B>(fn: (a: A) => B): Behavior<B> {

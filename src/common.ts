@@ -62,33 +62,18 @@ export class PushOnlyObserver<A> implements BListener, SListener<A> {
   changeStateDown(state: State): void {}
 }
 
-export function changePullersParents(
-  n: number,
-  parents: Cons<Parent<any>>
-): void {
-  if (parents === undefined) {
-    return;
-  }
-  if (isBehavior(parents.value)) {
-    parents.value.changePullers(n);
-  }
-  changePullersParents(n, parents.tail);
-}
-
 export type NodeParentPair = {
   parent: Parent<any>;
   node: Node<any>;
 };
 
 export abstract class Reactive<A, C extends Child> implements Child {
-  nrOfListeners: number;
   state: State;
   parents: Cons<Parent<any>>;
   listenerNodes: Cons<NodeParentPair> | undefined;
   children: DoubleLinkedList<C> = new DoubleLinkedList();
   constructor() {
     this.state = State.Inactive;
-    this.nrOfListeners = 0;
   }
   addListener(node: Node<C>, t: number): State {
     const firstChild = this.children.head === undefined;
