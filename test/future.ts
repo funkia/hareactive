@@ -1,6 +1,7 @@
 import { assert } from "chai";
 import { lift } from "@funkia/jabz";
-import { Future, sinkFuture, fromPromise } from "../src/future";
+import { Future, sinkFuture, fromPromise, nextOccurence } from "../src/future";
+import { SinkStream } from "../src";
 
 describe("Future", () => {
   describe("sink", () => {
@@ -154,6 +155,19 @@ describe("Future", () => {
     resolve(12);
     return promise.then(() => {
       assert.strictEqual(result, 12);
+    });
+  });
+  describe("nextOccurence", () => {
+    it("resolves on next occurence", () => {
+      let result: string;
+      const s = new SinkStream<string>();
+      const next = nextOccurence(s);
+      s.push("a");
+      const f = next.at();
+      f.subscribe((v) => (result = v));
+      assert.strictEqual(result, undefined);
+      s.push("b");
+      assert.strictEqual(result, "b");
     });
   });
 });

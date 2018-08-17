@@ -2,8 +2,9 @@ import { monad, Monad, Semigroup } from "@funkia/jabz";
 import { State, SListener, Parent, BListener } from "./common";
 import { Reactive } from "./common";
 import { cons, fromArray, Node } from "./datastructures";
-import { Behavior } from "./behavior";
+import { Behavior, FunctionBehavior } from "./behavior";
 import { tick } from "./clock";
+import { Stream } from "./stream";
 
 /**
  * A future is a thing that occurs at some point in time with a value.
@@ -209,4 +210,18 @@ export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
     this.b.removeListener(this.node);
     this.resolve(this.b.last, t);
   }
+}
+
+class NextOccurenceFuture<A> extends Future<A> implements SListener<A> {
+  constructor(private s: Stream<A>) {
+    super();
+    this.parents = cons(s);
+  }
+  pushS(t: number, val: any): void {
+    this.resolve(val, t);
+  }
+}
+
+export function nextOccurence<A>(stream: Stream<A>): Behavior<Future<A>> {
+  return new FunctionBehavior(() => new NextOccurenceFuture(stream));
 }
