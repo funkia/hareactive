@@ -571,7 +571,7 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
     throw new Error("Update should never be called.");
   }
   changeStateDown(state: State): void {
-    throw new Error("Method not implemented.");
+    // No-op as an `ActiveScanBehavior` is always in `Push` state
   }
 }
 

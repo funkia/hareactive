@@ -710,6 +710,17 @@ describe("Behavior and Stream", () => {
       assert.strictEqual(at(b2), 5);
       assert.deepEqual(spy.args, [[1], [3], [7]]);
     });
+    it("works with placeholder", () => {
+      const s = H.sinkStream<number>();
+      const ps = H.placeholder();
+      const scanned = H.scan(sum, 1, ps);
+      const b = scanned.at();
+      ps.replaceWith(s);
+      s.push(2);
+      s.push(3);
+      s.push(4);
+      assert.strictEqual(b.at(), 10);
+    });
     it("has semantic representation", () => {
       const s = H.testStreamFromObject({
         1: 1,
