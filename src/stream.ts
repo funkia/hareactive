@@ -369,16 +369,14 @@ class SnapshotStream<B> extends Stream<B> {
     super();
     this.parents = cons(stream);
   }
-  pushS(t: number, a: any): void {
+  pushS(t: number, _: any): void {
     const b = this.behavior.at(t);
     this.pushSToChildren(t, b);
   }
   activate(t: number): void {
-    this.behavior.changePullers(1);
     this.stream.addListener(this.node, t);
   }
   deactivate(): void {
-    this.behavior.changePullers(-1);
     this.stream.removeListener(this.node);
   }
   semantic(): SemanticStream<B> {

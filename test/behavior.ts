@@ -367,11 +367,6 @@ describe("behavior", () => {
       a.push(7);
       assert.deepEqual(cb.args, [[2], [14]]);
     });
-    it("supports adding pullers", () => {
-      const b1 = Behavior.of(12);
-      const b2 = b1.chain((x) => Behavior.of(x * x));
-      b2.changePullers(1);
-    });
   });
   describe("flatten", () => {
     it("has proper type", () => {

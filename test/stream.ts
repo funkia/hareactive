@@ -12,11 +12,7 @@ import {
 
 import * as H from "../src";
 
-import {
-  createTestProducer,
-  createTestProducerBehavior,
-  subscribeSpy
-} from "./helpers";
+import { subscribeSpy } from "./helpers";
 
 const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
@@ -465,24 +461,6 @@ describe("stream", () => {
       push(3, e);
       push(4, e);
       assert.deepEqual(callback.args, [[0], [0], [1], [2], [2]]);
-    });
-    it("activates producer", () => {
-      const { activate, push, producer } = createTestProducerBehavior(0);
-      const mapped = map(addTwo, producer);
-      const s = H.sinkStream<undefined>();
-      const shot = H.snapshot(mapped, s);
-      const callback = spy();
-      shot.subscribe(callback);
-      s.push(undefined);
-      push(1);
-      s.push(undefined);
-      push(2);
-      s.push(undefined);
-      push(3);
-      push(4);
-      s.push(undefined);
-      assert(activate.calledOnce, "called once");
-      assert.deepEqual(callback.args, [[2], [3], [4], [6]]);
     });
     it("applies function in snapshotWith to pull based Behavior", () => {
       let n = 0;

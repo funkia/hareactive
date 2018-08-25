@@ -89,14 +89,13 @@ describe("placeholder", () => {
       const chained = b.chain((n: any) => Behavior.of(n));
       b.replaceWith(Behavior.of(3));
     });
-    it("should work with consumers that only wants to pull", () => {
+    it("is possible to snapshot a placeholder that has been replaced", () => {
       const { activate, push, producer } = createTestProducerBehavior(0);
       const pB = placeholder();
       const s = sinkStream<string>();
       const shot = snapshot(pB, s);
       const callback = subscribeSpy(shot);
       pB.replaceWith(producer);
-      assert.isTrue(activate.calledOnce);
       s.push("a");
       s.push("b");
       push(1);
@@ -105,15 +104,6 @@ describe("placeholder", () => {
       push(4);
       s.push("e");
       assert.deepEqual(callback.args, [[0], [0], [1], [1], [4]]);
-    });
-    it("adds puller to the behavior it has been replaced with", () => {
-      const { activate, push, producer } = createTestProducerBehavior(0);
-      const pB = placeholder();
-      const s = sinkStream<string>();
-      pB.replaceWith(producer);
-      const shot = snapshot(pB, s);
-      const callback = subscribeSpy(shot);
-      assert.isTrue(activate.calledOnce);
     });
   });
   describe("stream", () => {

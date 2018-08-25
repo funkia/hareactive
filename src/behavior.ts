@@ -1,14 +1,6 @@
 import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Monad, monad, combine } from "@funkia/jabz";
-import {
-  State,
-  Reactive,
-  Time,
-  changePullersParents,
-  BListener,
-  Parent,
-  SListener
-} from "./common";
+import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import { Stream } from "./stream";
@@ -27,16 +19,11 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   // Behaviors cache their last value in `last`.
   last: A;
   children: DoubleLinkedList<BListener> = new DoubleLinkedList();
-  nrOfListeners: number;
-  // Amount of nodes that wants to pull the behavior without actively
-  // listening for updates
-  nrOfPullers: number;
   pulledAt: number | undefined;
   changedAt: number | undefined;
 
   constructor() {
     super();
-    this.nrOfPullers = 0;
   }
   static is(a: any): a is Behavior<any> {
     return isBehavior(a);
@@ -144,10 +131,6 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       this.refresh(t);
     }
   }
-  changePullers(n: number): void {
-    this.nrOfPullers += n;
-    changePullersParents(n, this.parents);
-  }
   semantic(): SemanticBehavior<A> {
     throw new Error("The behavior does not have a semantic representation");
   }
@@ -178,15 +161,6 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
   update(t: number): A {
     throw new Error("A producer behavior does not have an update method");
   }
-  changePullers(n: number): void {
-    this.nrOfPullers += n;
-    if (this.nrOfPullers > 0 && this.state === State.Inactive) {
-      this.state = State.Pull;
-      this.activateProducer();
-    } else if (this.nrOfPullers === 0 && this.state === State.Pull) {
-      this.deactivateProducer();
-    }
-  }
   activate(): void {
     if (this.state === State.Inactive) {
       this.activateProducer();
@@ -194,12 +168,8 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
     this.state = State.Push;
   }
   deactivate(): void {
-    if (this.nrOfPullers === 0) {
-      this.state = State.Inactive;
-      this.deactivateProducer();
-    } else {
-      this.state = State.Pull;
-    }
+    this.state = State.Inactive;
+    this.deactivateProducer();
   }
   abstract activateProducer(): void;
   abstract deactivateProducer(): void;
@@ -408,7 +378,6 @@ export abstract class ActiveBehavior<A> extends Behavior<A> {
   // noop methods, behavior is always active
   activate(): void {}
   deactivate(): void {}
-  changePullers(): void {}
 }
 
 export abstract class StatefulBehavior<A> extends ActiveBehavior<A> {
