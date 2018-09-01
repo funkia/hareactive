@@ -32,6 +32,13 @@ describe("placeholder", () => {
       p.replaceWith(sinkBehavior("Hello"));
       assert.strictEqual(result, 5);
     });
+    it("subscribers are notified when placeholder is replaced 2", () => {
+      let result: string;
+      const p = placeholder<string>();
+      p.subscribe((s) => (result = s));
+      p.replaceWith(Behavior.of("Hello"));
+      assert.strictEqual(result, "Hello");
+    });
     it("observer are notified when replaced with pulling behavior", () => {
       let beginPulling = false;
       const p = placeholder();
@@ -52,6 +59,17 @@ describe("placeholder", () => {
       p.replaceWith(b);
       assert.strictEqual(beginPulling, true);
       assert.strictEqual(p.at(), 12);
+    });
+    it("is possible to subscribe to a placeholder that has been replaced", () => {
+      const p = placeholder<string>();
+      p.replaceWith(Behavior.of("hello"));
+      p.subscribe((n) => assert.strictEqual(n, "hello"));
+    });
+    it("is possible to subscribe to a mapped placeholder that has been replaced", () => {
+      const p = placeholder<string>();
+      const mapped = p.map((s) => s.length);
+      p.replaceWith(Behavior.of("hello"));
+      observe((n) => assert.strictEqual(n, 5), () => 0 as any, mapped);
     });
     it("pushes if replaced with pushing behavior", () => {
       const stream = sinkStream();
