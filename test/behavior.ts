@@ -7,7 +7,6 @@ import {
   Behavior,
   isBehavior,
   observe,
-  ProducerBehavior,
   producerBehavior,
   push,
   sinkBehavior,
@@ -836,6 +835,30 @@ describe("Behavior and Stream", () => {
       s2.push(2);
       s1.push(3);
       assert.deepEqual(cb.args, [[false], [true], [false], [true]]);
+    });
+  });
+  describe("observe", () => {
+    it("when switching from push to pull the pull handler can pull", () => {
+      const pushingB = sinkBehavior(0);
+      let variable = -1;
+      const pullingB = H.fromFunction(() => variable);
+      const outer = sinkBehavior<Behavior<number>>(pushingB);
+      const flattened = outer.flatten();
+      const pushSpy = spy();
+      let pull: () => void;
+      const handlePulling = (p) => {
+        pull = p;
+        return () => undefined;
+      };
+      flattened.observe(pushSpy, handlePulling);
+      outer.push(pullingB);
+      variable = 1;
+      pull();
+      variable = 2;
+      pull();
+      variable = 3;
+      pull();
+      assert.deepEqual(pushSpy.args, [[0], [1], [2], [3]]);
     });
   });
 });

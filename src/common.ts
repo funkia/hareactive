@@ -124,7 +124,7 @@ export abstract class Reactive<A, C extends Child> implements Child {
 }
 
 export class CbObserver<A> implements BListener, SListener<A> {
-  private endPulling = () => {};
+  private endPulling: () => void;
   node: Node<CbObserver<A>> = new Node(this);
   constructor(
     private callback: (a: A) => void,
@@ -138,7 +138,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
       callback(source.last);
     }
   }
-  pull(t: number = tick()) {
+  pull(t: number = tick()): void {
     if (
       isBehavior(this.source) &&
       (this.source.state === State.Pull || this.source.state === State.OnlyPull)
@@ -155,7 +155,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
   }
   changeStateDown(state: State): void {
     if (state === State.Pull || state === State.OnlyPull) {
-      this.endPulling = this.handlePulling(this.endPulling.bind(this));
+      this.endPulling = this.handlePulling(this.pull.bind(this));
     } else {
       this.endPulling();
     }
@@ -163,14 +163,13 @@ export class CbObserver<A> implements BListener, SListener<A> {
 }
 
 /**
- * Observe a behavior for the purpose of running side-effects based on
- * the value of the behavior.
- * @param push Called with all values that the behavior pushes
- * through.
- * @param beginPulling Called when the consumer should begin pulling
- * values from the behavior.
- * @param endPulling Called when the consumer should stop pulling.
- * @param behavior The behavior to consume.
+ * Observe a behavior for the purpose of running side-effects based on the value
+ * of the behavior.
+ * @param push Called with all values that the behavior pushes through.
+ * @param handlePulling Called when the consumer should begin pulling values
+ * from the behavior. The function should return a callback that will be invoked
+ * once pulling should stop.
+ * @param behavior The behavior to observe.
  */
 export function observe<A>(
   push: (a: A) => void,
