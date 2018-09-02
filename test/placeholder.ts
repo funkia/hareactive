@@ -1,5 +1,5 @@
 import { subscribeSpy } from "./helpers";
-import { useFakeTimers } from "sinon";
+import { useFakeTimers, spy } from "sinon";
 import { assert } from "chai";
 
 import { placeholder } from "../src/placeholder";
@@ -38,6 +38,21 @@ describe("placeholder", () => {
       p.subscribe((s) => (result = s));
       p.replaceWith(Behavior.of("Hello"));
       assert.strictEqual(result, "Hello");
+    });
+    it("observes are notified when replaced with pushing behavior", () => {
+      const p = placeholder();
+      const b = sinkBehavior(0);
+      const pushSpy = spy();
+      observe(
+        pushSpy,
+        () => {
+          throw new Error("should not be called");
+        },
+        p
+      );
+      p.replaceWith(b);
+      b.newValue(1);
+      assert.deepEqual(pushSpy.args, [[0], [1]]);
     });
     it("observer are notified when replaced with pulling behavior", () => {
       let beginPulling = false;

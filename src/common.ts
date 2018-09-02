@@ -156,8 +156,10 @@ export class CbObserver<A> implements BListener, SListener<A> {
   changeStateDown(state: State): void {
     if (state === State.Pull || state === State.OnlyPull) {
       this.endPulling = this.handlePulling(this.pull.bind(this));
-    } else {
+    } else if (this.endPulling !== undefined) {
+      // We where pulling before but are no longer pulling
       this.endPulling();
+      this.endPulling = undefined;
     }
   }
 }
