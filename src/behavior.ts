@@ -118,7 +118,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
     }
     this.pulledAt = t;
   }
-  refresh(t: number) {
+  refresh(t: number): void {
     const newValue = this.update(t);
     if (newValue !== this.last) {
       this.changedAt = t;
@@ -145,7 +145,7 @@ export function isBehavior(b: any): b is Behavior<any> {
 }
 
 export abstract class ProducerBehavior<A> extends Behavior<A> {
-  newValue(a: A) {
+  newValue(a: A): void {
     const changed = a !== this.last;
     if (changed) {
       const t = tick();
@@ -157,8 +157,10 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
       }
     }
   }
-  pull(t: number) {}
-  update(t: number): A {
+  pull(_t: number): void {
+    this.last = this.getValue();
+  }
+  update(_t: number): A {
     throw new Error("A producer behavior does not have an update method");
   }
   activate(): void {
@@ -171,6 +173,7 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
     this.state = State.Inactive;
     this.deactivateProducer();
   }
+  abstract getValue(): A;
   abstract activateProducer(): void;
   abstract deactivateProducer(): void;
 }
@@ -180,10 +183,9 @@ export type ProducerBehaviorFunction<A> = (push: (a: A) => void) => () => void;
 class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
   constructor(
     private activateFn: ProducerBehaviorFunction<A>,
-    private initial: A
+    readonly getValue: () => A
   ) {
     super();
-    this.last = initial;
   }
   deactivateFn: () => void;
   activateProducer(): void {
@@ -198,16 +200,16 @@ class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
 
 export function producerBehavior<A>(
   activate: ProducerBehaviorFunction<A>,
-  initial: A
+  getValue: () => A
 ): Behavior<A> {
-  return new ProducerBehaviorFromFunction(activate, initial);
+  return new ProducerBehaviorFromFunction(activate, getValue);
 }
 
 export class SinkBehavior<A> extends ProducerBehavior<A> {
   constructor(public last: A) {
     super();
   }
-  push(a: A) {
+  push(a: A): void {
     if (this.last !== a) {
       const t = tick();
       this.last = a;
@@ -215,6 +217,9 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
       this.pulledAt = t;
       this.pushToChildren(t);
     }
+  }
+  getValue(): A {
+    return this.last;
   }
   activateProducer(): void {}
   deactivateProducer(): void {}

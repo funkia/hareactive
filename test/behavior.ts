@@ -64,7 +64,10 @@ describe("behavior", () => {
     it("activates and deactivates", () => {
       const activate = spy();
       const deactivate = spy();
-      class MyProducer<A> extends H.ProducerBehavior<A> {
+      class MyProducer extends H.ProducerBehavior<undefined> {
+        getValue(): undefined {
+          return undefined;
+        }
         activateProducer(): void {
           activate();
         }
@@ -83,10 +86,13 @@ describe("behavior", () => {
     it("activates and deactivates", () => {
       const activate = spy();
       const deactivate = spy();
-      const producer = producerBehavior((push) => {
-        activate();
-        return deactivate;
-      }, "");
+      const producer = producerBehavior(
+        (push) => {
+          activate();
+          return deactivate;
+        },
+        () => ""
+      );
       const observer = producer.subscribe((a) => a);
       observer.deactivate();
       assert(activate.calledOnce);
