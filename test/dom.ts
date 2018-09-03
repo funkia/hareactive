@@ -1,3 +1,4 @@
+import * as H from "../src/index";
 import { streamFromEvent, behaviorFromEvent } from "../src/dom";
 import "mocha";
 import { assert } from "chai";
@@ -40,31 +41,51 @@ describe("dom", () => {
   describe("behaviorFromEvent", () => {
     it("has initial value", () => {
       const input = document.createElement("input");
+      input.value = "initial";
       const s = behaviorFromEvent(
         input,
         "change",
-        "asd",
+        (elm) => elm.value,
         (evt, elm) => elm.value
       );
       const result = [];
       s.subscribe((ev) => result.push(ev));
       assert.strictEqual(result.length, 1);
-      assert.strictEqual(result[0], "asd");
+      assert.strictEqual(result[0], "initial");
     });
     it("updates the current value on event", () => {
       const input = document.createElement("input");
+      input.value = "initial";
       const s = behaviorFromEvent(
         input,
         "change",
-        "initial",
+        (elm) => elm.value,
         (evt, elm) => elm.value
       );
       const result = [];
-      s.subscribe(ev => result.push(ev));
+      s.subscribe((ev) => result.push(ev));
       // simulate input low latency
       input.value = "second";
       input.dispatchEvent(new Event("change"));
-      assert.strictEqual(result.length, 2);
+      assert.deepEqual(result, ["initial", "second"]);
+    });
+    it("is possible to snapshot behavior", () => {
+      const input = document.createElement("input");
+      input.value = "initial";
+      const b = behaviorFromEvent(
+        input,
+        "change",
+        (elm) => elm.value,
+        (_evt, elm) => elm.value
+      );
+      const result = [];
+      const sink = H.sinkStream<number>();
+      // We snapshot the behaviors without activating it
+      const s = H.snapshot(b, sink);
+      s.subscribe((ev) => result.push(ev));
+      H.push(0, sink);
+      input.value = "second";
+      H.push(0, sink);
       assert.deepEqual(result, ["initial", "second"]);
     });
   });

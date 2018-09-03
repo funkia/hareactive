@@ -3,7 +3,7 @@ import { ProducerStream } from "../src/stream";
 import { spy } from "sinon";
 
 import { State, Reactive } from "../src/common";
-import { Behavior, ProducerBehavior } from "../src/behavior";
+import { SinkBehavior } from "../src/behavior";
 
 export function subscribeSpy(b: Reactive<any, any>): sinon.SinonSpy {
   const cb = spy();
@@ -35,13 +35,13 @@ export function createTestProducer() {
   return { activate, deactivate, push, producer };
 }
 
-class TestProducerBehavior<A> extends ProducerBehavior<A> {
+class TestProducerBehavior<A> extends SinkBehavior<A> {
   constructor(
-    public last: A,
+    last: A,
     private activateSpy: sinon.SinonSpy,
     private deactivateSpy: sinon.SinonSpy
   ) {
-    super();
+    super(last);
   }
   activateProducer(): void {
     this.activateSpy();
