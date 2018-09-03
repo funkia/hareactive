@@ -75,6 +75,36 @@ describe("placeholder", () => {
       assert.strictEqual(beginPulling, true);
       assert.strictEqual(p.at(), 12);
     });
+    it("can pull mapped placeholder", () => {
+      let variable = 0;
+      const b = fromFunction(() => variable);
+      const p = placeholder<number>();
+      const mapResult = [];
+      const pm = p.map((n) => (mapResult.push(n), n));
+      // const pm = p.map((n) => n);
+      const result: Array<number> = [];
+      let pull;
+      observe(
+        (a) => {
+          result.push(a);
+        },
+        (pullCb) => {
+          pull = pullCb;
+          return () => {
+            throw new Error("Should not be called");
+          };
+        },
+        pm
+      );
+      p.replaceWith(b);
+      pull();
+      variable = 1;
+      pull();
+      variable = 2;
+      pull();
+      assert.deepEqual(result, [0, 1, 2], "result");
+      assert.deepEqual(mapResult, [0, 1, 2], "mapResult");
+    });
     it("is possible to subscribe to a placeholder that has been replaced", () => {
       const p = placeholder<string>();
       p.replaceWith(Behavior.of("hello"));
