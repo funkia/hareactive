@@ -17,7 +17,8 @@ import {
   fromFunction,
   sinkFuture,
   freezeTo,
-  freezeAt
+  freezeAt,
+  Stream
 } from "../src";
 
 import * as H from "../src";
@@ -783,6 +784,16 @@ describe("Behavior and Stream", () => {
       s3.push(5);
       s3.push(6);
       assert.deepEqual(cb.args, [[1], [2], [3], [5], [6]]);
+    });
+    it("works with placeholder", () => {
+      const s1 = H.sinkStream<number>();
+      const b = sinkBehavior(s1);
+      const pB = H.placeholder<Stream<number>>();
+      const s = H.switchStream(pB);
+      const callback = subscribeSpy(s);
+      pB.replaceWith(b);
+      s1.push(0);
+      assert.deepEqual(callback.args, [[0]]);
     });
   });
   describe("continuous time", () => {

@@ -215,8 +215,10 @@ class SwitchBehaviorStream<A> extends Stream<A> implements BListener {
   }
   activate(t: number): void {
     this.b.addListener(this.bNode, t);
-    this.currentSource = this.b.last;
-    this.currentSource.addListener(this.sNode, t);
+    if (this.b.state !== State.Inactive) {
+      this.currentSource = this.b.last;
+      this.currentSource.addListener(this.sNode, t);
+    }
   }
   deactivate(): void {
     this.b.removeListener(this.bNode);
@@ -224,7 +226,9 @@ class SwitchBehaviorStream<A> extends Stream<A> implements BListener {
   }
   pushB(t: number): void {
     const newStream = this.b.last;
-    this.currentSource.removeListener(this.sNode);
+    if (this.currentSource !== undefined) {
+      this.currentSource.removeListener(this.sNode);
+    }
     newStream.addListener(this.sNode, t);
     this.currentSource = newStream;
   }
