@@ -412,11 +412,13 @@ export class FunctionBehavior<A> extends ActiveBehavior<A> {
     super();
     this.state = State.OnlyPull;
   }
-  pull(t) {
-    this.refresh(t);
-    this.pulledAt = t;
+  pull(t: Time): void {
+    if (this.pulledAt !== t) {
+      this.refresh(t);
+      this.pulledAt = t;
+    }
   }
-  update(t): A {
+  update(t: Time): A {
     return this.fn();
   }
 }

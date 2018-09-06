@@ -112,6 +112,18 @@ describe("behavior", () => {
       time = 3;
       assert.equal(H.at(b, 4), 3);
     });
+    it("does not recompute when pulling with same timestamp", () => {
+      let callCount = 0;
+      const b = H.fromFunction(() => {
+        callCount++;
+        return 0;
+      });
+      b.at(0);
+      b.at(0);
+      b.at(1);
+      b.at(1);
+      assert.strictEqual(callCount, 2);
+    });
   });
   describe("functor", () => {
     describe("map", () => {
