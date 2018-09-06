@@ -1,5 +1,5 @@
 import { monad, Monad, Semigroup } from "@funkia/jabz";
-import { State, SListener, Parent, BListener } from "./common";
+import { State, SListener, Parent, BListener, Time } from "./common";
 import { Reactive } from "./common";
 import { cons, fromArray, Node } from "./datastructures";
 import { Behavior, FunctionBehavior } from "./behavior";
@@ -24,7 +24,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
   pull(): A {
     throw new Error("Pull not implemented on future");
   }
-  resolve(val: A, t = tick()): void {
+  resolve(val: A, t: Time = tick()): void {
     this.deactivate(true);
     this.value = val;
     this.pushSToChildren(t, val);
@@ -184,10 +184,16 @@ export function sinkFuture<A>(): Future<A> {
   return new SinkFuture<A>();
 }
 
-export function fromPromise<A>(p: Promise<A>): Future<A> {
+export function fromPromise<A>(promise: Promise<A>): Future<A> {
   const future = sinkFuture<A>();
-  p.then(future.resolve.bind(future));
+  promise.then(future.resolve.bind(future));
   return future;
+}
+
+export function toPromise<A>(future: Future<A>): Promise<A> {
+  return new Promise((resolve, _reject) => {
+    future.subscribe(resolve);
+  });
 }
 
 /**
