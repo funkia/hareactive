@@ -1,6 +1,6 @@
 import { Reactive, State, SListener, BListener } from "./common";
 import { Behavior, isBehavior, MapBehavior } from "./behavior";
-import { Node } from "./datastructures";
+import { Node, cons } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
 import { tick } from "./clock";
 
@@ -19,37 +19,31 @@ export class Placeholder<A> extends Behavior<A> {
     parent: Reactive<A, SListener<A> | SListener<A> | BListener>
   ): void {
     this.source = parent;
+    this.parents = cons(parent);
     if (this.children.head !== undefined) {
       const t = tick();
       this.activate(t);
       if (isBehavior(parent) && this.state === State.Push) {
-        this.pushB(t);
+        this.pushToChildren(t);
       }
     }
   }
-  pushB(t: number): void {
-    this.last = (<Behavior<A>>this.source).last;
-    for (const child of this.children) {
-      child.pushB(t);
-    }
-  }
-  pushS(t: number, a: A) {
+  pushS(t: number, a: A): void {
     for (const child of this.children) {
       (<any>child).pushS(t, a);
     }
   }
-  pull(t: number) {
+  pull(t: number): void {
     if (this.source === undefined) {
       throw new SamplePlaceholderError(this);
     } else if (isBehavior(this.source)) {
-      this.source.pull(t);
-      this.last = this.source.last;
+      super.pull(t);
     } else {
       throw new Error("Unsupported pulling on placeholder");
     }
   }
   update(t: number): A {
-    throw new Error("Update should never be called on a placeholder.");
+    return (this.source as Behavior<A>).last;
   }
   activate(t: number): void {
     if (this.source !== undefined) {
