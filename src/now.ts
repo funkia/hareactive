@@ -9,7 +9,6 @@ import { tick } from "./clock";
 
 @monad
 export abstract class Now<A> implements Monad<A> {
-  // Impurely run the now computation
   isNow: true;
   constructor() {
     this.isNow = true;
@@ -17,7 +16,7 @@ export abstract class Now<A> implements Monad<A> {
   static is(a: any): a is Now<any> {
     return typeof a === "object" && a.isNow === true;
   }
-  abstract run(): A;
+  abstract run(time: Time): A;
   of<B>(b: B): Now<B> {
     return new OfNow(b);
   }
@@ -44,7 +43,7 @@ class OfNow<A> extends Now<A> {
   constructor(private value: A) {
     super();
   }
-  run(): A {
+  run(_: Time): A {
     return this.value;
   }
   test(_: Time): A {
@@ -56,8 +55,8 @@ class ChainNow<A, B> extends Now<B> {
   constructor(private first: Now<A>, private f: (a: A) => Now<B>) {
     super();
   }
-  run(): B {
-    return this.f(this.first.run()).run();
+  run(t: Time): B {
+    return this.f(this.first.run(t)).run(t);
   }
   test(t: Time): B {
     return this.f(this.first.test(t)).test(t);
@@ -68,8 +67,8 @@ class SampleNow<A> extends Now<A> {
   constructor(private b: Behavior<A>) {
     super();
   }
-  run(): A {
-    return at(this.b);
+  run(t: Time): A {
+    return at(this.b, t);
   }
   test(t: Time): A {
     return this.b.semantic()(t);
@@ -191,16 +190,12 @@ export function performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNowOrdered(s);
 }
 
-function run<A>(now: Now<A>): A {
-  return now.run();
-}
-
 class PlanNow<A> extends Now<Future<A>> {
   constructor(private future: Future<Now<A>>) {
     super();
   }
-  run(): Future<A> {
-    return this.future.map(run);
+  run(t: Time): Future<A> {
+    return this.future.map((value) => value.run(tick()));
   }
 }
 
@@ -208,11 +203,8 @@ export function plan<A>(future: Future<Now<A>>): Now<Future<A>> {
   return new PlanNow(future);
 }
 
-export function runNow<A>(now: Now<Future<A>>): Promise<A> {
-  return new Promise((resolve, reject) => {
-    const a = now.run();
-    a.subscribe(resolve);
-  });
+export function runNow<A>(now: Now<A>, time: Time = tick()): A {
+  return now.run(time);
 }
 
 /**
@@ -245,7 +237,7 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
   ) {
     super();
   }
-  run(): A {
+  run(t: Time): A {
     let placeholderObject: any;
     if (this.placeholderNames === undefined) {
       placeholderObject = new Proxy({}, placeholderProxyHandler);
@@ -255,8 +247,7 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
         placeholderObject[name] = placeholder();
       }
     }
-
-    const result = this.fn(placeholderObject).run();
+    const result = this.fn(placeholderObject).run(t);
     const returned: (keyof A)[] = <any>Object.keys(result);
     for (const name of returned) {
       placeholderObject[name].replaceWith(result[name]);

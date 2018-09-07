@@ -17,7 +17,9 @@ import {
   loopNow,
   Stream,
   sinkStream,
-  SinkStream
+  SinkStream,
+  time,
+  toPromise
 } from "../src";
 import { assert } from "chai";
 import {
@@ -57,12 +59,7 @@ describe("Now", () => {
   });
   describe("functor", () => {
     it("mapTo", () => {
-      assert.strictEqual(
-        Now.of(12)
-          .mapTo(4)
-          .run(),
-        4
-      );
+      assert.strictEqual(runNow(Now.of(12).mapTo(4)), 4);
     });
   });
   describe("applicative", () => {
@@ -81,7 +78,7 @@ describe("Now", () => {
       const now = Now.of(3).chain((n) => Now.of(n * 4));
       assert.strictEqual(testNow(now), 12);
     });
-    it("executes several `async`s in succession", () => {
+    it("executes several `async`s in succession", async () => {
       const ref1 = createRef(1);
       const ref2 = createRef("Hello");
       const comp = perform(mutateRef(2, ref1)).chain((_: any) =>
@@ -89,19 +86,13 @@ describe("Now", () => {
           Now.of(Future.of(true))
         )
       );
-      return runNow(comp).then((result: boolean) => {
-        assert.strictEqual(result, true);
-        assert.strictEqual(ref1.ref, 2);
-        assert.strictEqual(ref2.ref, "World");
-      });
+      const result = await toPromise(runNow(comp));
+      assert.strictEqual(result, true);
+      assert.strictEqual(ref1.ref, 2);
+      assert.strictEqual(ref2.ref, "World");
     });
     it("can flatten pure nows", () => {
-      assert.strictEqual(
-        Now.of(Now.of(12))
-          .flatten()
-          .run(),
-        12
-      );
+      assert.strictEqual(runNow(Now.of(Now.of(12)).flatten()), 12);
     });
     it("throws in go if incorrect monad is yielded", (done) => {
       const now = go(function*() {
@@ -109,30 +100,33 @@ describe("Now", () => {
         const b = yield Behavior.of(2);
         return 3;
       }, Now);
-      runNow(now).catch(() => done());
+      try {
+        runNow(now);
+      } catch {
+        done();
+      }
     });
   });
   describe("async", () => {
     it("works with runNow", () => {
       let resolve: (n: number) => void;
-      const promise = runNow(
+      const future = runNow(
         perform(callP((n: number) => new Promise((res) => (resolve = res)), 0))
       );
       setTimeout(() => {
         resolve(12);
       });
-      return promise.then((result: number) => {
+      return toPromise(future).then((result: number) => {
         assert.deepEqual(result, 12);
       });
     });
   });
   describe("sample", () => {
-    it("samples constant behavior", () => {
+    it("samples constant behavior", async () => {
       const b = Behavior.of(6);
       const comp = sample(b).chain((n) => Now.of(Future.of(n)));
-      return runNow(comp).then((result: number) => {
-        assert.strictEqual(result, 6);
-      });
+      const result = await toPromise(runNow(comp));
+      assert.strictEqual(result, 6);
     });
     it("can be tested", () => {
       const stream = testStreamFromObject({ 1: 1, 2: 3, 4: 2 });
@@ -158,7 +152,7 @@ describe("Now", () => {
     });
   });
   describe("plan", () => {
-    it("executes plan asynchronously", () => {
+    it("executes plan asynchronously", async () => {
       let resolve: (n: number) => void;
       let done = false;
       const fn = withEffectsP((n: number) => {
@@ -178,10 +172,9 @@ describe("Now", () => {
         assert.strictEqual(done, false);
         resolve(11);
       });
-      return runNow(prog).then((res: number) => {
-        done = true;
-        assert.strictEqual(res, 22);
-      });
+      const res = await toPromise(runNow(prog));
+      done = true;
+      assert.strictEqual(res, 22);
     });
   });
   it("handles recursively defined behavior", () => {
@@ -232,9 +225,7 @@ describe("Now", () => {
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStream(mappedS)
-        .run()
-        .subscribe((n) => results.push(n));
+      runNow(performStream(mappedS)).subscribe((n) => results.push(n));
       s.push(1);
       setTimeout(() => {
         s.push(2);
@@ -258,9 +249,7 @@ describe("Now", () => {
       );
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamLatest(mappedS)
-        .run()
-        .subscribe((n) => results.push(n));
+      runNow(performStreamLatest(mappedS)).subscribe((n) => results.push(n));
       s.push(60);
       setTimeout(() => {
         assert.deepEqual(results, [60]);
@@ -278,9 +267,7 @@ describe("Now", () => {
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamLatest(mappedS)
-        .run()
-        .subscribe((n) => results.push(n));
+      runNow(performStreamLatest(mappedS)).subscribe((n) => results.push(n));
       s.push(0);
       s.push(1);
       s.push(2);
@@ -302,9 +289,7 @@ describe("Now", () => {
       );
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamOrdered(mappedS)
-        .run()
-        .subscribe((n) => results.push(n));
+      runNow(performStreamOrdered(mappedS)).subscribe((n) => results.push(n));
       s.push(60);
       setTimeout(() => {
         assert.deepEqual(results, [60]);
@@ -322,9 +307,7 @@ describe("Now", () => {
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamOrdered(mappedS)
-        .run()
-        .subscribe((n) => results.push(n));
+      runNow(performStreamOrdered(mappedS)).subscribe((n) => results.push(n));
       s.push(0);
       s.push(1);
       s.push(2);
@@ -350,9 +333,7 @@ describe("Now", () => {
       );
       const s = sinkStream();
       const mappedS = s.map(impure);
-      performStreamOrdered(mappedS)
-        .run()
-        .subscribe((n) => results.push(n));
+      runNow(performStreamOrdered(mappedS)).subscribe((n) => results.push(n));
       s.push(60);
       s.push(undefined);
       s.push(20);
@@ -371,7 +352,7 @@ describe("Now", () => {
         s = sinkStream();
         return Now.of({ stream: s });
       });
-      now.run();
+      runNow(now);
       s.push("a");
       s.push("b");
       s.push("c");
@@ -386,13 +367,23 @@ describe("Now", () => {
         s = sinkStream();
         return Now.of({ stream: s });
       });
-      const { stream } = now.run();
+      const { stream } = runNow(now);
       stream.subscribe((a) => result.push(a));
       s.push("a");
       s.push("b");
       s.push("c");
-
       assert.deepEqual(result, ["a", "b", "c"]);
+    });
+  });
+  describe("time instant abstraction", () => {
+    it("time doesn't pass in a Now", () => {
+      const now = go(function*() {
+        const t1 = yield sample(time);
+        while (Date.now() <= t1) {}
+        const t2 = yield sample(time);
+        assert.strictEqual(t1, t2);
+      });
+      runNow(now);
     });
   });
 });

@@ -53,7 +53,7 @@ export class PushOnlyObserver<A> implements BListener, SListener<A> {
   pushB(t: number): void {
     this.callback((this.source as any).last);
   }
-  pushS(t: number, value: A) {
+  pushS(t: number, value: A): void {
     this.callback(value);
   }
   deactivate(): void {
