@@ -527,10 +527,10 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
   constructor(
     private f: (a: A, b: B) => B,
     public last: B,
-    private parent: Stream<A>
+    private parent: Stream<A>,
+    t: Time
   ) {
     super();
-    const t = tick();
     this.state = State.Push;
     parent.addListener(this.node, t);
   }
@@ -553,7 +553,7 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
 
 class ScanBehavior<A, B> extends StatefulBehavior<Behavior<B>> {
   update(t: number): Behavior<B> {
-    return new ActiveScanBehavior(this.a, this.b, this.c);
+    return new ActiveScanBehavior(this.a, this.b, this.c, t);
   }
   pull(t: Time): void {
     this.last = this.update(t);
