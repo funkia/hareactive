@@ -245,7 +245,7 @@ export class MapBehavior<A, B> extends Behavior<B> {
     super();
     this.parents = cons(parent);
   }
-  update(t: number) {
+  update(t: number): B {
     return this.f(this.parent.last);
   }
   semantic(): SemanticBehavior<B> {
@@ -259,7 +259,7 @@ class ApBehavior<A, B> extends Behavior<B> {
     super();
     this.parents = cons<any>(fn, cons(val));
   }
-  update(t: number) {
+  update(t: number): B {
     return this.fn.last(this.val.last);
   }
 }
@@ -281,12 +281,12 @@ export function ap<A, B>(
 class ChainBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
-  private innerNode = new Node(this);
+  private innerNode: Node<this> = new Node(this);
   constructor(private outer: Behavior<A>, private fn: (a: A) => Behavior<B>) {
     super();
     this.parents = cons(this.outer);
   }
-  pushB(t: number) {
+  pushB(t: number): void {
     const newValue = this.update(t);
     this.pulledAt = t;
     if (this.last !== newValue) {
@@ -297,7 +297,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
       }
     }
   }
-  update(t: number) {
+  update(t: number): B {
     const outerChanged = this.outer.changedAt > this.changedAt;
     if (outerChanged || this.changedAt === undefined) {
       if (this.innerB !== undefined) {
@@ -324,7 +324,7 @@ class WhenBehavior extends Behavior<Future<{}>> {
     super();
     this.parents = cons(parent);
   }
-  update(t: number) {
+  update(t: number): Future<{}> {
     return this.parent.last === true
       ? Future.of({})
       : new BehaviorFuture(this.parent);
@@ -338,7 +338,7 @@ export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
 /** @private */
 class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
   private afterFuture: boolean;
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   constructor(private parent: Behavior<A>, future: Future<any>) {
     super();
     if (future.state === State.Done) {
@@ -366,7 +366,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
       this.last = Future.of(val);
     }
   }
-  update(t: number) {
+  update(t: Time): Future<A> {
     return this.last;
   }
 }
@@ -398,7 +398,7 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
     this.state = State.Push;
     this.changedAt = tick();
   }
-  update(_t: number) {
+  update(_t: number): A {
     return this.last;
   }
   semantic(): SemanticBehavior<A> {
@@ -430,8 +430,8 @@ export function fromFunction<B>(fn: () => B): Behavior<B> {
 /** @private */
 class SwitcherBehavior<A> extends ActiveBehavior<A>
   implements BListener, SListener<Behavior<A>> {
-  private bNode = new Node(this);
-  private nNode = new Node(this);
+  private bNode: Node<this> = new Node(this);
+  private nNode: Node<this> = new Node(this);
   constructor(
     private b: Behavior<A>,
     next: Future<Behavior<A>> | Stream<Behavior<A>>
@@ -523,7 +523,7 @@ export function testBehavior<A>(b: SemanticBehavior<A>): Behavior<A> {
 /** @private */
 class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
   implements SListener<A> {
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   constructor(
     private f: (a: A, b: B) => B,
     public last: B,
@@ -542,7 +542,7 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
       this.pushToChildren(t);
     }
   }
-  pull(t: number) {}
+  pull(t: number): void {}
   update(t: number): B {
     throw new Error("Update should never be called.");
   }
@@ -555,7 +555,7 @@ class ScanBehavior<A, B> extends StatefulBehavior<Behavior<B>> {
   update(t: number): Behavior<B> {
     return new ActiveScanBehavior(this.a, this.b, this.c);
   }
-  pull(t) {
+  pull(t: Time): void {
     this.last = this.update(t);
     this.changedAt = t;
     this.pulledAt = t;
@@ -582,7 +582,7 @@ export function scan<A, B>(
 
 export type ScanPair<A> = [Stream<any>, (a: any, b: A) => A];
 
-function scanPairToApp<A>([stream, fn]: ScanPair<A>) {
+function scanPairToApp<A>([stream, fn]: ScanPair<A>): Stream<(a: A) => A> {
   return stream.map((a) => (b: A) => fn(a, b));
 }
 
@@ -654,7 +654,7 @@ class MomentBehavior<A> extends Behavior<A> {
       }
     }
   }
-  update(t: number) {
+  update(t: number): A {
     this.currentSampleTime = t;
     if (this.listenerNodes !== undefined) {
       for (const { node, parent } of this.listenerNodes) {

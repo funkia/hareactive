@@ -1,5 +1,5 @@
 let time = -1;
 
-export function tick() {
+export function tick(): number {
   return ++time;
 }

@@ -107,7 +107,7 @@ export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
 
 class PerformIOStreamLatest<A> extends ActiveStream<A>
   implements SListener<IO<A>> {
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this.node, tick());
@@ -148,7 +148,7 @@ export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
 }
 
 class PerformIOStreamOrdered<A> extends ActiveStream<A> {
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
     s.addListener(this.node, tick());

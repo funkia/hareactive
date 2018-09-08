@@ -43,7 +43,7 @@ export interface SListener<A> extends Child {
 }
 
 export class PushOnlyObserver<A> implements BListener, SListener<A> {
-  node = new Node(this);
+  node: Node<this> = new Node(this);
   constructor(private callback: (a: A) => void, private source: Parent<Child>) {
     source.addListener(this.node, tick());
     if (isBehavior(source) && source.state === State.Push) {
@@ -95,7 +95,7 @@ export abstract class Reactive<A, C extends Child> implements Child {
       child.changeStateDown(state);
     }
   }
-  subscribe(callback: (a: A) => void) {
+  subscribe(callback: (a: A) => void): PushOnlyObserver<A> {
     return new PushOnlyObserver(callback, this);
   }
   observe(push: (a: A) => void, handlePulling: PullHandler): CbObserver<A> {
@@ -113,7 +113,7 @@ export abstract class Reactive<A, C extends Child> implements Child {
       }
     }
   }
-  deactivate(done = false): void {
+  deactivate(done: Boolean = false): void {
     if (this.listenerNodes !== undefined) {
       for (const { node, parent } of this.listenerNodes) {
         parent.removeListener(node);

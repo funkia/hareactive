@@ -77,7 +77,7 @@ class TimeFromBehavior extends Behavior<Time> {
     this.startTime = Date.now();
     this.state = State.Pull;
   }
-  pull(t: number) {
+  pull(t: number): void {
     this.last = Date.now() - this.startTime;
   }
   update(t: number): Time {
@@ -121,7 +121,7 @@ class IntegrateBehavior extends Behavior<number> {
     this.last = 0;
     this.parents = cons(parent, cons(time));
   }
-  update(t) {
+  update(t: Time): number {
     const currentPullTime = time.last;
     const deltaSeconds = (currentPullTime - this.lastPullTime) / 1000;
     const value = this.last + deltaSeconds * this.parent.last;
