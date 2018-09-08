@@ -625,6 +625,7 @@ export type SampleAt = <B>(b: Behavior<B>) => B;
 
 class MomentBehavior<A> extends Behavior<A> {
   private sampleBound: SampleAt;
+  private currentSampleTime: Time;
   constructor(private f: (at: SampleAt) => A) {
     super();
     this.sampleBound = (b) => this.sample(b);
@@ -654,6 +655,7 @@ class MomentBehavior<A> extends Behavior<A> {
     }
   }
   update(t: number) {
+    this.currentSampleTime = t;
     if (this.listenerNodes !== undefined) {
       for (const { node, parent } of this.listenerNodes) {
         parent.removeListener(node);
@@ -666,9 +668,8 @@ class MomentBehavior<A> extends Behavior<A> {
   sample<B>(b: Behavior<B>): B {
     const node = new Node(this);
     this.listenerNodes = cons({ node, parent: b }, this.listenerNodes);
-    const t = tick();
-    b.addListener(node, t);
-    b.pull(t);
+    b.addListener(node, this.currentSampleTime);
+    b.pull(this.currentSampleTime);
     this.parents = cons(b, this.parents);
     return b.last;
   }
