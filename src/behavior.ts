@@ -94,13 +94,8 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       if (this.last !== newValue) {
         this.changedAt = t;
         this.last = newValue;
-        this.pushToChildren(t);
+        pushToChildren(t, this);
       }
-    }
-  }
-  pushToChildren(t: number): void {
-    for (const child of this.children) {
-      child.pushB(t);
     }
   }
   pull(t: number): void {
@@ -114,21 +109,14 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       }
     }
     if (shouldRefresh) {
-      this.refresh(t);
+      refresh(this, t);
     }
     this.pulledAt = t;
-  }
-  refresh(t: number): void {
-    const newValue = this.update(t);
-    if (newValue !== this.last) {
-      this.changedAt = t;
-      this.last = newValue;
-    }
   }
   activate(t: number): void {
     super.activate(t);
     if (this.state === State.Push) {
-      this.refresh(t);
+      refresh(this, t);
     }
   }
   semantic(): SemanticBehavior<A> {
@@ -137,6 +125,20 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   log(prefix?: string): Behavior<A> {
     this.subscribe((a) => console.log(`${prefix || ""} `, a));
     return this;
+  }
+}
+
+export function pushToChildren(t: number, b: Behavior<any>): void {
+  for (const child of b.children) {
+    child.pushB(t);
+  }
+}
+
+function refresh<A>(b: Behavior<A>, t: number): void {
+  const newValue = b.update(t);
+  if (newValue !== b.last) {
+    b.changedAt = t;
+    b.last = newValue;
   }
 }
 
@@ -153,7 +155,7 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
       this.changedAt = t;
       if (this.state === State.Push) {
         this.pulledAt = t;
-        this.pushToChildren(t);
+        pushToChildren(t, this);
       }
     }
   }
@@ -215,7 +217,7 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
       this.last = a;
       this.changedAt = t;
       this.pulledAt = t;
-      this.pushToChildren(t);
+      pushToChildren(t, this);
     }
   }
   getValue(): A {
@@ -293,7 +295,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
       this.changedAt = t;
       this.last = newValue;
       if (this.state === State.Push) {
-        this.pushToChildren(t);
+        pushToChildren(t, this);
       }
     }
   }
@@ -335,7 +337,6 @@ export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
 }
 
-/** @private */
 class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
   private afterFuture: boolean;
   private node: Node<this> = new Node(this);
@@ -407,7 +408,7 @@ export class FunctionBehavior<A> extends ActiveBehavior<A> {
   }
   pull(t: Time): void {
     if (this.pulledAt !== t) {
-      this.refresh(t);
+      refresh(this, t);
       this.pulledAt = t;
     }
   }
@@ -532,7 +533,7 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
     if (newValue !== this.last) {
       this.changedAt = t;
       this.last = newValue;
-      this.pushToChildren(t);
+      pushToChildren(t, this);
     }
   }
   pull(t: number): void {}

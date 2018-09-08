@@ -1,5 +1,5 @@
 import { Reactive, State, SListener, BListener } from "./common";
-import { Behavior, isBehavior, MapBehavior } from "./behavior";
+import { Behavior, isBehavior, MapBehavior, pushToChildren } from "./behavior";
 import { Node, cons } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
 import { tick } from "./clock";
@@ -24,7 +24,7 @@ export class Placeholder<A> extends Behavior<A> {
       const t = tick();
       this.activate(t);
       if (isBehavior(parent) && this.state === State.Push) {
-        this.pushToChildren(t);
+        pushToChildren(t, this);
       }
     }
   }
