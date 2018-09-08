@@ -408,7 +408,7 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
 
 /** @private */
 export class FunctionBehavior<A> extends ActiveBehavior<A> {
-  constructor(private fn: () => A) {
+  constructor(private f: (t: Time) => A) {
     super();
     this.state = State.OnlyPull;
   }
@@ -419,12 +419,12 @@ export class FunctionBehavior<A> extends ActiveBehavior<A> {
     }
   }
   update(t: Time): A {
-    return this.fn();
+    return this.f(t);
   }
 }
 
-export function fromFunction<B>(fn: () => B): Behavior<B> {
-  return new FunctionBehavior(fn);
+export function fromFunction<B>(f: (t: Time) => B): Behavior<B> {
+  return new FunctionBehavior(f);
 }
 
 /** @private */
@@ -434,10 +434,10 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
   private nNode: Node<this> = new Node(this);
   constructor(
     private b: Behavior<A>,
-    next: Future<Behavior<A>> | Stream<Behavior<A>>
+    next: Future<Behavior<A>> | Stream<Behavior<A>>,
+    t: Time
   ) {
     super();
-    const t = tick();
     this.parents = cons(b);
     b.addListener(this.bNode, t);
     this.state = b.state;
@@ -480,14 +480,14 @@ export function switchTo<A>(
   init: Behavior<A>,
   next: Future<Behavior<A>>
 ): Behavior<A> {
-  return new SwitcherBehavior(init, next);
+  return new SwitcherBehavior(init, next, tick());
 }
 
 export function switcher<A>(
   init: Behavior<A>,
   stream: Stream<Behavior<A>>
 ): Behavior<Behavior<A>> {
-  return fromFunction(() => new SwitcherBehavior(init, stream));
+  return fromFunction((t) => new SwitcherBehavior(init, stream, t));
 }
 
 export function freezeTo<A>(

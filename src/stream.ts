@@ -34,7 +34,7 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
     return new FilterStream<A>(this, fn);
   }
   scanS<B>(fn: (a: A, b: B) => B, startingValue: B): Behavior<Stream<B>> {
-    return fromFunction(() => new ScanStream(fn, startingValue, this));
+    return fromFunction((t) => new ScanStream(fn, startingValue, this, t));
   }
   scan<B>(fn: (a: A, b: B) => B, init: B): Behavior<Behavior<B>> {
     return scan(fn, init, this);
@@ -53,10 +53,6 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
       child.pushS(t, value);
     }
   }
-  pull(t: number): void {
-    throw new Error("Pull not implemented on stream");
-  }
-  // abstract semantic(): SemanticStream<A>;
 }
 
 export class MapStream<A, B> extends Stream<B> {
@@ -172,11 +168,12 @@ class ScanStream<A, B> extends ActiveStream<B> {
   constructor(
     private fn: (a: A, b: B) => B,
     public last: B,
-    public parent: Stream<A>
+    public parent: Stream<A>,
+    t: Time
   ) {
     super();
     this.parents = cons(parent);
-    parent.addListener(this.node, tick());
+    parent.addListener(this.node, t);
   }
   semantic(): SemanticStream<B> {
     const s = this.parent.semantic();
