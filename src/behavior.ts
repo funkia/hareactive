@@ -385,13 +385,6 @@ export abstract class ActiveBehavior<A> extends Behavior<A> {
   deactivate(): void {}
 }
 
-export abstract class StatefulBehavior<A> extends ActiveBehavior<A> {
-  constructor(protected a: any, protected b?: any, protected c?: any) {
-    super();
-    this.state = State.OnlyPull;
-  }
-}
-
 export class ConstantBehavior<A> extends ActiveBehavior<A> {
   constructor(public last: A) {
     super();
@@ -410,7 +403,7 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
 export class FunctionBehavior<A> extends ActiveBehavior<A> {
   constructor(private f: (t: Time) => A) {
     super();
-    this.state = State.OnlyPull;
+    this.state = State.Pull;
   }
   pull(t: Time): void {
     if (this.pulledAt !== t) {
@@ -551,9 +544,13 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
   }
 }
 
-class ScanBehavior<A, B> extends StatefulBehavior<Behavior<B>> {
+class ScanBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
+  constructor(private f: any, private b: any, private c: any) {
+    super();
+    this.state = State.Pull;
+  }
   update(t: number): Behavior<B> {
-    return new ActiveScanBehavior(this.a, this.b, this.c, t);
+    return new ActiveScanBehavior(this.f, this.b, this.c, t);
   }
   pull(t: Time): void {
     this.last = this.update(t);
@@ -567,7 +564,7 @@ class ScanBehavior<A, B> extends StatefulBehavior<Behavior<B>> {
         stream
           .filter(({ time }) => t1 <= time && time <= t2)
           .map((o) => o.value)
-          .reduce((acc, cur) => this.a(cur, acc), this.b)
+          .reduce((acc, cur) => this.f(cur, acc), this.b)
       );
   }
 }

@@ -15,9 +15,6 @@ export const enum State {
   Push,
   // Values should be pulled by listeners
   Pull,
-  // Values should be pulled and the reactive will _never_ switch
-  // state to `Push`
-  OnlyPull,
   // Most, but not all, reactives start in this state
   Inactive,
   // The reactive value will never update again
@@ -132,17 +129,14 @@ export class CbObserver<A> implements BListener, SListener<A> {
     private source: Parent<Child>
   ) {
     source.addListener(this.node, tick());
-    if (source.state === State.Pull || source.state === State.OnlyPull) {
+    if (source.state === State.Pull) {
       this.endPulling = handlePulling(this.pull.bind(this));
     } else if (isBehavior(source) && source.state === State.Push) {
       callback(source.last);
     }
   }
   pull(t: number = tick()): void {
-    if (
-      isBehavior(this.source) &&
-      (this.source.state === State.Pull || this.source.state === State.OnlyPull)
-    ) {
+    if (isBehavior(this.source) && this.source.state === State.Pull) {
       this.source.pull(t);
       this.callback(this.source.last);
     }
@@ -154,7 +148,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
     this.callback(value);
   }
   changeStateDown(state: State): void {
-    if (state === State.Pull || state === State.OnlyPull) {
+    if (state === State.Pull) {
       this.endPulling = this.handlePulling(this.pull.bind(this));
     } else if (this.endPulling !== undefined) {
       // We where pulling before but are no longer pulling
