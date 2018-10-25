@@ -1,4 +1,4 @@
-import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
+import { cons, DoubleLinkedList, Node } from "./datastructures";
 import { Monad, monad, combine } from "@funkia/jabz";
 import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
 import { Future, BehaviorFuture } from "./future";
@@ -31,13 +31,13 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   map<B>(fn: (a: A) => B): Behavior<B> {
     return new MapBehavior<A, B>(this, fn);
   }
-  mapTo<A>(v: A): Behavior<A> {
+  mapTo<B>(v: B): Behavior<B> {
     return new ConstantBehavior(v);
   }
   static of<A>(v: A): Behavior<A> {
     return new ConstantBehavior(v);
   }
-  of<A>(v: A): Behavior<A> {
+  of<B>(v: B): Behavior<B> {
     return new ConstantBehavior(v);
   }
   ap<B>(f: Behavior<(a: A) => B>): Behavior<B> {
@@ -159,11 +159,8 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
       }
     }
   }
-  pull(_t: number): void {
-    this.last = this.getValue();
-  }
-  update(_t: number): A {
-    throw new Error("A producer behavior does not have an update method");
+  pull(t: number): void {
+    this.last = this.update(t);
   }
   activate(): void {
     if (this.state === State.Inactive) {
@@ -175,7 +172,6 @@ export abstract class ProducerBehavior<A> extends Behavior<A> {
     this.state = State.Inactive;
     this.deactivateProducer();
   }
-  abstract getValue(): A;
   abstract activateProducer(): void;
   abstract deactivateProducer(): void;
 }
@@ -185,7 +181,7 @@ export type ProducerBehaviorFunction<A> = (push: (a: A) => void) => () => void;
 class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
   constructor(
     private activateFn: ProducerBehaviorFunction<A>,
-    readonly getValue: () => A
+    readonly update: (t: number) => A
   ) {
     super();
   }
@@ -202,9 +198,9 @@ class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
 
 export function producerBehavior<A>(
   activate: ProducerBehaviorFunction<A>,
-  getValue: () => A
+  update: (t: number) => A
 ): Behavior<A> {
-  return new ProducerBehaviorFromFunction(activate, getValue);
+  return new ProducerBehaviorFromFunction(activate, update);
 }
 
 export class SinkBehavior<A> extends ProducerBehavior<A> {
@@ -220,7 +216,7 @@ export class SinkBehavior<A> extends ProducerBehavior<A> {
       pushToChildren(t, this);
     }
   }
-  getValue(): A {
+  update(): A {
     return this.last;
   }
   activateProducer(): void {}
@@ -628,7 +624,8 @@ class MomentBehavior<A> extends Behavior<A> {
     super();
     this.sampleBound = (b) => this.sample(b);
   }
-  activate(): void {
+  activate(t: number): void {
+    this.currentSampleTime = t;
     try {
       this.last = this.f(this.sampleBound);
       this.state = State.Push;
@@ -667,7 +664,7 @@ class MomentBehavior<A> extends Behavior<A> {
     const node = new Node(this);
     this.listenerNodes = cons({ node, parent: b }, this.listenerNodes);
     b.addListener(node, this.currentSampleTime);
-    b.pull(this.currentSampleTime);
+    b.at(this.currentSampleTime);
     this.parents = cons(b, this.parents);
     return b.last;
   }

@@ -81,7 +81,7 @@ class DomEventBehavior<A> extends ProducerBehavior<A> {
   handleEvent(event: Event): void {
     this.newValue(this.extractor(event, this.target));
   }
-  getValue(): A {
+  update(): A {
     return this.getter(this.target);
   }
   activateProducer(): void {

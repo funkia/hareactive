@@ -67,7 +67,7 @@ describe("behavior", () => {
       const activate = spy();
       const deactivate = spy();
       class MyProducer extends H.ProducerBehavior<undefined> {
-        getValue(): undefined {
+        update(): undefined {
           return undefined;
         }
         activateProducer(): void {

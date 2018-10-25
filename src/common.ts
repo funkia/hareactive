@@ -98,7 +98,6 @@ export abstract class Reactive<A, C extends Child> implements Child {
   observe(push: (a: A) => void, handlePulling: PullHandler): CbObserver<A> {
     return new CbObserver(push, handlePulling, this);
   }
-
   activate(t: number): void {
     for (const parent of this.parents) {
       const node = new Node(this);
