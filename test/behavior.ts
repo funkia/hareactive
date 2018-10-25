@@ -18,7 +18,8 @@ import {
   sinkFuture,
   freezeTo,
   freezeAt,
-  Stream
+  Stream,
+  time
 } from "../src";
 
 import * as H from "../src";
@@ -514,6 +515,21 @@ describe("behavior", () => {
       const b2 = H.moment((at) => at(b1) * 2);
       const snapped = H.snapshot(b2, H.empty);
       const cb = subscribeSpy(snapped);
+    });
+    it("time doesn't pass inside moment", () => {
+      const b = moment((at) => {
+        const t1 = at(time);
+        while (Date.now() <= t1) {}
+        const t2 = at(time);
+        assert.strictEqual(t1, t2);
+      });
+      b.observe(
+        () => {},
+        (pull) => {
+          pull();
+          return () => {};
+        }
+      );
     });
   });
 });

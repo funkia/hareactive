@@ -1,5 +1,5 @@
 import { Reactive, State, SListener, BListener } from "./common";
-import { Behavior, isBehavior, MapBehavior } from "./behavior";
+import { Behavior, isBehavior, MapBehavior, pushToChildren } from "./behavior";
 import { Node, cons } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
 import { tick } from "./clock";
@@ -14,7 +14,7 @@ class SamplePlaceholderError {
 
 export class Placeholder<A> extends Behavior<A> {
   source: Reactive<A, SListener<A> | SListener<A> | BListener>;
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   replaceWith(
     parent: Reactive<A, SListener<A> | SListener<A> | BListener>
   ): void {
@@ -24,7 +24,7 @@ export class Placeholder<A> extends Behavior<A> {
       const t = tick();
       this.activate(t);
       if (isBehavior(parent) && this.state === State.Push) {
-        this.pushToChildren(t);
+        pushToChildren(t, this);
       }
     }
   }
@@ -57,7 +57,7 @@ export class Placeholder<A> extends Behavior<A> {
       this.changeStateDown(this.state);
     }
   }
-  deactivate(done = false): void {
+  deactivate(done: Boolean = false): void {
     this.state = State.Inactive;
     if (this.source !== undefined) {
       this.source.removeListener(this.node);
@@ -72,7 +72,7 @@ export class Placeholder<A> extends Behavior<A> {
 }
 
 class MapPlaceholder<A, B> extends MapBehavior<A, B> {
-  pushS(t: number, a: A) {
+  pushS(t: number, a: A): void {
     // @ts-ignore
     this.pushSToChildren(t, this.f(a));
   }
@@ -80,10 +80,10 @@ class MapPlaceholder<A, B> extends MapBehavior<A, B> {
 
 class MapToPlaceholder<A, B> extends MapToStream<A, B> {
   last: B;
-  update() {
+  update(): B {
     return (<any>this).b;
   }
-  pull() {}
+  pull(): void {}
 }
 
 function install(target: Function, source: Function): void {

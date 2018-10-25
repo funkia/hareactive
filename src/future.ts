@@ -29,7 +29,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
     this.value = val;
     this.pushSToChildren(t, val);
   }
-  pushSToChildren(t: number, val: A) {
+  pushSToChildren(t: number, val: A): void {
     for (const child of this.children) {
       child.pushS(t, val);
     }
@@ -149,7 +149,7 @@ class LiftFuture<A> extends Future<A> {
 
 class ChainFuture<A, B> extends Future<B> implements SListener<A> {
   private parentOccurred: boolean = false;
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   constructor(private f: (a: A) => Future<B>, private parent: Future<A>) {
     super();
     this.parents = cons(parent);
@@ -203,7 +203,7 @@ export function toPromise<A>(future: Future<A>): Promise<A> {
  * @private
  */
 export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
-  node = new Node(this);
+  node: Node<this> = new Node(this);
   constructor(private b: Behavior<A>) {
     super();
     b.addListener(this.node, tick());

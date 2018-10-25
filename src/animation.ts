@@ -30,7 +30,7 @@ export function transitionBehavior(
   triggerStream: Stream<number>,
   timeB: Behavior<number> = time
 ): Behavior<Behavior<number>> {
-  return go(function*() {
+  return go(function*(): any {
     const rangeValueB: Behavior<Range> = yield scan(
       (newV, prev) => ({ from: prev.to, to: newV }),
       { from: initial, to: initial },

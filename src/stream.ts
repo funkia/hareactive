@@ -34,7 +34,7 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
     return new FilterStream<A>(this, fn);
   }
   scanS<B>(fn: (a: A, b: B) => B, startingValue: B): Behavior<Stream<B>> {
-    return fromFunction(() => new ScanStream(fn, startingValue, this));
+    return fromFunction((t) => new ScanStream(fn, startingValue, this, t));
   }
   scan<B>(fn: (a: A, b: B) => B, init: B): Behavior<Behavior<B>> {
     return scan(fn, init, this);
@@ -48,15 +48,11 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
     throw new Error("The stream does not have a semantic representation");
   }
   abstract pushS(t: number, value: any): void;
-  pushSToChildren(t: number, value: any) {
+  pushSToChildren(t: number, value: any): void {
     for (const child of this.children) {
       child.pushS(t, value);
     }
   }
-  pull(t: number): void {
-    throw new Error("Pull not implemented on stream");
-  }
-  // abstract semantic(): SemanticStream<A>;
 }
 
 export class MapStream<A, B> extends Stream<B> {
@@ -168,15 +164,16 @@ class EmptyStream extends ActiveStream<any> {
 export const empty: Stream<any> = new EmptyStream();
 
 class ScanStream<A, B> extends ActiveStream<B> {
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   constructor(
     private fn: (a: A, b: B) => B,
     public last: B,
-    public parent: Stream<A>
+    public parent: Stream<A>,
+    t: Time
   ) {
     super();
     this.parents = cons(parent);
-    parent.addListener(this.node, tick());
+    parent.addListener(this.node, t);
   }
   semantic(): SemanticStream<B> {
     const s = this.parent.semantic();
@@ -207,8 +204,8 @@ export function scanS<A, B>(
 }
 
 class SwitchBehaviorStream<A> extends Stream<A> implements BListener {
-  private bNode = new Node(this);
-  private sNode = new Node(this);
+  private bNode: Node<this> = new Node(this);
+  private sNode: Node<this> = new Node(this);
   private currentSource: Stream<A>;
   constructor(private b: Behavior<Stream<A>>) {
     super();
@@ -317,7 +314,7 @@ class ProducerStreamFromFunction<A> extends ProducerStream<A> {
     super();
   }
   deactivateFn: () => void;
-  publish(a: A, t: number = tick()) {
+  publish(a: A, t: number = tick()): void {
     this.pushS(t, a);
   }
   activate(): void {
@@ -368,7 +365,7 @@ export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
 }
 
 class SnapshotStream<B> extends Stream<B> {
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   constructor(private behavior: Behavior<B>, private stream: Stream<any>) {
     super();
     this.parents = cons(stream);
@@ -394,7 +391,7 @@ export function snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B> {
 }
 
 class SnapshotWithStream<A, B, C> extends Stream<C> {
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   constructor(
     private fn: (a: A, b: B) => C,
     private behavior: Behavior<B>,
@@ -432,7 +429,7 @@ export function isStream(s: any): s is Stream<any> {
 }
 
 class PerformCbStream<A, B> extends ActiveStream<B> implements SListener<A> {
-  node = new Node(this);
+  node: Node<this> = new Node(this);
   doneCb = (result: B): void => this.pushSToChildren(tick(), result);
   constructor(
     private cb: (value: A, done: (result: B) => void) => void,
