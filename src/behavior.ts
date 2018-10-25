@@ -4,7 +4,7 @@ import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import { Stream } from "./stream";
-import { tick } from "./clock";
+import { tick, getTime } from "./clock";
 
 /**
  * A behavior is a value that changes over time. Conceptually it can
@@ -390,7 +390,7 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
   constructor(public last: A) {
     super();
     this.state = State.Push;
-    this.changedAt = tick();
+    this.changedAt = getTime();
   }
   update(_t: number): A {
     return this.last;
