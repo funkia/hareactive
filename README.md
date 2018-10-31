@@ -243,7 +243,7 @@ Implementing stateful methods such as `scan` in a way that is both
 intuitive to use, pure and memory safe is very tricky.
 
 When implementing functions such as `scan` most reactive libraries in
-JavaScript does one of these two things:
+JavaScript do one of these two things:
 
 * Calling `scan` doesn't begin accumulating state at all. Only when
   someone starts observing the result of `scan` is state accumulated.
