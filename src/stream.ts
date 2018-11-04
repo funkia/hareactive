@@ -449,7 +449,7 @@ class PerformCbStream<A, B> extends ActiveStream<B> implements SListener<A> {
  * This function is intended to be a low-level function used as the
  * basis for other operators.
  */
-export function performCb<A, B>(
+export function mapCbStream<A, B>(
   cb: (value: A, done: (result: B) => void) => void,
   s: Stream<A>
 ): Stream<B> {

@@ -1,10 +1,10 @@
 import { IO, runIO, Monad, monad } from "@funkia/jabz";
-import { placeholder, Placeholder } from "./placeholder";
-import { State, Time, SListener } from "./common";
-import { Future, fromPromise, sinkFuture } from "./future";
+import { placeholder } from "./placeholder";
+import { Time, SListener } from "./common";
+import { Future, fromPromise, mapCbFuture } from "./future";
 import { Node } from "./datastructures";
 import { Behavior, at } from "./behavior";
-import { ActiveStream, Stream, performCb } from "./stream";
+import { ActiveStream, Stream, mapCbStream, empty, isStream } from "./stream";
 import { tick } from "./clock";
 
 @monad
@@ -97,12 +97,35 @@ class PerformStreamNow<A> extends Now<Stream<A>> {
     super();
   }
   run(): Stream<A> {
-    return performCb<IO<A>, A>((io, cb) => runIO(io).then(cb), this.s);
+    return mapCbStream<IO<A>, A>((io, cb) => runIO(io).then(cb), this.s);
   }
 }
 
 export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNow(s);
+}
+
+class PerformMapNow<A, B> extends Now<Stream<B> | Future<B>> {
+  constructor(private cb: (a: A) => B, private s: Stream<A> | Future<A>) {
+    super();
+  }
+  run(): Stream<B> | Future<B> {
+    return isStream(this.s)
+      ? mapCbStream((value, done) => done(this.cb(value)), this.s)
+      : mapCbFuture((value, done) => done(this.cb(value)), this.s);
+  }
+}
+
+/**
+ * Maps a function with side-effects over a future or stream.
+ */
+export function performMap<A, B>(cb: (a: A) => B, f: Future<A>): Now<Future<B>>;
+export function performMap<A, B>(cb: (a: A) => B, s: Stream<A>): Now<Stream<B>>;
+export function performMap<A, B>(
+  cb: (a: A) => B,
+  s: Stream<A> | Future<A>
+): Now<Stream<B> | Future<B>> {
+  return new PerformMapNow(cb, s);
 }
 
 class PerformIOStreamLatest<A> extends ActiveStream<A>

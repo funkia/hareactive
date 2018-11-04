@@ -1,3 +1,15 @@
+import { assert } from "chai";
+import { spy } from "sinon";
+import {
+  lift,
+  callP,
+  IO,
+  withEffects,
+  withEffectsP,
+  go,
+  fgo
+} from "@funkia/jabz";
+
 import {
   testStreamFromObject,
   Behavior,
@@ -21,16 +33,7 @@ import {
   time,
   toPromise
 } from "../src";
-import { assert } from "chai";
-import {
-  lift,
-  callP,
-  IO,
-  withEffects,
-  withEffectsP,
-  go,
-  fgo
-} from "@funkia/jabz";
+import * as H from "../src";
 
 // A reference that can be mutated
 type Ref<A> = { ref: A };
@@ -240,7 +243,26 @@ describe("Now", () => {
       });
     });
   });
-
+  describe("performMap", () => {
+    it("runs callback and uses return value for stream", () => {
+      const s = H.sinkStream<number>();
+      const cb = spy();
+      const s2 = H.runNow(H.performMap((n) => n * n, s));
+      H.subscribe(cb, s2);
+      s.push(2);
+      s.push(3);
+      s.push(4);
+      assert.deepEqual(cb.args, [[4], [9], [16]]);
+    });
+    it("runs callback and uses return value for future", () => {
+      const fut = H.sinkFuture<number>();
+      const cb = spy();
+      const fut2 = H.runNow(H.performMap((n) => n * n, fut));
+      fut2.subscribe(cb);
+      fut.resolve(3);
+      assert.deepEqual(cb.args, [[9]]);
+    });
+  });
   describe("performStreamLatest", () => {
     it("work with one occurrence", (done: Function) => {
       let results: any[] = [];
