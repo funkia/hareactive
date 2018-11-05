@@ -17,7 +17,7 @@ import {
   when,
   scan,
   Future,
-  perform,
+  performIO,
   Now,
   performStream,
   performStreamLatest,
@@ -84,8 +84,8 @@ describe("Now", () => {
     it("executes several `async`s in succession", async () => {
       const ref1 = createRef(1);
       const ref2 = createRef("Hello");
-      const comp = perform(mutateRef(2, ref1)).chain((_: any) =>
-        perform(mutateRef("World", ref2)).chain((__: any) =>
+      const comp = performIO(mutateRef(2, ref1)).chain((_: any) =>
+        performIO(mutateRef("World", ref2)).chain((__: any) =>
           Now.of(Future.of(true))
         )
       );
@@ -114,7 +114,9 @@ describe("Now", () => {
     it("works with runNow", () => {
       let resolve: (n: number) => void;
       const future = runNow(
-        perform(callP((n: number) => new Promise((res) => (resolve = res)), 0))
+        performIO(
+          callP((n: number) => new Promise((res) => (resolve = res)), 0)
+        )
       );
       setTimeout(() => {
         resolve(12);
@@ -167,7 +169,7 @@ describe("Now", () => {
         return Now.of(n * 2);
       }
       const prog = go(function*() {
-        const e: Future<number> = yield perform(fn(1));
+        const e: Future<number> = yield performIO(fn(1));
         const e2 = yield plan(e.map((r) => comp(r)));
         return e2;
       });
@@ -189,7 +191,7 @@ describe("Now", () => {
     });
     function loop(n: number): Now<Behavior<number>> {
       return go(function*() {
-        const nextNumber = yield perform(getNextNr(1));
+        const nextNumber = yield performIO(getNextNr(1));
         const future = yield plan(nextNumber.map(loop));
         return switchTo(Behavior.of(n), future);
       });
