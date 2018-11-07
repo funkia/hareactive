@@ -1,7 +1,14 @@
 import { assert } from "chai";
 import { lift } from "@funkia/jabz";
-import { Future, sinkFuture, fromPromise, nextOccurence } from "../src/future";
+import {
+  Future,
+  sinkFuture,
+  fromPromise,
+  nextOccurence,
+  mapCbFuture
+} from "../src/future";
 import { SinkStream } from "../src";
+import { spy } from "sinon";
 
 describe("Future", () => {
   describe("sink", () => {
@@ -168,6 +175,25 @@ describe("Future", () => {
       assert.strictEqual(result, undefined);
       s.push("b");
       assert.strictEqual(result, "b");
+    });
+  });
+  describe("mapCbFuture", () => {
+    it("resolves with result when done callback invoked", () => {
+      const fut = sinkFuture<number>();
+      const cb = spy();
+      let value;
+      let done;
+      const fut2 = mapCbFuture((v, d) => {
+        value = v;
+        done = d;
+      }, fut);
+      fut2.subscribe(cb);
+      fut.resolve(3);
+      assert.equal(value, 3);
+      assert.equal(cb.callCount, 0);
+      done(value + 1);
+      assert.equal(cb.callCount, 1);
+      assert.deepEqual(cb.args, [[4]]);
     });
   });
 });

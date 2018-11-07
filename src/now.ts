@@ -1,10 +1,10 @@
 import { IO, runIO, Monad, monad } from "@funkia/jabz";
-import { placeholder, Placeholder } from "./placeholder";
-import { State, Time, SListener } from "./common";
-import { Future, fromPromise, sinkFuture } from "./future";
+import { placeholder } from "./placeholder";
+import { Time, SListener } from "./common";
+import { Future, fromPromise, mapCbFuture } from "./future";
 import { Node } from "./datastructures";
 import { Behavior, at } from "./behavior";
-import { ActiveStream, Stream, performCb } from "./stream";
+import { ActiveStream, Stream, mapCbStream, empty, isStream } from "./stream";
 import { tick } from "./clock";
 
 @monad
@@ -79,30 +79,59 @@ export function sample<A>(b: Behavior<A>): Now<A> {
   return new SampleNow(b);
 }
 
-class PerformNow<A> extends Now<Future<A>> {
-  constructor(private comp: IO<A>) {
+class PerformNow<A> extends Now<A> {
+  constructor(private cb: () => A) {
     super();
   }
-  run(): Future<A> {
-    return fromPromise(runIO(this.comp));
+  run(): A {
+    return this.cb();
   }
 }
 
-export function perform<A>(comp: IO<A>): Now<Future<A>> {
-  return new PerformNow(comp);
+/**
+ * Create a now-computation that executes the effectful computation `cb` when it
+ * is run.
+ */
+export function perform<A>(cb: () => A): Now<A> {
+  return new PerformNow(cb);
 }
 
-class PerformStreamNow<A> extends Now<Stream<A>> {
-  constructor(private s: Stream<IO<A>>) {
-    super();
-  }
-  run(): Stream<A> {
-    return performCb<IO<A>, A>((io, cb) => runIO(io).then(cb), this.s);
-  }
+export function performIO<A>(comp: IO<A>): Now<Future<A>> {
+  return perform(() => fromPromise(runIO(comp)));
 }
 
 export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
-  return new PerformStreamNow(s);
+  return perform(() =>
+    mapCbStream<IO<A>, A>((io, cb) => runIO(io).then(cb), s)
+  );
+}
+
+class PerformMapNow<A, B> extends Now<Stream<B> | Future<B>> {
+  constructor(private cb: (a: A) => B, private s: Stream<A> | Future<A>) {
+    super();
+  }
+  run(): Stream<B> | Future<B> {
+    return isStream(this.s)
+      ? mapCbStream((value, done) => done(this.cb(value)), this.s)
+      : mapCbFuture((value, done) => done(this.cb(value)), this.s);
+  }
+}
+
+/**
+ * Maps a function with side-effects over a future or stream.
+ */
+export function performMap<A, B>(cb: (a: A) => B, f: Future<A>): Now<Future<B>>;
+export function performMap<A, B>(cb: (a: A) => B, s: Stream<A>): Now<Stream<B>>;
+export function performMap<A, B>(
+  cb: (a: A) => B,
+  s: Stream<A> | Future<A>
+): Now<Stream<B> | Future<B>> {
+  return perform(
+    () =>
+      isStream(s)
+        ? mapCbStream((value, done) => done(cb(value)), s)
+        : mapCbFuture((value, done) => done(cb(value)), s)
+  );
 }
 
 class PerformIOStreamLatest<A> extends ActiveStream<A>
@@ -134,17 +163,8 @@ class PerformIOStreamLatest<A> extends ActiveStream<A>
   }
 }
 
-class PerformStreamNowLatest<A> extends Now<Stream<A>> {
-  constructor(private s: Stream<IO<A>>) {
-    super();
-  }
-  run(): Stream<A> {
-    return new PerformIOStreamLatest(this.s);
-  }
-}
-
 export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
-  return new PerformStreamNowLatest(s);
+  return perform(() => new PerformIOStreamLatest(s));
 }
 
 class PerformIOStreamOrdered<A> extends ActiveStream<A> {
@@ -177,17 +197,8 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   }
 }
 
-class PerformStreamNowOrdered<A> extends Now<Stream<A>> {
-  constructor(private s: Stream<IO<A>>) {
-    super();
-  }
-  run(): Stream<A> {
-    return new PerformIOStreamOrdered(this.s);
-  }
-}
-
 export function performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>> {
-  return new PerformStreamNowOrdered(s);
+  return perform(() => new PerformIOStreamOrdered(s));
 }
 
 class PlanNow<A> extends Now<Future<A>> {

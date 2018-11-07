@@ -1,3 +1,15 @@
+import { assert } from "chai";
+import { spy } from "sinon";
+import {
+  lift,
+  callP,
+  IO,
+  withEffects,
+  withEffectsP,
+  go,
+  fgo
+} from "@funkia/jabz";
+
 import {
   testStreamFromObject,
   Behavior,
@@ -5,7 +17,7 @@ import {
   when,
   scan,
   Future,
-  perform,
+  performIO,
   Now,
   performStream,
   performStreamLatest,
@@ -21,16 +33,7 @@ import {
   time,
   toPromise
 } from "../src";
-import { assert } from "chai";
-import {
-  lift,
-  callP,
-  IO,
-  withEffects,
-  withEffectsP,
-  go,
-  fgo
-} from "@funkia/jabz";
+import * as H from "../src";
 
 // A reference that can be mutated
 type Ref<A> = { ref: A };
@@ -81,8 +84,8 @@ describe("Now", () => {
     it("executes several `async`s in succession", async () => {
       const ref1 = createRef(1);
       const ref2 = createRef("Hello");
-      const comp = perform(mutateRef(2, ref1)).chain((_: any) =>
-        perform(mutateRef("World", ref2)).chain((__: any) =>
+      const comp = performIO(mutateRef(2, ref1)).chain((_: any) =>
+        performIO(mutateRef("World", ref2)).chain((__: any) =>
           Now.of(Future.of(true))
         )
       );
@@ -111,7 +114,9 @@ describe("Now", () => {
     it("works with runNow", () => {
       let resolve: (n: number) => void;
       const future = runNow(
-        perform(callP((n: number) => new Promise((res) => (resolve = res)), 0))
+        performIO(
+          callP((n: number) => new Promise((res) => (resolve = res)), 0)
+        )
       );
       setTimeout(() => {
         resolve(12);
@@ -164,7 +169,7 @@ describe("Now", () => {
         return Now.of(n * 2);
       }
       const prog = go(function*() {
-        const e: Future<number> = yield perform(fn(1));
+        const e: Future<number> = yield performIO(fn(1));
         const e2 = yield plan(e.map((r) => comp(r)));
         return e2;
       });
@@ -186,7 +191,7 @@ describe("Now", () => {
     });
     function loop(n: number): Now<Behavior<number>> {
       return go(function*() {
-        const nextNumber = yield perform(getNextNr(1));
+        const nextNumber = yield performIO(getNextNr(1));
         const future = yield plan(nextNumber.map(loop));
         return switchTo(Behavior.of(n), future);
       });
@@ -240,7 +245,26 @@ describe("Now", () => {
       });
     });
   });
-
+  describe("performMap", () => {
+    it("runs callback and uses return value for stream", () => {
+      const s = H.sinkStream<number>();
+      const cb = spy();
+      const s2 = H.runNow(H.performMap((n) => n * n, s));
+      H.subscribe(cb, s2);
+      s.push(2);
+      s.push(3);
+      s.push(4);
+      assert.deepEqual(cb.args, [[4], [9], [16]]);
+    });
+    it("runs callback and uses return value for future", () => {
+      const fut = H.sinkFuture<number>();
+      const cb = spy();
+      const fut2 = H.runNow(H.performMap((n) => n * n, fut));
+      fut2.subscribe(cb);
+      fut.resolve(3);
+      assert.deepEqual(cb.args, [[9]]);
+    });
+  });
   describe("performStreamLatest", () => {
     it("work with one occurrence", (done: Function) => {
       let results: any[] = [];

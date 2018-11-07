@@ -129,6 +129,12 @@ class OfFuture<A> extends Future<A> {
   }
 }
 
+/** For stateful futures that are always active */
+export abstract class ActiveFuture<A> extends Future<A> {
+  activate(): void {}
+  deactivate(): void {}
+}
+
 class LiftFuture<A> extends Future<A> {
   private missing: number;
   constructor(private f: Function, private futures: Future<any>[]) {
@@ -171,13 +177,11 @@ class ChainFuture<A, B> extends Future<B> implements SListener<A> {
  * A Sink is a producer that one can imperatively resolve.
  * @private
  */
-export class SinkFuture<A> extends Future<A> {
+export class SinkFuture<A> extends ActiveFuture<A> {
   /* istanbul ignore next */
   pushS(t: number, val: any): void {
     throw new Error("A sink should not be pushed to.");
   }
-  activate(): void {}
-  deactivate(): void {}
 }
 
 export function sinkFuture<A>(): Future<A> {
@@ -230,4 +234,33 @@ class NextOccurenceFuture<A> extends Future<A> implements SListener<A> {
 
 export function nextOccurence<A>(stream: Stream<A>): Behavior<Future<A>> {
   return new FunctionBehavior(() => new NextOccurenceFuture(stream));
+}
+
+class MapCbFuture<A, B> extends ActiveFuture<B> {
+  node: Node<this> = new Node(this);
+  doneCb = (result: B): void => this.resolve(result);
+  constructor(
+    private cb: (value: A, done: (result: B) => void) => void,
+    parent: Future<A>
+  ) {
+    super();
+    this.parents = cons(parent);
+    parent.addListener(this.node, tick());
+  }
+  pushS(_: number, value: A): void {
+    this.cb(value, this.doneCb);
+  }
+}
+
+/**
+ * Invokes the callback when the future occurs.
+ *
+ * This function is intended to be a low-level function used as the
+ * basis for other operators.
+ */
+export function mapCbFuture<A, B>(
+  cb: (value: A, done: (result: B) => void) => void,
+  future: Future<A>
+): Future<B> {
+  return new MapCbFuture(cb, future);
 }
