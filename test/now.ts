@@ -181,6 +181,14 @@ describe("Now", () => {
       done = true;
       assert.strictEqual(res, 22);
     });
+    it("executes plan when resulting future is not observed", () => {
+      let calledWith = 0;
+      const fut = H.sinkFuture<number>();
+      const now = H.plan(fut.map((n) => H.perform(() => (calledWith = n))));
+      runNow(now);
+      fut.resolve(3);
+      assert.equal(calledWith, 3, "called is true");
+    });
   });
   it("handles recursively defined behavior", () => {
     let resolve: (n: number) => void;

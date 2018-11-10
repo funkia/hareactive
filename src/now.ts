@@ -201,17 +201,8 @@ export function performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return perform(() => new PerformIOStreamOrdered(s));
 }
 
-class PlanNow<A> extends Now<Future<A>> {
-  constructor(private future: Future<Now<A>>) {
-    super();
-  }
-  run(t: Time): Future<A> {
-    return this.future.map((value) => value.run(tick()));
-  }
-}
-
 export function plan<A>(future: Future<Now<A>>): Now<Future<A>> {
-  return new PlanNow(future);
+  return performMap<Now<A>, A>(runNow, future);
 }
 
 export function runNow<A>(now: Now<A>, time: Time = tick()): A {
