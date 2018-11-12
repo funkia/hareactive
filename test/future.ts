@@ -1,5 +1,7 @@
 import { assert } from "chai";
 import { lift } from "@funkia/jabz";
+import { spy } from "sinon";
+
 import {
   Future,
   sinkFuture,
@@ -7,10 +9,26 @@ import {
   nextOccurence,
   mapCbFuture
 } from "../src/future";
-import { SinkStream } from "../src";
-import { spy } from "sinon";
+import { SinkStream, Behavior } from "../src";
+import * as H from "../src";
 
 describe("Future", () => {
+  describe("isFuture", () => {
+    it("should be true when Future object", () => {
+      assert.isTrue(H.isFuture(H.sinkFuture()));
+      assert.isTrue(H.isFuture(Future.of(3)));
+    });
+    it("should be false when not Stream object", () => {
+      assert.isFalse(H.isFuture([]));
+      assert.isFalse(H.isFuture({}));
+      assert.isFalse(H.isFuture(undefined));
+      assert.isFalse(H.isFuture(Behavior.of(2)));
+      assert.isFalse(H.isFuture("test"));
+      assert.isFalse(H.isFuture(H.empty));
+      assert.isFalse(H.isFuture(1234));
+      assert.isFalse(H.isFuture(H.isFuture));
+    });
+  });
   describe("sink", () => {
     it("notifies subscriber", () => {
       let result: number;

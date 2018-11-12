@@ -88,6 +88,10 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
   flatten: <B>() => Future<B>;
 }
 
+export function isFuture(a: any): a is Future<any> {
+  return typeof a === "object" && "resolve" in a;
+}
+
 class CombineFuture<A> extends Future<A> {
   constructor(private future1: Future<A>, private future2: Future<A>) {
     super();
