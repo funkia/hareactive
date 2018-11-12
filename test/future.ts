@@ -51,6 +51,14 @@ describe("Future", () => {
       s.resolve(1);
       assert.strictEqual(result, 9);
     });
+    it("subscribing to resolved sink gives value", () => {
+      const cb = spy();
+      const s = sinkFuture<number>();
+      s.resolve(1);
+      assert.equal(s.state, H.State.Done, "Is done");
+      s.subscribe(cb);
+      assert.deepEqual(cb.args, [[1]]);
+    });
   });
   describe("Semigroup", () => {
     it("returns the first future if it occurs first", () => {

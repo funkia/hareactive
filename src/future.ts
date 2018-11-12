@@ -136,7 +136,6 @@ class OfFuture<A> extends Future<A> {
 /** For stateful futures that are always active */
 export abstract class ActiveFuture<A> extends Future<A> {
   activate(): void {}
-  deactivate(): void {}
 }
 
 class LiftFuture<A> extends Future<A> {
@@ -217,7 +216,7 @@ export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
     b.addListener(this.node, tick());
   }
   /* istanbul ignore next */
-  changeStateDown(state: State): void {
+  changeStateDown(_state: State): void {
     throw new Error("Behavior future does not support pulling behavior");
   }
   pushB(t: number): void {
