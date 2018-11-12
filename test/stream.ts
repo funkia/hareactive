@@ -9,7 +9,6 @@ import {
   testBehavior,
   testStreamFromArray
 } from "../src";
-
 import * as H from "../src";
 
 import { subscribeSpy } from "./helpers";
