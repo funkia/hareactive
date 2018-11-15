@@ -436,7 +436,7 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     }
     next.addListener(this.nNode, t);
   }
-  update(t: number): A {
+  update(_t: number): A {
     return this.b.last;
   }
   pushS(t: number, value: Behavior<A>): void {

@@ -135,6 +135,10 @@ class OfFuture<A> extends Future<A> {
 
 /** For stateful futures that are always active */
 export abstract class ActiveFuture<A> extends Future<A> {
+  constructor() {
+    super();
+    this.state = State.Push;
+  }
   activate(): void {}
 }
 

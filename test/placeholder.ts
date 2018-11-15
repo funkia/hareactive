@@ -11,7 +11,6 @@ import {
   fromFunction,
   sinkBehavior,
   ap,
-  push,
   debounce,
   delay,
   isStream,
@@ -19,6 +18,7 @@ import {
   snapshot,
   throttle
 } from "../src";
+import * as H from "../src";
 
 import { createTestProducerBehavior } from "./helpers";
 
@@ -273,6 +273,49 @@ describe("placeholder", () => {
         clock.tick(2);
         assert.strictEqual(n, 2);
       });
+    });
+  });
+  describe.only("future", () => {
+    it("is future", () => {
+      assert.isTrue(H.isFuture(placeholder()));
+    });
+    it("subscribers are notified when replaced with occurred future", () => {
+      let result: string;
+      const p = placeholder<string>();
+      p.subscribe((n: string) => (result = n));
+      p.replaceWith(H.Future.of("Hello"));
+      assert.strictEqual(result, "Hello");
+    });
+    it("subscribers are notified when placeholder has been replaced", () => {
+      let result: string;
+      const p = placeholder<string>();
+      p.replaceWith(H.Future.of("Hello"));
+      p.subscribe((n: string) => (result = n));
+      assert.strictEqual(result, "Hello");
+    });
+    it("can be mapped", () => {
+      let result = 0;
+      const p = placeholder();
+      const mapped = p.map((s: number) => s + 1);
+      mapped.subscribe((n: number) => (result = n));
+      const fut = H.sinkFuture();
+      p.replaceWith(fut);
+      assert.strictEqual(result, 0);
+      fut.resolve(1);
+      assert.strictEqual(result, 2);
+    });
+    it("works with mapped switchTo", () => {
+      const b1 = Behavior.of(1);
+      const b2 = Behavior.of(2);
+      const p = placeholder<Behavior<number>>();
+      const cb = spy();
+      const switching = H.switchTo(b1, p);
+      const mapped = switching.map((n) => n);
+      mapped.subscribe(cb);
+      const fut = H.sinkFuture<Behavior<number>>();
+      p.replaceWith(fut);
+      fut.resolve(b2);
+      assert.deepEqual(cb.args, [[1], [2]]);
     });
   });
 });

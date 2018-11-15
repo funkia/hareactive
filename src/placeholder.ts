@@ -3,6 +3,7 @@ import { Behavior, isBehavior, MapBehavior, pushToChildren } from "./behavior";
 import { Node, cons } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
 import { tick } from "./clock";
+import { Future } from "./future";
 
 class SamplePlaceholderError {
   message: string = "Attempt to sample non-replaced placeholder";
@@ -42,7 +43,7 @@ export class Placeholder<A> extends Behavior<A> {
       throw new Error("Unsupported pulling on placeholder");
     }
   }
-  update(t: number): A {
+  update(_t: number): A {
     return (this.source as Behavior<A>).last;
   }
   activate(t: number): void {
@@ -57,7 +58,7 @@ export class Placeholder<A> extends Behavior<A> {
       this.changeStateDown(this.state);
     }
   }
-  deactivate(done: Boolean = false): void {
+  deactivate(_done: Boolean = false): void {
     this.state = State.Inactive;
     if (this.source !== undefined) {
       this.source.removeListener(this.node);
@@ -96,15 +97,18 @@ function install(target: Function, source: Function): void {
 
 function installMethods(): void {
   install(Placeholder, Stream);
+  install(Placeholder, Future);
   MapPlaceholder.prototype.map = <any>Placeholder.prototype.map;
   MapPlaceholder.prototype.mapTo = <any>Placeholder.prototype.mapTo;
   MapToPlaceholder.prototype.map = <any>Placeholder.prototype.map;
   MapToPlaceholder.prototype.mapTo = <any>Placeholder.prototype.mapTo;
   install(MapPlaceholder, Stream);
+  install(MapPlaceholder, Future);
   install(MapToPlaceholder, Behavior);
+  install(MapPlaceholder, Future);
 }
 
-export function placeholder<A>(): Placeholder<A> & Stream<A> {
+export function placeholder<A>(): Placeholder<A> & Stream<A> & Future<A> {
   if ((<any>Placeholder).prototype.scanS === undefined) {
     // The methods are installed lazily when the placeholder is first
     // used. This avoids a top-level impure expression that would
