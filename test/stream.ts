@@ -493,6 +493,23 @@ describe("stream", () => {
       assert.deepEqual(shot.semantic(), expected.semantic());
     });
   });
+  describe("selfie", () => {
+    it("samples behavior on occurrence", () => {
+      let n = 0;
+      const b = fromFunction(() => n);
+      const s = H.sinkStream<Behavior<number>>();
+      const cb = spy();
+      H.subscribe(cb, H.selfie(s));
+      s.push(b);
+      n = 1;
+      s.push(b);
+      n = 2;
+      s.push(b);
+      n = 3;
+      s.push(b);
+      assert.deepEqual(cb.args, [[0], [1], [2], [3]]);
+    });
+  });
   describe("changes", () => {
     it("gives changes from pushing behavior", () => {
       const b = sinkBehavior(0);

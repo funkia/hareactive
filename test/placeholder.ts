@@ -275,7 +275,7 @@ describe("placeholder", () => {
       });
     });
   });
-  describe.only("future", () => {
+  describe("future", () => {
     it("is future", () => {
       assert.isTrue(H.isFuture(placeholder()));
     });

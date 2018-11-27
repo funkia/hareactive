@@ -1,6 +1,6 @@
 import { Reactive, State, Time, SListener, Parent, BListener } from "./common";
 import { cons, Node, DoubleLinkedList } from "./datastructures";
-import { Behavior, fromFunction, scan } from "./behavior";
+import { Behavior, fromFunction, scan, at } from "./behavior";
 import { tick } from "./clock";
 
 export type Occurrence<A> = {
@@ -417,6 +417,23 @@ export function snapshotWith<A, B, C>(
   s: Stream<A>
 ): Stream<C> {
   return new SnapshotWithStream(f, b, s);
+}
+
+export class SelfieStream<A> extends Stream<A> {
+  constructor(parent: Stream<Behavior<A>>) {
+    super();
+    this.parents = cons(parent);
+  }
+  pushS(t: number, v: Behavior<A>): void {
+    this.pushSToChildren(t, at(v, t));
+  }
+}
+
+/**
+ * On each occurrence the behavior is sampled at the time of the occurrence.
+ */
+export function selfie<A>(s: Stream<Behavior<A>>): Stream<A> {
+  return new SelfieStream(s);
 }
 
 export function combine<A>(...streams: Stream<A>[]): Stream<A> {
