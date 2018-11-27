@@ -1,6 +1,6 @@
 import { Reactive, State, Time, SListener, Parent, BListener } from "./common";
 import { cons, Node, DoubleLinkedList } from "./datastructures";
-import { Behavior, fromFunction, scan, at } from "./behavior";
+import { Behavior, fromFunction, scan, at, stepper } from "./behavior";
 import { tick } from "./clock";
 
 export type Occurrence<A> = {
@@ -235,13 +235,19 @@ class SwitchBehaviorStream<A> extends Stream<A> implements BListener {
 }
 
 /**
- * @param b A Behavior of streams
- * @returns Stream that only contains the occurrences from `stream`
- * the current stream in the behavior.
+ * Takes a behavior of a stream and returns a stream that emits from the last
+ * stream.
  */
-
 export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
   return new SwitchBehaviorStream(b);
+}
+
+/**
+ * Takes a stream of a stream and returns a stream that emits from the last
+ * stream.
+ */
+export function switchStreamS<A>(s: Stream<Stream<A>>): Behavior<Stream<A>> {
+  return stepper(empty, s).map(switchStream);
 }
 
 class ChangesStream<A> extends Stream<A> implements BListener {
