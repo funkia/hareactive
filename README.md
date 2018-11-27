@@ -281,6 +281,35 @@ Here `count` has type `Now<Behavior<A>>` and it represents a
 `Now`-computation that will start accumulating from the present
 moment.
 
+## Flattening nested FRP values
+
+The definition of higher-order FRP is that it allows for FRP primitives nested
+inside other FRP primitives. Combinations like streams of streams, behaviors of
+behaviors, streams of futures, and any others are possible.
+
+The benefit of higher-order FRP is increased expressiveness that makes it
+possibe to express many real-world scenarios with ease. One example whould be an
+application with a list of counters. Each counter has a value which can be
+represented as a `Behavior<number>`. A list of counters would then have the type
+`Array<Behavior<number>>`. If additionally the list itself can change (maybe new
+counters can be added) then the type whould be
+`Behavior<Array<Behavior<number>>`. This higher-order type nicely captures that
+we have a _changing_ list of _changing_ numbers.
+
+The downside of higher-order FRP is that sometimes dealing with these nested
+types can be tricky. Hareactive provides a number of functions to help with
+this. The table below gives an overview.
+
+| Inner    | Outer    | Function                   |
+| -------- | -------- | -------------------------- |
+| Behavior | anything | `sample` (when inside Now) |
+| Behavior | Behavior | `flatten`                  |
+| Behavior | Stream   | `switchStream`             |
+| Stream   | Behavior | `switcher`, `selfie`       |
+| Stream   | Stream   | `switchStreamS`            |
+| Stream   | Future   | n/a                        |
+| Future   | Behavior | `switchTo`                 |
+
 ## Tutorial/cookbook
 
 This cookbook will demonstrate how to use Hareactive. The examples
