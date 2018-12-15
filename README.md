@@ -429,16 +429,36 @@ misbehavingStream.log();
 
 ### Future
 
-#### `Future#listen(o: Consumer<A>): void`
+#### `Future.of(a: A): Future<A>`
 
-Adds a consumer as listener to a future. If the future has already
-occurred the consumer is immediately pushed to.
+Converts any value into a future that happens immediately.
 
 #### `fromPromise<A>(p: Promise<A>): Future<A>`
 
 Converts a promise to a future.
 
+#### `isFuture(f: any): f is Future<any>`
+
+Returns `true` if `f` is a future and `false` otherwise.
+
+#### `Future#listen(o: Consumer<A>): void`
+
+Adds a consumer as listener to a future. If the future has already
+occurred the consumer is immediately pushed to.
+
 ### Stream
+
+#### `empty: Stream<A>`
+
+Empty stream.
+
+#### `Stream.of(a: A): Stream<A>`
+
+Converts any value into a constant stream that happens immediately.
+
+#### `isStream(s: any): s is Stream<any>`
+
+Returns `true` if `s` is a behavior and `false` otherwise.
 
 #### `apply<A, B>(behavior: Behavior<(a: A) => B>, stream: Stream<A>): Stream<B>`
 
@@ -566,6 +586,20 @@ Returns a stream that after occurring, ignores the next occurrences in
 
 ### Behavior
 
+#### `Behavior.of(a: A): Behavior<A>`
+
+Converts any value into a constant behavior.
+
+#### `fromFunction<B>(fn: () => B): Behavior<B>`
+
+This takes an impure function that varies over time and returns a
+pull-driven behavior. This is particularly useful if the function is
+contionusly changing, like `Date.now`.
+
+#### `isBehavior(b: any): b is Behavior<any>`
+
+Returns `true` if `b` is a behavior and `false` otherwise.
+
 #### `when(b: Behavior<boolean>): Behavior<Future<{}>>`
 
 Takes a boolean valued behavior an returns a behavior that at any
@@ -599,16 +633,6 @@ occurrence in `source` the function is applied to the current value of
 the behaviour and the value of the occurrence, the returned value
 becomes the next value of the behavior.
 
-#### `fromFunction<B>(fn: () => B): Behavior<B>`
-
-This takes an impure function that varies over time and returns a
-pull-driven behavior. This is particularly useful if the function is
-contionusly changing, like `Date.now`.
-
-#### `isBehavior(b: any): b is Behavior<any>`
-
-Returns `true` if `b` is a behavior and `false` otherwise.
-
 #### `time: Behavior<Time>`
 
 A behavior whose value is the number of milliseconds elapsed since UNIX epoch.
@@ -630,6 +654,10 @@ Integrate behavior with respect to time.
 The Now monad represents a computation that takes place in a given
 moment and where the moment will always be now when the computation is
 run.
+
+#### `Now.of(a: A): Now<A>`
+
+Converts any value into the Now monad.
 
 #### `async<A>(comp: IO<A>): Now<Future<A>>`
 
