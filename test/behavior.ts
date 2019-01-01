@@ -531,6 +531,12 @@ describe("behavior", () => {
         }
       );
     });
+    it("can be sampled", () => {
+      const b = Behavior.of(3);
+      const b2 = H.moment((at) => 2 * at(b));
+      const n = H.at(b2);
+      assert.strictEqual(n, 6);
+    });
   });
 });
 

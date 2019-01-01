@@ -649,6 +649,10 @@ class MomentBehavior<A> extends Behavior<A> {
       }
     }
   }
+  pull(t: number): void {
+    this.pulledAt = t;
+    refresh(this, t);
+  }
   update(t: number): A {
     this.currentSampleTime = t;
     if (this.listenerNodes !== undefined) {
