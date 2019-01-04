@@ -429,9 +429,9 @@ misbehavingStream.log();
 
 ### Future
 
-#### `Future.of(a: A): Future<A>`
+#### `Future.of<A>(a: A): Future<A>`
 
-Converts any value into a future that happens immediately.
+Converts any value into a future that has "always occurred". Semantically `Future.of(a)` is equivalent to `(-Infinity, a)`.
 
 #### `fromPromise<A>(p: Promise<A>): Future<A>`
 
@@ -441,20 +441,20 @@ Converts a promise to a future.
 
 Returns `true` if `f` is a future and `false` otherwise.
 
-#### `Future#listen(o: Consumer<A>): void`
+#### `Future#listen<A>(o: Consumer<A>): void`
 
 Adds a consumer as listener to a future. If the future has already
 occurred the consumer is immediately pushed to.
 
 ### Stream
 
-#### `empty: Stream<A>`
+#### `empty: Stream<any>`
 
-Empty stream.
+Empty stream. 
 
-#### `Stream.of(a: A): Stream<A>`
+#### ~`Stream.of<A>(a: A): Stream<A>`~
 
-Converts any value into a constant stream that happens immediately.
+This function does not exist. Use `empty` to create a dummy stream for testing purposes.
 
 #### `isStream(s: any): s is Stream<any>`
 
@@ -586,7 +586,7 @@ Returns a stream that after occurring, ignores the next occurrences in
 
 ### Behavior
 
-#### `Behavior.of(a: A): Behavior<A>`
+#### `Behavior.of<A>(a: A): Behavior<A>`
 
 Converts any value into a constant behavior.
 
@@ -655,7 +655,7 @@ The Now monad represents a computation that takes place in a given
 moment and where the moment will always be now when the computation is
 run.
 
-#### `Now.of(a: A): Now<A>`
+#### `Now.of<A>(a: A): Now<A>`
 
 Converts any value into the Now monad.
 
