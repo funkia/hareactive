@@ -848,11 +848,11 @@ describe("Behavior and Stream", () => {
           },
           time
         );
-        pull(time);
+        pull();
         setTime(4);
-        pull(time);
+        pull();
         setTime(7);
-        pull(time);
+        pull();
         assert.deepEqual(results, [0, 1, 4]);
         restore();
       });
