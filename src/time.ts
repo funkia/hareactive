@@ -1,5 +1,5 @@
 import { Time, State } from "./common";
-import { cons } from "./datastructures";
+import { cons, nil } from "./datastructures";
 import { Stream, SemanticStream } from "./stream";
 import {
   Behavior,
@@ -74,13 +74,14 @@ class TimeFromBehavior extends Behavior<Time> {
   private startTime: Time;
   constructor() {
     super();
+    this.parents = nil;
     this.startTime = Date.now();
     this.state = State.Pull;
   }
-  pull(t: number): void {
+  pull(_t: number): void {
     this.last = Date.now() - this.startTime;
   }
-  update(t: number): Time {
+  update(_t: number): Time {
     throw new Error("TimeFrom should never call update");
   }
 }

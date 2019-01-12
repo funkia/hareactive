@@ -831,41 +831,58 @@ describe("Behavior and Stream", () => {
     });
   });
   describe("continuous time", () => {
-    it("gives time from sample point", () => {
-      const [setTime, restore] = mockNow();
-      setTime(3);
-      const time = at(H.timeFrom);
-      assert.strictEqual(at(time), 0);
-      setTime(4);
-      assert.strictEqual(at(time), 1);
-      setTime(7);
-      assert.strictEqual(at(time), 4);
-      restore();
+    describe("timeFrom", () => {
+      it("gives time from sample point", () => {
+        const [setTime, restore] = mockNow();
+        setTime(3);
+        const time = at(H.timeFrom);
+        let pull;
+        const results = [];
+        observe(
+          (n: number) => {
+            results.push(n);
+          },
+          (p) => {
+            pull = p;
+            return () => {};
+          },
+          time
+        );
+        pull(time);
+        setTime(4);
+        pull(time);
+        setTime(7);
+        pull(time);
+        assert.deepEqual(results, [0, 1, 4]);
+        restore();
+      });
     });
-    it("gives time since UNIX epoch", () => {
-      let beginPull = false;
-      let endPull = false;
-      let pushed: number[] = [];
-      observe(
-        (n: number) => pushed.push(n),
-        () => {
-          beginPull = true;
-          return () => {
-            endPull = true;
-          };
-        },
-        H.time
-      );
-      assert.strictEqual(beginPull, true);
-      const t = at(H.time);
-      const now = Date.now();
-      assert(now - 2 <= t && t <= now);
-      assert.strictEqual(endPull, false);
-    });
-    it("has semantic representation", () => {
-      const f = H.time.semantic();
-      assert.strictEqual(f(0), 0);
-      assert.strictEqual(f(1.3), 1.3);
+    describe("time", () => {
+      it("gives time since UNIX epoch", () => {
+        let beginPull = false;
+        let endPull = false;
+        let pushed: number[] = [];
+        observe(
+          (n: number) => pushed.push(n),
+          (pull) => {
+            beginPull = true;
+            return () => {
+              endPull = true;
+            };
+          },
+          H.time
+        );
+        assert.strictEqual(beginPull, true);
+        const t = at(H.time);
+        const now = Date.now();
+        assert(now - 2 <= t && t <= now);
+        assert.strictEqual(endPull, false);
+      });
+      it("has semantic representation", () => {
+        const f = H.time.semantic();
+        assert.strictEqual(f(0), 0);
+        assert.strictEqual(f(1.3), 1.3);
+      });
     });
   });
   describe("toggle", () => {
