@@ -99,18 +99,20 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
     }
   }
   pull(t: number): void {
-    this.pulledAt = t;
-    let shouldRefresh = this.changedAt === undefined;
-    for (const parent of this.parents) {
-      if (isBehavior(parent)) {
-        if (parent.state !== State.Push && parent.pulledAt !== t) {
-          parent.pull(t);
+    if (this.pulledAt === undefined || this.pulledAt < t) {
+      this.pulledAt = t;
+      let shouldRefresh = this.changedAt === undefined;
+      for (const parent of this.parents) {
+        if (isBehavior(parent)) {
+          if (parent.state !== State.Push && parent.pulledAt !== t) {
+            parent.pull(t);
+          }
+          shouldRefresh = shouldRefresh || parent.changedAt > this.changedAt;
         }
-        shouldRefresh = shouldRefresh || parent.changedAt > this.changedAt;
       }
-    }
-    if (shouldRefresh) {
-      refresh(this, t);
+      if (shouldRefresh) {
+        refresh(this, t);
+      }
     }
   }
   activate(t: number): void {

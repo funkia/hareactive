@@ -96,14 +96,16 @@ export const timeFrom = time.map((from) => time.map((t) => t - from));
 
 class IntegrateBehavior extends Behavior<number> {
   private lastPullTime: Time;
-  constructor(private parent: Behavior<number>) {
+  constructor(private parent: Behavior<number>, t: number) {
     super();
-    this.lastPullTime = Date.now();
+    this.lastPullTime = time.at(t);
     this.state = State.Pull;
     this.last = 0;
+    this.pulledAt = t;
+    this.changedAt = t;
     this.parents = cons(parent, cons(time));
   }
-  update(t: Time): number {
+  update(_t: Time): number {
     const currentPullTime = time.last;
     const deltaSeconds = (currentPullTime - this.lastPullTime) / 1000;
     const value = this.last + deltaSeconds * this.parent.last;
@@ -115,5 +117,5 @@ class IntegrateBehavior extends Behavior<number> {
 export function integrate(
   behavior: Behavior<number>
 ): Behavior<Behavior<number>> {
-  return fromFunction(() => new IntegrateBehavior(behavior));
+  return fromFunction((t) => new IntegrateBehavior(behavior, t));
 }

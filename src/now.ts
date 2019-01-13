@@ -68,7 +68,7 @@ class SampleNow<A> extends Now<A> {
     super();
   }
   run(t: Time): A {
-    return at(this.b, t);
+    return this.b.at(t);
   }
   test(t: Time): A {
     return this.b.semantic()(t);

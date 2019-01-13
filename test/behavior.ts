@@ -437,6 +437,15 @@ describe("behavior", () => {
       assert.strictEqual(at(speed), 4);
       clock.restore();
     });
+    it("does not sample parent for no delta", () => {
+      const b = H.fromFunction(() => {
+        throw new Error("Must not be called");
+      });
+      const result = H.runNow(
+        H.sample(H.integrate(b)).chain((bi) => H.sample(bi))
+      );
+      assert.strictEqual(result, 0);
+    });
   });
   describe("format", () => {
     it("interpolates string", () => {
