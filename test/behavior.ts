@@ -24,7 +24,7 @@ import {
 
 import * as H from "../src";
 
-import { subscribeSpy } from "./helpers";
+import { subscribeSpy, mockNow } from "./helpers";
 import { placeholder } from "../src/placeholder";
 
 function double(n: number): number {
@@ -36,13 +36,6 @@ function sum(n: number, m: number): number {
 }
 
 const add = (a: number) => (b: number) => a + b;
-
-function mockNow(): [(t: number) => void, () => void] {
-  const orig = Date.now;
-  let time = 0;
-  Date.now = () => time;
-  return [(t: number) => (time = t), () => (Date.now = orig)];
-}
 
 describe("behavior", () => {
   describe("isBehavior", () => {

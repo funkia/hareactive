@@ -11,6 +11,13 @@ export function subscribeSpy(b: Reactive<any, any>): sinon.SinonSpy {
   return cb;
 }
 
+export function mockNow(): [(t: number) => void, () => void] {
+  const orig = Date.now;
+  let time = 0;
+  Date.now = () => time;
+  return [(t: number) => (time = t), () => (Date.now = orig)];
+}
+
 class TestProducer<A> extends ProducerStream<A> {
   constructor(
     private activateSpy: sinon.SinonSpy,

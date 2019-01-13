@@ -432,9 +432,7 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     this.parents = cons(b);
     b.addListener(this.bNode, t);
     this.state = b.state;
-    if (this.state === State.Push) {
-      this.last = at(b);
-    }
+    this.last = b.last;
     next.addListener(this.nNode, t);
   }
   update(_t: number): A {

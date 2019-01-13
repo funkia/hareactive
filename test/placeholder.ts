@@ -1,4 +1,4 @@
-import { subscribeSpy } from "./helpers";
+import { subscribeSpy, mockNow } from "./helpers";
 import { useFakeTimers, spy } from "sinon";
 import { assert } from "chai";
 
@@ -167,6 +167,34 @@ describe("placeholder", () => {
       push(4);
       s.push("e");
       assert.deepEqual(callback.args, [[0], [0], [1], [1], [4]]);
+    });
+    it("supports circular dependency and switcher", () => {
+      // The important part of this test is the circular dependency and that the
+      // placeholder is replaced by a `switcher` that should have its `last`
+      // property set.
+      const [setTime, restore] = mockNow();
+      setTime(2000);
+      const sum = H.placeholder<number>();
+      const change = sum.map((_) => 1);
+      const sum2 = H.at(H.switcher(H.at(H.integrate(change)), H.empty));
+      const results = [];
+      let pull;
+      observe(
+        (n: number) => results.push(n),
+        (p) => {
+          pull = p;
+          return () => {};
+        },
+        sum
+      );
+      sum.replaceWith(sum2);
+      pull();
+      setTime(4000);
+      pull();
+      setTime(7000);
+      pull();
+      assert.deepEqual(results, [0, 2, 5]);
+      restore();
     });
   });
   describe("stream", () => {
