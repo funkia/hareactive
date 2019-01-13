@@ -99,6 +99,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
     }
   }
   pull(t: number): void {
+    this.pulledAt = t;
     let shouldRefresh = this.changedAt === undefined;
     for (const parent of this.parents) {
       if (isBehavior(parent)) {
@@ -111,7 +112,6 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
     if (shouldRefresh) {
       refresh(this, t);
     }
-    this.pulledAt = t;
   }
   activate(t: number): void {
     super.activate(t);
@@ -304,8 +304,7 @@ class ChainBehavior<A, B> extends Behavior<B> {
       this.innerB = this.fn(this.outer.last);
       this.innerB.addListener(this.innerNode, t);
       if (this.state !== this.innerB.state) {
-        this.state = this.innerB.state;
-        this.changeStateDown(this.state);
+        this.changeStateDown(this.innerB.state);
       }
       this.parents = cons<Parent<BListener>>(this.outer, cons(this.innerB));
       if (this.innerB.state !== State.Push) {
@@ -442,11 +441,6 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
   pushS(t: number, value: Behavior<A>): void {
     this.doSwitch(t, value);
   }
-  changeStateDown(state: State): void {
-    for (const child of this.children) {
-      child.changeStateDown(state);
-    }
-  }
   private doSwitch(t: number, newB: Behavior<A>): void {
     this.b.removeListener(this.bNode);
     this.b = newB;
@@ -454,8 +448,7 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     newB.addListener(this.bNode, t);
     const newState = newB.state;
     if (newState !== this.state) {
-      this.state = newState;
-      this.changeStateDown(this.state);
+      this.changeStateDown(newState);
     }
     this.pushB(t);
   }

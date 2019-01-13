@@ -412,6 +412,31 @@ describe("behavior", () => {
 
       clock.restore();
     });
+    it("supports circular dependencies", () => {
+      const clock = useFakeTimers();
+      const { speed } = H.runNow(
+        H.loopNow((input: { speed: Behavior<number> }) =>
+          H.sample(
+            H.moment((at) => {
+              const velocity = input.speed.map((s) => (s < 4 ? 1 : 0));
+              const speed = at(H.integrate(velocity));
+              return { speed };
+            })
+          )
+        )
+      );
+      speed.observe(() => {}, () => () => {});
+      assert.strictEqual(at(speed), 0);
+      clock.tick(3000);
+      assert.strictEqual(at(speed), 3);
+      clock.tick(1000);
+      assert.strictEqual(at(speed), 4);
+      clock.tick(1000);
+      assert.strictEqual(at(speed), 4);
+      clock.tick(1000);
+      assert.strictEqual(at(speed), 4);
+      clock.restore();
+    });
   });
   describe("format", () => {
     it("interpolates string", () => {

@@ -38,7 +38,14 @@ export class Placeholder<A> extends Behavior<A> {
     if (this.source === undefined) {
       throw new SamplePlaceholderError(this);
     } else if (isBehavior(this.source)) {
-      super.pull(t);
+      this.pulledAt = t;
+      if (this.source.pulledAt !== t) {
+        this.source.pull(t);
+      }
+      if (this.last !== this.source.last) {
+        this.changedAt = t;
+        this.last = this.source.last;
+      }
     } else {
       throw new Error("Unsupported pulling on placeholder");
     }
@@ -54,8 +61,7 @@ export class Placeholder<A> extends Behavior<A> {
         this.changedAt = this.source.changedAt;
         this.pulledAt = this.source.pulledAt;
       }
-      this.state = this.source.state;
-      this.changeStateDown(this.state);
+      this.changeStateDown(this.source.state);
     }
   }
   deactivate(_done: Boolean = false): void {

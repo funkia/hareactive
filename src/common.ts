@@ -87,9 +87,11 @@ export abstract class Reactive<A, C extends Child> implements Child {
     }
   }
   changeStateDown(state: State): void {
-    this.state = state;
-    for (const child of this.children) {
-      child.changeStateDown(state);
+    if (this.state !== state) {
+      this.state = state;
+      for (const child of this.children) {
+        child.changeStateDown(state);
+      }
     }
   }
   subscribe(callback: (a: A) => void): PushOnlyObserver<A> {

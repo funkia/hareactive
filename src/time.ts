@@ -96,7 +96,6 @@ export const timeFrom = time.map((from) => time.map((t) => t - from));
 
 class IntegrateBehavior extends Behavior<number> {
   private lastPullTime: Time;
-  private value: number;
   constructor(private parent: Behavior<number>) {
     super();
     this.lastPullTime = Date.now();
