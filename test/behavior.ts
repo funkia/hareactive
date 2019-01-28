@@ -1,7 +1,7 @@
 import "mocha";
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
-import { go, lift, map, mapTo } from "@funkia/jabz";
+import { go, map, mapTo } from "@funkia/jabz";
 import {
   at,
   Behavior,
@@ -255,7 +255,7 @@ describe("behavior", () => {
         const b1 = H.sinkBehavior(1);
         const b2 = H.sinkBehavior(1);
         const b3 = H.sinkBehavior(1);
-        const lifted = lift((a, b, c) => a * b + c, b1, b2, b3);
+        const lifted = H.lift((a, b, c) => a * b + c, b1, b2, b3);
         const cb = spy();
         lifted.subscribe(cb);
         assert.strictEqual(at(lifted), 2);

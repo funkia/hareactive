@@ -1,15 +1,5 @@
-import { lift, go } from "@funkia/jabz";
-import {
-  Behavior,
-  ActiveBehavior,
-  stepper,
-  time,
-  scan,
-  Stream,
-  snapshot,
-  Now,
-  sample
-} from ".";
+import { go } from "@funkia/jabz";
+import { Behavior, stepper, time, scan, Stream, snapshot, lift } from ".";
 
 export type TimingFunction = (t: number) => number;
 
@@ -41,7 +31,7 @@ export function transitionBehavior(
       initialStartTime,
       snapshot(timeB, triggerStream)
     );
-    const transition: Behavior<number> = lift(
+    const transition = lift(
       (range, startTime, now) => {
         const endTime = startTime + config.duration;
         const scaled = interpolate(

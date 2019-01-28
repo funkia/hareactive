@@ -1,5 +1,4 @@
 import { assert } from "chai";
-import { lift } from "@funkia/jabz";
 import { spy } from "sinon";
 
 import {
@@ -131,7 +130,7 @@ describe("Future", () => {
     it("lifts a function of one argument", () => {
       let result: string;
       const fut = sinkFuture<string>();
-      const lifted = lift((s: string) => s + "!", fut);
+      const lifted = H.lift((s: string) => s + "!", fut);
       lifted.subscribe((s: string) => (result = s));
       assert.strictEqual(result, undefined);
       fut.resolve("Hello");
@@ -142,7 +141,7 @@ describe("Future", () => {
       const fut1 = sinkFuture<string>();
       const fut2 = sinkFuture<string>();
       const fut3 = sinkFuture<string>();
-      const lifted = lift(
+      const lifted = H.lift(
         (s1: string, s2: string, s3: string) => {
           return s1 + "-" + s2 + "+" + s3;
         },

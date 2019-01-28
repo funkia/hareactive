@@ -6,6 +6,8 @@ import * as F from "./future";
 import { Stream } from "./stream";
 import { tick, getTime } from "./clock";
 
+export type MapBehaviorTuple<A> = { [K in keyof A]: Behavior<A[K]> };
+
 /**
  * A behavior is a value that changes over time. Conceptually it can
  * be thought of as a function from time to a value. I.e. `type
@@ -15,7 +17,7 @@ export type SemanticBehavior<A> = (time: Time) => A;
 
 @monad
 export abstract class Behavior<A> extends Reactive<A, BListener>
-  implements Parent<BListener>, Monad<A> {
+  implements Parent<BListener> {
   // Behaviors cache their last value in `last`.
   last: A;
   children: DoubleLinkedList<BListener> = new DoubleLinkedList();
@@ -43,32 +45,22 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   ap<B>(f: Behavior<(a: A) => B>): Behavior<B> {
     return new ApBehavior<A, B>(f, this);
   }
-  lift<T1, R>(f: (t: T1) => R, m: Behavior<T1>): Behavior<R>;
-  lift<T1, T2, R>(
-    f: (t: T1, u: T2) => R,
-    m1: Behavior<T1>,
-    m2: Behavior<T2>
-  ): Behavior<R>;
-  lift<T1, T2, T3, R>(
-    f: (t1: T1, t2: T2, t3: T3) => R,
-    m1: Behavior<T1>,
-    m2: Behavior<T2>,
-    m3: Behavior<T3>
-  ): Behavior<R>;
-  lift(/* arguments */): any {
+  lift<A extends any[], R>(
+    f: (...args: A) => R,
+    ...args: MapBehaviorTuple<A>
+  ): Behavior<R> {
     // TODO: Experiment with faster specialized `lift` implementation
-    const f = arguments[0];
-    switch (arguments.length - 1) {
+    switch (args.length) {
       case 1:
-        return arguments[1].map(f);
+        return args[0].map(f as any);
       case 2:
-        return arguments[2].ap(
-          arguments[1].map((a: any) => (b: any) => f(a, b))
+        return args[1].ap(
+          args[0].map((a: any) => (b: any) => (f as any)(a, b))
         );
       case 3:
-        return arguments[3].ap(
-          arguments[2].ap(
-            arguments[1].map((a: any) => (b: any) => (c: any) => f(a, b, c))
+        return args[2].ap(
+          args[1].ap(
+            args[0].map((a: any) => (b: any) => (c: any) => (f as any)(a, b, c))
           )
         );
     }

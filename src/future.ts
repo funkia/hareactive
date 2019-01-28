@@ -6,6 +6,8 @@ import { Behavior, FunctionBehavior } from "./behavior";
 import { tick } from "./clock";
 import { Stream } from "./stream";
 
+export type MapFutureTuple<A> = { [K in keyof A]: Future<A[K]> };
+
 /**
  * A future is a thing that occurs at some point in time with a value.
  * It can be understood as a pair consisting of the time the future
@@ -14,7 +16,7 @@ import { Stream } from "./stream";
  */
 @monad
 export abstract class Future<A> extends Reactive<A, SListener<A>>
-  implements Semigroup<Future<A>>, Monad<A>, Parent<SListener<any>> {
+  implements Semigroup<Future<A>>, Parent<SListener<any>> {
   // The value of the future. Often `undefined` until occurrence.
   value: A;
   constructor() {
@@ -62,20 +64,13 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
     return new OfFuture(b);
   }
   ap: <B>(f: Future<(a: A) => B>) => Future<B>;
-  lift<T1, R>(f: (t: T1) => R, m: Future<T1>): Future<R>;
-  lift<T1, T2, R>(
-    f: (t: T1, u: T2) => R,
-    m1: Future<T1>,
-    m2: Future<T2>
-  ): Future<R>;
-  lift<T1, T2, T3, R>(
-    f: (t1: T1, t2: T2, t3: T3) => R,
-    m1: Future<T1>,
-    m2: Future<T2>,
-    m3: Future<T3>
-  ): Future<R>;
-  lift(f: any, ...args: Future<any>[]): any {
-    return f.length === 1 ? new MapFuture(f, args[0]) : new LiftFuture(f, args);
+  lift<A extends any[], R>(
+    f: (...args: A) => R,
+    ...args: MapFutureTuple<A>
+  ): Future<R> {
+    return args.length === 1
+      ? new MapFuture(f as any, args[0])
+      : new LiftFuture(f, args);
   }
   static multi: false;
   multi: false = false;
