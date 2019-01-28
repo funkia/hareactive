@@ -1,5 +1,6 @@
 import { Stream, SinkStream } from "./stream";
 import { Behavior, SinkBehavior, MapBehaviorTuple } from "./behavior";
+import { Now } from "./now";
 import { Future, MapFutureTuple } from "./future";
 
 export * from "./common";
@@ -35,6 +36,13 @@ export function lift<A extends any[], R>(
 ): Behavior<R>;
 export function lift<R>(f: (...args: any) => R, ...args: any): any {
   return args[0].lift(f, ...args);
+}
+
+export function flatten<A>(b: Behavior<Behavior<A>>): Behavior<A>;
+export function flatten<A>(f: Future<Future<A>>): Future<A>;
+export function flatten<A>(n: Now<Now<A>>): Now<A>;
+export function flatten(o: { flatten: () => any }): any {
+  return o.flatten();
 }
 
 export function push<A>(a: A, sink: SinkBehavior<A> | SinkStream<A>): void {

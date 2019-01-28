@@ -383,7 +383,7 @@ describe("behavior", () => {
   describe("flatten", () => {
     it("has proper type", () => {
       const b = Behavior.of(Behavior.of("foo"));
-      const b2 = b.flatten().map((s) => s + "bar");
+      H.flatten(b).map((s) => s + "bar");
     });
   });
   describe("integrate", () => {
@@ -938,7 +938,7 @@ describe("Behavior and Stream", () => {
       let variable = -1;
       const pullingB = H.fromFunction(() => variable);
       const outer = sinkBehavior<Behavior<number>>(pushingB);
-      const flattened = outer.flatten();
+      const flattened = H.flatten(outer);
       const pushSpy = spy();
       let pull: () => void;
       const handlePulling = (p) => {
