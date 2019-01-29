@@ -10,15 +10,16 @@ function isBehavior(b: any): b is Behavior<any> {
 
 export type PullHandler = (pull: (t?: number) => void) => () => void;
 
+/**
+ * The various states that a reactive can be in. The order matters here: Done <
+ * Push < Pull < Inactive. The idea is that a reactive can calculate its current
+ * state by taking the maximum of its parents states.
+ */
 export const enum State {
-  // Values are pushed to listeners
-  Push,
-  // Values should be pulled by listeners
-  Pull,
-  // Most, but not all, reactives start in this state
-  Inactive,
-  // The reactive value will never update again
-  Done
+  Done = 0, // The reactive value will never update again
+  Push = 1, // Values are pushed to listeners
+  Pull = 2, // Values should be pulled by listeners
+  Inactive = 3 // Most, but not all, reactives start in this state
 }
 
 export interface Parent<C> {
@@ -101,14 +102,15 @@ export abstract class Reactive<A, C extends Child> implements Child {
     return new CbObserver(push, handlePulling, this);
   }
   activate(t: number): void {
+    let newState = State.Done;
     for (const parent of this.parents) {
       const node = new Node(this);
       this.listenerNodes = cons({ node, parent }, this.listenerNodes);
       parent.addListener(node as any, t);
-      const parentState = parent.state;
-      if (parentState !== State.Push || this.state === State.Inactive) {
-        this.state = parentState;
-      }
+      newState = Math.max(newState, parent.state);
+    }
+    if (this.state === State.Inactive) {
+      this.state = newState;
     }
   }
   deactivate(done: Boolean = false): void {

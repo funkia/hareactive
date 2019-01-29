@@ -144,8 +144,19 @@ describe("placeholder", () => {
       assert.deepEqual(cb.args, [[12]]);
     });
     it("ap works on placeholder", () => {
-      const b = placeholder<(a: number) => {}>();
-      const applied = ap(b, Behavior.of(12));
+      const bp = H.placeholder<number>();
+      const b = Behavior.of(3).ap(bp.map((n) => (m) => n + m));
+      let result = undefined;
+      b.observe(
+        (n) => {
+          result = n;
+        },
+        () => {
+          return () => {};
+        }
+      );
+      bp.replaceWith(Behavior.of(2));
+      assert.strictEqual(result, 5);
     });
     it("chain works on placeholder", () => {
       const b = placeholder();
