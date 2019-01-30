@@ -267,6 +267,17 @@ describe("behavior", () => {
         assert.strictEqual(at(lifted), 9);
         assert.deepEqual(cb.args, [[2], [3], [7], [9]]);
       });
+      it("lift function of five arguments", () => {
+        const b = H.lift(
+          (a, b, c, d, e) => (a - b + c) * (d + e),
+          Behavior.of(1),
+          Behavior.of(2),
+          Behavior.of(3),
+          Behavior.of(4),
+          Behavior.of(5)
+        );
+        assert.strictEqual(H.at(b), 18);
+      });
     });
   });
   describe("chain", () => {

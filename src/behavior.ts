@@ -1,4 +1,4 @@
-import { cons, DoubleLinkedList, Node } from "./datastructures";
+import { cons, DoubleLinkedList, Node, fromArray } from "./datastructures";
 import { Monad, monad, combine } from "@funkia/jabz";
 import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
 import { Future, BehaviorFuture } from "./future";
@@ -49,21 +49,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
     f: (...args: A) => R,
     ...args: MapBehaviorTuple<A>
   ): Behavior<R> {
-    // TODO: Experiment with faster specialized `lift` implementation
-    switch (args.length) {
-      case 1:
-        return args[0].map(f as any);
-      case 2:
-        return args[1].ap(
-          args[0].map((a: any) => (b: any) => (f as any)(a, b))
-        );
-      case 3:
-        return args[2].ap(
-          args[1].ap(
-            args[0].map((a: any) => (b: any) => (c: any) => (f as any)(a, b, c))
-          )
-        );
-    }
+    return new LiftBehavior(f, args);
   }
   static multi: boolean = true;
   multi: boolean = true;
@@ -268,6 +254,16 @@ export function ap<A, B>(
   valB: Behavior<A>
 ): Behavior<B> {
   return valB.ap(fnB);
+}
+
+export class LiftBehavior<A extends any[], R> extends Behavior<R> {
+  constructor(private f: (...as: A) => R, private bs: MapBehaviorTuple<A>) {
+    super();
+    this.parents = fromArray(bs);
+  }
+  update(_t: number): R {
+    return this.f(...(this.bs.map((b) => b.last) as any));
+  }
 }
 
 class ChainBehavior<A, B> extends Behavior<B> {
