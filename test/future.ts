@@ -159,12 +159,12 @@ describe("Future", () => {
       assert.strictEqual(result, "Hello-over+there");
     });
   });
-  describe("Monad", () => {
-    it("chains value", () => {
+  describe("flatMap", () => {
+    it("flatMaps value", () => {
       let result: number[] = [];
       const fut1 = sinkFuture<number>();
       const fut2 = sinkFuture<number>();
-      const chained = fut1.chain((n: number) => {
+      const chained = fut1.flatMap((n: number) => {
         result.push(n);
         return fut2;
       });

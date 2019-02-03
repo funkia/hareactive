@@ -280,16 +280,16 @@ describe("behavior", () => {
       });
     });
   });
-  describe("chain", () => {
+  describe("flatMap", () => {
     it("handles a constant behavior", () => {
       const b1 = Behavior.of(12);
-      const b2 = b1.chain((x) => Behavior.of(x * x));
+      const b2 = b1.flatMap((x) => Behavior.of(x * x));
       b2.observe((v) => {}, () => () => {});
       assert.strictEqual(at(b2), 144);
     });
     it("handles changing outer behavior", () => {
       const b1 = sinkBehavior(0);
-      const b2 = b1.chain((x) => Behavior.of(x * x));
+      const b2 = b1.flatMap((x) => Behavior.of(x * x));
       const cb = spy();
       b2.observe(cb, () => () => {});
       b1.push(2);
@@ -298,7 +298,7 @@ describe("behavior", () => {
     });
     it("handles changing inner behavior", () => {
       const inner = sinkBehavior(0);
-      const b = Behavior.of(1).chain((_) => inner);
+      const b = Behavior.of(1).flatMap((_) => inner);
       const cb = spy();
       b.observe(cb, () => () => {});
       assert.strictEqual(at(b), 0);
@@ -311,7 +311,7 @@ describe("behavior", () => {
     it("stops subscribing to past inner behavior", () => {
       const inner = sinkBehavior(0);
       const outer = sinkBehavior(1);
-      const b = outer.chain((n) => (n === 1 ? inner : Behavior.of(6)));
+      const b = outer.flatMap((n) => (n === 1 ? inner : Behavior.of(6)));
       b.observe(() => {}, () => () => {});
       assert.strictEqual(at(b), 0);
       inner.push(2);
@@ -325,7 +325,7 @@ describe("behavior", () => {
       const outer = sinkBehavior(0);
       const inner1 = sinkBehavior(1);
       const inner2 = sinkBehavior(3);
-      const b = outer.chain((n) => {
+      const b = outer.flatMap((n) => {
         if (n === 0) {
           return Behavior.of(0);
         } else if (n === 1) {
@@ -352,7 +352,7 @@ describe("behavior", () => {
       let variable = 7;
       const pullingB = H.fromFunction(() => variable);
       const outer = sinkBehavior(true);
-      const chained = outer.chain((b) => (b ? pushingB : pullingB));
+      const chained = outer.flatMap((b) => (b ? pushingB : pullingB));
       const pushSpy = spy();
       const beginPullingSpy = spy();
       const endPullingSpy = spy();

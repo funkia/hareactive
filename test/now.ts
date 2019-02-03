@@ -76,15 +76,15 @@ describe("Now", () => {
       );
     });
   });
-  describe("chain", () => {
+  describe("flatMap", () => {
     it("can be tested", () => {
-      const now = Now.of(3).chain((n) => Now.of(n * 4));
+      const now = Now.of(3).flatMap((n) => Now.of(n * 4));
       assert.strictEqual(testNow(now), 12);
     });
     it("executes several `async`s in succession", async () => {
       const ref1 = createRef(1);
       const ref2 = createRef("Hello");
-      const comp = performIO(mutateRef(2, ref1)).chain((_: any) =>
+      const comp = performIO(mutateRef(2, ref1)).flatMap((_: any) =>
         performIO(mutateRef("World", ref2)).chain((__: any) =>
           Now.of(Future.of(true))
         )

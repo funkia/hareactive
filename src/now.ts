@@ -23,8 +23,11 @@ export abstract class Now<A> implements Monad<A> {
   static of<B>(b: B): Now<B> {
     return new OfNow(b);
   }
+  flatMap<B>(f: (a: A) => Now<B>): Now<B> {
+    return new FlatMapNow(this, f);
+  }
   chain<B>(f: (a: A) => Now<B>): Now<B> {
-    return new ChainNow(this, f);
+    return new FlatMapNow(this, f);
   }
   static multi: boolean = false;
   multi: boolean = false;
@@ -51,7 +54,7 @@ class OfNow<A> extends Now<A> {
   }
 }
 
-class ChainNow<A, B> extends Now<B> {
+class FlatMapNow<A, B> extends Now<B> {
   constructor(private first: Now<A>, private f: (a: A) => Now<B>) {
     super();
   }
@@ -126,11 +129,10 @@ export function performMap<A, B>(
   cb: (a: A) => B,
   s: Stream<A> | Future<A>
 ): Now<Stream<B> | Future<B>> {
-  return perform(
-    () =>
-      isStream(s)
-        ? mapCbStream((value, done) => done(cb(value)), s)
-        : mapCbFuture((value, done) => done(cb(value)), s)
+  return perform(() =>
+    isStream(s)
+      ? mapCbStream((value, done) => done(cb(value)), s)
+      : mapCbFuture((value, done) => done(cb(value)), s)
   );
 }
 

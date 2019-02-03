@@ -53,8 +53,11 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   }
   static multi: boolean = true;
   multi: boolean = true;
+  flatMap<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
+    return new FlatMapBehavior<A, B>(this, fn);
+  }
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
-    return new ChainBehavior<A, B>(this, fn);
+    return new FlatMapBehavior<A, B>(this, fn);
   }
   flatten: <B>(this: Behavior<Behavior<B>>) => Behavior<B>;
   at(t?: number): A {
@@ -266,7 +269,7 @@ export class LiftBehavior<A extends any[], R> extends Behavior<R> {
   }
 }
 
-class ChainBehavior<A, B> extends Behavior<B> {
+class FlatMapBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
   private innerB: Behavior<B>;
   private innerNode: Node<this> = new Node(this);

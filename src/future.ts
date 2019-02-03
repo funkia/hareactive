@@ -74,11 +74,14 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
   }
   static multi: false;
   multi: false = false;
-  // A future is a monad. Once the first future occurs `chain` passes
-  // its value through the chain function and the future it returns is
-  // the one returned by `chain`.
+  // A future is a monad. Once the first future occurs `flatMap` passes its
+  // value through the function and the future it returns is the one returned by
+  // `flatMap`.
+  flatMap<B>(f: (a: A) => Future<B>): Future<B> {
+    return new FlatMapFuture(f, this);
+  }
   chain<B>(f: (a: A) => Future<B>): Future<B> {
-    return new ChainFuture(f, this);
+    return new FlatMapFuture(f, this);
   }
   flatten: <B>() => Future<B>;
 }
@@ -155,7 +158,7 @@ class LiftFuture<A> extends Future<A> {
   }
 }
 
-class ChainFuture<A, B> extends Future<B> implements SListener<A> {
+class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
   private parentOccurred: boolean = false;
   private node: Node<this> = new Node(this);
   constructor(private f: (a: A) => Future<B>, private parent: Future<A>) {
