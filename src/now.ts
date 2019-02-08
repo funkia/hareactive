@@ -1,14 +1,14 @@
 import { IO, runIO, Monad, monad } from "@funkia/jabz";
-import { placeholder, Placeholder } from "./placeholder";
-import { State, Time } from "./common";
-import { Future, fromPromise, sinkFuture } from "./future";
+import { placeholder } from "./placeholder";
+import { Time, SListener } from "./common";
+import { Future, fromPromise, mapCbFuture } from "./future";
 import { Node } from "./datastructures";
 import { Behavior, at } from "./behavior";
-import { ActiveStream, Stream } from "./stream";
+import { ActiveStream, Stream, mapCbStream, empty, isStream } from "./stream";
+import { tick } from "./clock";
 
 @monad
 export abstract class Now<A> implements Monad<A> {
-  // Impurely run the now computation
   isNow: true;
   constructor() {
     this.isNow = true;
@@ -16,15 +16,18 @@ export abstract class Now<A> implements Monad<A> {
   static is(a: any): a is Now<any> {
     return typeof a === "object" && a.isNow === true;
   }
-  abstract run(): A;
+  abstract run(time: Time): A;
   of<B>(b: B): Now<B> {
     return new OfNow(b);
   }
   static of<B>(b: B): Now<B> {
     return new OfNow(b);
   }
+  flatMap<B>(f: (a: A) => Now<B>): Now<B> {
+    return new FlatMapNow(this, f);
+  }
   chain<B>(f: (a: A) => Now<B>): Now<B> {
-    return new ChainNow(this, f);
+    return new FlatMapNow(this, f);
   }
   static multi: boolean = false;
   multi: boolean = false;
@@ -43,7 +46,7 @@ class OfNow<A> extends Now<A> {
   constructor(private value: A) {
     super();
   }
-  run(): A {
+  run(_: Time): A {
     return this.value;
   }
   test(mocks: any[], _: Time): { value: A; mocks: any[] } {
@@ -51,12 +54,12 @@ class OfNow<A> extends Now<A> {
   }
 }
 
-class ChainNow<A, B> extends Now<B> {
+class FlatMapNow<A, B> extends Now<B> {
   constructor(private first: Now<A>, private f: (a: A) => Now<B>) {
     super();
   }
-  run(): B {
-    return this.f(this.first.run()).run();
+  run(t: Time): B {
+    return this.f(this.first.run(t)).run(t);
   }
   test(mocks: any[], t: Time): { value: B; mocks: any[] } {
     const { value, mocks: m } = this.first.test(mocks, t);
@@ -68,8 +71,8 @@ class SampleNow<A> extends Now<A> {
   constructor(private b: Behavior<A>) {
     super();
   }
-  run(): A {
-    return at(this.b);
+  run(t: Time): A {
+    return this.b.at(t);
   }
   test(mocks: any[], t: Time): { value: A; mocks: any[] } {
     return { value: this.b.semantic()(t), mocks };
@@ -80,76 +83,96 @@ export function sample<A>(b: Behavior<A>): Now<A> {
   return new SampleNow(b);
 }
 
-class PerformNow<A> extends Now<Future<A>> {
-  constructor(private comp: IO<A>) {
+class PerformNow<A> extends Now<A> {
+  constructor(private cb: () => A) {
     super();
   }
-  run(): Future<A> {
-    return fromPromise(runIO(this.comp));
+  run(): A {
+    return this.cb();
   }
 
-  test([value, ...mocks]: any[], t: Time): { value: Future<A>; mocks: any[] } {
+  test([value, ...mocks]: any[], t: Time): { value: A; mocks: any[] } {
     return { value, mocks };
   }
 }
 
-export function perform<A>(comp: IO<A>): Now<Future<A>> {
-  return new PerformNow(comp);
+/**
+ * Create a now-computation that executes the effectful computation `cb` when it
+ * is run.
+ */
+export function perform<A>(cb: () => A): Now<A> {
+  return new PerformNow(cb);
 }
 
-class PerformIOStream<A> extends ActiveStream<A> {
-  node = new Node(this);
-  constructor(s: Stream<IO<A>>) {
-    super();
-    s.addListener(this.node);
-    this.state = State.Push;
-  }
-  push(io: IO<A>): void {
-    runIO(io).then((a: A) => {
-      this.pushToChildren(a);
-    });
-  }
-}
-
-class PerformStreamNow<A> extends Now<Stream<A>> {
-  constructor(private s: Stream<IO<A>>) {
-    super();
-  }
-  run(): Stream<A> {
-    return new PerformIOStream(this.s);
-  }
-
-  test([value, ...mocks]: any[], _: Time): { value: Stream<A>; mocks } {
-    return { value, mocks };
-  }
+export function performIO<A>(comp: IO<A>): Now<Future<A>> {
+  return perform(() => fromPromise(runIO(comp)));
 }
 
 export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
-  return new PerformStreamNow(s);
+  return perform(() =>
+    mapCbStream<IO<A>, A>((io, cb) => runIO(io).then(cb), s)
+  );
 }
 
-class PerformIOStreamLatest<A> extends ActiveStream<A> {
-  private node = new Node(this);
+class PerformMapNow<A, B> extends Now<Stream<B> | Future<B>> {
+  constructor(private cb: (a: A) => B, private s: Stream<A> | Future<A>) {
+    super();
+  }
+  run(): Stream<B> | Future<B> {
+    return isStream(this.s)
+      ? mapCbStream((value, done) => done(this.cb(value)), this.s)
+      : mapCbFuture((value, done) => done(this.cb(value)), this.s);
+  }
+
+  test(
+    [value, ...mocks]: any[],
+    _: Time
+  ): { value: Stream<B> | Future<B>; mocks } {
+    return { value, mocks };
+  }
+}
+
+/**
+ * Maps a function with side-effects over a future or stream.
+ */
+export function performMap<A, B>(cb: (a: A) => B, f: Future<A>): Now<Future<B>>;
+export function performMap<A, B>(cb: (a: A) => B, s: Stream<A>): Now<Stream<B>>;
+export function performMap<A, B>(
+  cb: (a: A) => B,
+  s: Stream<A> | Future<A>
+): Now<Stream<B> | Future<B>> {
+  return perform(
+    () =>
+      isStream(s)
+        ? mapCbStream((value, done) => done(cb(value)), s)
+        : mapCbFuture((value, done) => done(cb(value)), s)
+  );
+}
+
+class PerformIOStreamLatest<A> extends ActiveStream<A>
+  implements SListener<IO<A>> {
+  private node: Node<this> = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
-    s.addListener(this.node);
+    s.addListener(this.node, tick());
   }
   next: number = 0;
   newest: number = 0;
   running: number = 0;
-  push(io: IO<A>): void {
+  pushS(_t: number, io: IO<A>): void {
     const time = ++this.next;
     this.running++;
     runIO(io).then((a: A) => {
       this.running--;
       if (time > this.newest) {
+        const t = tick();
         if (this.running === 0) {
           this.next = 0;
           this.newest = 0;
         } else {
           this.newest = time;
         }
-        this.pushToChildren(a);
+        this.pushSToChildren(t, a);
       }
     });
   }
@@ -169,19 +192,19 @@ class PerformStreamNowLatest<A> extends Now<Stream<A>> {
 }
 
 export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
-  return new PerformStreamNowLatest(s);
+  return perform(() => new PerformIOStreamLatest(s));
 }
 
 class PerformIOStreamOrdered<A> extends ActiveStream<A> {
-  private node = new Node(this);
+  private node: Node<this> = new Node(this);
   constructor(s: Stream<IO<A>>) {
     super();
-    s.addListener(this.node);
+    s.addListener(this.node, tick());
   }
   nextId: number = 0;
   next: number = 0;
   buffer: { value: A }[] = []; // Object-wrapper to support a result as undefined
-  push(io: IO<A>): void {
+  pushS(t: number, io: IO<A>): void {
     const id = this.nextId++;
     runIO(io).then((a: A) => {
       if (id === this.next) {
@@ -194,8 +217,9 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   }
   pushFromBuffer(): void {
     while (this.buffer[0] !== undefined) {
+      const t = tick();
       const { value } = this.buffer.shift();
-      this.pushToChildren(value);
+      this.pushSToChildren(t, value);
       this.next++;
     }
   }
@@ -218,16 +242,12 @@ export function performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamNowOrdered(s);
 }
 
-function run<A>(now: Now<A>): A {
-  return now.run();
-}
-
 class PlanNow<A> extends Now<Future<A>> {
   constructor(private future: Future<Now<A>>) {
     super();
   }
-  run(): Future<A> {
-    return this.future.map(run);
+  run(time: Time): Future<A> {
+    return this.future.map((n) => n.run(time));
   }
 
   test(mocks: any[], t: Time): { value: Future<A>; mocks: any[] } {
@@ -236,13 +256,11 @@ class PlanNow<A> extends Now<Future<A>> {
 }
 
 export function plan<A>(future: Future<Now<A>>): Now<Future<A>> {
-  return new PlanNow(future);
+  return performMap<Now<A>, A>(runNow, future);
 }
 
-export function runNow<A>(now: Now<Future<A>>): Promise<A> {
-  return new Promise((resolve, reject) => {
-    now.run().subscribe(resolve);
-  });
+export function runNow<A>(now: Now<A>, time: Time = tick()): A {
+  return now.run(time);
 }
 
 /**
@@ -275,7 +293,7 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
   ) {
     super();
   }
-  run(): A {
+  run(t: Time): A {
     let placeholderObject: any;
     if (this.placeholderNames === undefined) {
       placeholderObject = new Proxy({}, placeholderProxyHandler);
@@ -285,8 +303,7 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
         placeholderObject[name] = placeholder();
       }
     }
-
-    const result = this.fn(placeholderObject).run();
+    const result = this.fn(placeholderObject).run(t);
     const returned: (keyof A)[] = <any>Object.keys(result);
     for (const name of returned) {
       placeholderObject[name].replaceWith(result[name]);

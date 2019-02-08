@@ -16,7 +16,7 @@ class DomEventStream<A> extends ProducerStream<A> {
     super();
   }
   handleEvent(event: Event): void {
-    this.push(this.extractor(event, this.target));
+    this.pushS(undefined, this.extractor(event, this.target));
   }
   activate(): void {
     this.target.addEventListener(this.eventName, this);
@@ -72,14 +72,17 @@ class DomEventBehavior<A> extends ProducerBehavior<A> {
   constructor(
     private target: EventTarget,
     private eventName: string,
-    initial: A,
+    private getter: (t: EventTarget) => A,
     private extractor: Extractor<any, EventTarget, A>
   ) {
     super();
-    this.last = initial;
+    this.last = getter(target);
   }
   handleEvent(event: Event): void {
-    this.push(this.extractor(event, this.target));
+    this.newValue(this.extractor(event, this.target));
+  }
+  update(): A {
+    return this.getter(this.target);
   }
   activateProducer(): void {
     this.target.addEventListener(this.eventName, this);
@@ -97,16 +100,7 @@ export function behaviorFromEvent<
 >(
   target: T,
   eventName: E,
-  initial: WindowEventMap[E]
-): Behavior<WindowEventMap[E]>;
-export function behaviorFromEvent<
-  A,
-  E extends WindowEventName,
-  T extends Window
->(
-  target: T,
-  eventName: E,
-  initial: A,
+  getter: (t: T) => A,
   extractor: Extractor<WindowEventMap[E], T, A>
 ): Behavior<A>;
 // Overloads for HTMLElement
@@ -114,28 +108,23 @@ export function behaviorFromEvent<
   A,
   E extends HTMLEventName,
   T extends HTMLElement
->(target: T, eventName: E, initial: A): Behavior<HTMLElementEventMap[E]>;
-export function behaviorFromEvent<
-  A,
-  E extends HTMLEventName,
-  T extends HTMLElement
 >(
   target: T,
   eventName: E,
-  initial: A,
+  getter: (t: T) => A,
   extractor: Extractor<HTMLElementEventMap[E], T, A>
 ): Behavior<A>;
 export function behaviorFromEvent<A>(
   target: EventTarget,
   eventName: string,
-  initial: A,
+  getter: (t: EventTarget) => A,
   extractor: Extractor<any, EventTarget, A>
 ): Behavior<A>;
 export function behaviorFromEvent<A>(
   target: EventTarget,
   eventName: string,
-  initial: A,
-  extractor: Extractor<any, EventTarget, A> = id
+  getter: (t: EventTarget) => A,
+  extractor: Extractor<any, EventTarget, A>
 ): Behavior<A> {
-  return new DomEventBehavior(target, eventName, initial, extractor);
+  return new DomEventBehavior(target, eventName, getter, extractor);
 }

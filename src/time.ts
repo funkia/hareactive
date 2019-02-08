@@ -1,5 +1,5 @@
 import { Time, State } from "./common";
-import { cons } from "./datastructures";
+import { cons, nil } from "./datastructures";
 import { Stream, SemanticStream } from "./stream";
 import {
   Behavior,
@@ -20,9 +20,9 @@ export class DelayStream<A> extends Stream<A> {
     const s = (<Stream<A>>this.parents.value).semantic();
     return s.map(({ time, value }) => ({ time: time + this.ms, value }));
   }
-  push(a: A): void {
+  pushS(t: number, a: A): void {
     setTimeout(() => {
-      this.pushToChildren(a);
+      this.pushSToChildren(t, a);
     }, this.ms);
   }
 }
@@ -37,9 +37,9 @@ class ThrottleStream<A> extends Stream<A> {
     this.parents = cons(parent);
   }
   private isSilenced: boolean = false;
-  push(a: A): void {
+  pushS(t: number, a: A): void {
     if (!this.isSilenced) {
-      this.pushToChildren(a);
+      this.pushSToChildren(t, a);
       this.isSilenced = true;
       setTimeout(() => {
         this.isSilenced = false;
@@ -58,10 +58,10 @@ class DebounceStream<A> extends Stream<A> {
     this.parents = cons(parent);
   }
   private timer: any = undefined;
-  push(a: A): void {
+  pushS(t: number, a: A): void {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
-      this.pushToChildren(a);
+      this.pushSToChildren(t, a);
     }, this.ms);
   }
 }
@@ -70,21 +70,9 @@ export function debounce<A>(ms: number, stream: Stream<A>): Stream<A> {
   return new DebounceStream<A>(stream, ms);
 }
 
-class TimeFromBehavior extends Behavior<Time> {
-  private startTime: Time;
-  constructor() {
-    super();
-    this.startTime = Date.now();
-    this.state = State.Pull;
-  }
-  pull(): Time {
-    return Date.now() - this.startTime;
-  }
-}
-
 class TimeBehavior extends FunctionBehavior<Time> {
   constructor() {
-    super(Date.now);
+    super(() => Date.now());
   }
   semantic(): SemanticBehavior<Time> {
     return (time: Time) => time;
@@ -104,30 +92,30 @@ export const time: Behavior<Time> = new TimeBehavior();
  * between the current sample time and the time at which the outer
  * behavior was sampled.
  */
-export const timeFrom: Behavior<Behavior<Time>> = fromFunction(
-  () => new TimeFromBehavior()
-);
+export const timeFrom = time.map((from) => time.map((t) => t - from));
 
 class IntegrateBehavior extends Behavior<number> {
   private lastPullTime: Time;
-  private value: number;
-  constructor(private parent: Behavior<number>) {
+  constructor(private parent: Behavior<number>, t: number) {
     super();
-    this.lastPullTime = Date.now();
+    this.lastPullTime = time.at(t);
     this.state = State.Pull;
-    this.value = 0;
+    this.last = 0;
+    this.pulledAt = t;
+    this.changedAt = t;
+    this.parents = cons(parent, cons(time));
   }
-  pull(): Time {
-    const currentPullTime = Date.now();
+  update(_t: Time): number {
+    const currentPullTime = time.last;
     const deltaSeconds = (currentPullTime - this.lastPullTime) / 1000;
-    this.value += deltaSeconds * this.parent.at();
+    const value = this.last + deltaSeconds * this.parent.last;
     this.lastPullTime = currentPullTime;
-    return this.value;
+    return value;
   }
 }
 
 export function integrate(
   behavior: Behavior<number>
 ): Behavior<Behavior<number>> {
-  return fromFunction(() => new IntegrateBehavior(behavior));
+  return fromFunction((t) => new IntegrateBehavior(behavior, t));
 }

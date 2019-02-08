@@ -1,5 +1,6 @@
 import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
 import { Behavior } from "./behavior";
+import { tick } from "./clock";
 
 export type Time = number;
 
@@ -7,37 +8,51 @@ function isBehavior(b: any): b is Behavior<any> {
   return typeof b === "object" && "at" in b;
 }
 
-export type PullHandler = (pull: () => void) => () => void;
+export type PullHandler = (pull: (t?: number) => void) => () => void;
 
+/**
+ * The various states that a reactive can be in. The order matters here: Done <
+ * Push < Pull < Inactive. The idea is that a reactive can calculate its current
+ * state by taking the maximum of its parents states.
+ */
 export const enum State {
-  // Values are pushed to listeners
-  Push,
-  // Values should be pulled by listeners
-  Pull,
-  // Values should be pulled and the reactive will _never_ switch
-  // state to `Push`
-  OnlyPull,
-  // Most, but not all, reactives start in this state
-  Inactive,
-  // The reactive value will never update again
-  Done
+  Done = 0, // The reactive value will never update again
+  Push = 1, // Values are pushed to listeners
+  Pull = 2, // Values should be pulled by listeners
+  Inactive = 3 // Most, but not all, reactives start in this state
 }
 
-export interface Observer<A> {
-  push(a: A): void;
+export interface Parent<C> {
+  addListener(node: Node<C>, t: number): State;
+  removeListener(node: Node<C>): void;
+  state: State;
+}
+
+export interface Child {
   changeStateDown(state: State): void;
 }
 
-export class PushOnlyObserver<A> {
-  node = new Node(this);
-  constructor(private callback: (a: A) => void, private source: Reactive<A>) {
-    source.addListener(this.node);
+export interface BListener extends Child {
+  pushB(t: number): void;
+}
+
+export interface SListener<A> extends Child {
+  pushS(t: number, value: A): void;
+}
+
+export class PushOnlyObserver<A> implements BListener, SListener<A> {
+  node: Node<this> = new Node(this);
+  constructor(private callback: (a: A) => void, private source: Parent<Child>) {
+    source.addListener(this.node, tick());
     if (isBehavior(source) && source.state === State.Push) {
       callback(source.at());
     }
   }
-  push(a: any): void {
-    this.callback(a);
+  pushB(t: number): void {
+    this.callback((this.source as any).last);
+  }
+  pushS(t: number, value: A): void {
+    this.callback(value);
   }
   deactivate(): void {
     this.source.removeListener(this.node);
@@ -45,83 +60,60 @@ export class PushOnlyObserver<A> {
   changeStateDown(state: State): void {}
 }
 
-export interface Subscriber<A> extends Observer<A> {
-  deactivate(): void;
-}
-
-export function changePullersParents(
-  n: number,
-  parents: Cons<Reactive<any>>
-): void {
-  if (parents === undefined) {
-    return;
-  }
-  if (isBehavior(parents.value)) {
-    parents.value.changePullers(n);
-  }
-  changePullersParents(n, parents.tail);
-}
-
-type NodeParentPair = {
-  parent: Reactive<any>;
+export type NodeParentPair = {
+  parent: Parent<any>;
   node: Node<any>;
 };
 
-export abstract class Reactive<A> implements Observer<any> {
-  nrOfListeners: number;
+export abstract class Reactive<A, C extends Child> implements Child {
   state: State;
-  children: DoubleLinkedList<Observer<A>> = new DoubleLinkedList();
-  parents: Cons<Reactive<any>>;
+  parents: Cons<Parent<any>>;
   listenerNodes: Cons<NodeParentPair> | undefined;
+  children: DoubleLinkedList<C> = new DoubleLinkedList();
   constructor() {
     this.state = State.Inactive;
-    this.nrOfListeners = 0;
   }
-  addListener(node: Node<Observer<any>>): State {
+  addListener(node: Node<C>, t: number): State {
     const firstChild = this.children.head === undefined;
     this.children.prepend(node);
     if (firstChild) {
-      this.activate();
+      this.activate(t);
     }
     return this.state;
   }
-  removeListener(node: Node<Observer<any>>): void {
+  removeListener(node: Node<C>): void {
     this.children.remove(node);
     if (this.children.head === undefined && this.state !== State.Done) {
       this.deactivate();
     }
   }
   changeStateDown(state: State): void {
-    for (const child of this.children) {
-      child.changeStateDown(state);
+    if (this.state !== state) {
+      this.state = state;
+      for (const child of this.children) {
+        child.changeStateDown(state);
+      }
     }
   }
-  subscribe(callback: (a: A) => void) {
+  subscribe(callback: (a: A) => void): PushOnlyObserver<A> {
     return new PushOnlyObserver(callback, this);
   }
   observe(push: (a: A) => void, handlePulling: PullHandler): CbObserver<A> {
     return new CbObserver(push, handlePulling, this);
   }
-  abstract push(a: any): void;
-  abstract pull(): A;
-  pushToChildren(a: any): void {
-    for (const child of this.children) {
-      child.push(a);
-    }
-  }
-  activate(): void {
-    this.state = State.Push;
+  activate(t: number): void {
+    let newState = State.Done;
     for (const parent of this.parents) {
       const node = new Node(this);
       this.listenerNodes = cons({ node, parent }, this.listenerNodes);
-      parent.addListener(node);
-      const parentState = parent.state;
-      if (parentState !== State.Push) {
-        this.state = parentState;
-      }
+      parent.addListener(node as any, t);
+      newState = Math.max(newState, parent.state);
+    }
+    if (this.state === State.Inactive) {
+      this.state = newState;
     }
   }
-  deactivate(done = false): void {
+  deactivate(done: Boolean = false): void {
     if (this.listenerNodes !== undefined) {
       for (const { node, parent } of this.listenerNodes) {
         parent.removeListener(node);
@@ -131,51 +123,57 @@ export abstract class Reactive<A> implements Observer<any> {
   }
 }
 
-export class CbObserver<A> implements Observer<A> {
-  private endPulling = () => {};
-  node: Node<Observer<A>> = new Node(this);
+export class CbObserver<A> implements BListener, SListener<A> {
+  private endPulling: () => void;
+  node: Node<CbObserver<A>> = new Node(this);
   constructor(
-    private _push: (a: A) => void,
+    private callback: (a: A) => void,
     private handlePulling: PullHandler,
-    private source: Reactive<A>
+    private source: Parent<Child>
   ) {
-    source.addListener(this.node);
-    if (source.state === State.Pull || source.state === State.OnlyPull) {
+    source.addListener(this.node, tick());
+    if (source.state === State.Pull) {
       this.endPulling = handlePulling(this.pull.bind(this));
     } else if (isBehavior(source) && source.state === State.Push) {
-      _push(source.last);
+      callback(source.last);
     }
   }
-  pull() {
-    const val = this.source.pull();
-    this._push(val);
+  pull(t: number = tick()): void {
+    if (isBehavior(this.source) && this.source.state === State.Pull) {
+      this.source.pull(t);
+      this.callback(this.source.last);
+    }
   }
-  push(a: A): void {
-    this._push(a);
+  pushB(t: number): void {
+    this.callback((this.source as any).last);
+  }
+  pushS(t: number, value: A): void {
+    this.callback(value);
   }
   changeStateDown(state: State): void {
-    if (state === State.Pull || state === State.OnlyPull) {
-      this.endPulling = this.handlePulling(this.endPulling.bind(this));
-    } else {
+    if (state === State.Pull) {
+      this.endPulling = this.handlePulling(this.pull.bind(this));
+    } else if (this.endPulling !== undefined) {
+      // We where pulling before but are no longer pulling
       this.endPulling();
+      this.endPulling = undefined;
     }
   }
 }
 
 /**
- * Observe a behavior for the purpose of running side-effects based on
- * the value of the behavior.
- * @param push Called with all values that the behavior pushes
- * through.
- * @param beginPulling Called when the consumer should begin pulling
- * values from the behavior.
- * @param endPulling Called when the consumer should stop pulling.
- * @param behavior The behavior to consume.
+ * Observe a behavior for the purpose of running side-effects based on the value
+ * of the behavior.
+ * @param push Called with all values that the behavior pushes through.
+ * @param handlePulling Called when the consumer should begin pulling values
+ * from the behavior. The function should return a callback that will be invoked
+ * once pulling should stop.
+ * @param behavior The behavior to observe.
  */
 export function observe<A>(
   push: (a: A) => void,
   handlePulling: PullHandler,
-  behavior: Reactive<A>
+  behavior: Behavior<A>
 ): CbObserver<A> {
   return behavior.observe(push, handlePulling);
 }

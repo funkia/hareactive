@@ -1,9 +1,9 @@
-import { subscribeSpy } from "./helpers";
-import { spy, useFakeTimers } from "sinon";
+import { subscribeSpy, mockNow } from "./helpers";
+import { useFakeTimers, spy } from "sinon";
 import { assert } from "chai";
 
 import { placeholder } from "../src/placeholder";
-import { State, observe } from "../src/common";
+import { observe } from "../src/common";
 import {
   isBehavior,
   Behavior,
@@ -11,28 +11,14 @@ import {
   fromFunction,
   sinkBehavior,
   ap,
-  map,
-  publish,
-  apply,
   debounce,
   delay,
-  empty,
-  filter,
-  filterApply,
   isStream,
-  keepWhen,
-  ProducerStream,
-  scanS,
   sinkStream,
   snapshot,
-  snapshotWith,
-  split,
-  Stream,
-  subscribe,
-  testStreamFromArray,
-  testStreamFromObject,
   throttle
-} from "../src/index";
+} from "../src";
+import * as H from "../src";
 
 import { createTestProducerBehavior } from "./helpers";
 
@@ -45,6 +31,28 @@ describe("placeholder", () => {
       mapped.subscribe((n: number) => (result = n));
       p.replaceWith(sinkBehavior("Hello"));
       assert.strictEqual(result, 5);
+    });
+    it("subscribers are notified when placeholder is replaced 2", () => {
+      let result: string;
+      const p = placeholder<string>();
+      p.subscribe((s) => (result = s));
+      p.replaceWith(Behavior.of("Hello"));
+      assert.strictEqual(result, "Hello");
+    });
+    it("observes are notified when replaced with pushing behavior", () => {
+      const p = placeholder();
+      const b = sinkBehavior(0);
+      const pushSpy = spy();
+      observe(
+        pushSpy,
+        () => {
+          throw new Error("should not be called");
+        },
+        p
+      );
+      p.replaceWith(b);
+      b.newValue(1);
+      assert.deepEqual(pushSpy.args, [[0], [1]]);
     });
     it("observer are notified when replaced with pulling behavior", () => {
       let beginPulling = false;
@@ -66,6 +74,47 @@ describe("placeholder", () => {
       p.replaceWith(b);
       assert.strictEqual(beginPulling, true);
       assert.strictEqual(p.at(), 12);
+    });
+    it("can pull mapped placeholder", () => {
+      let variable = 0;
+      const b = fromFunction(() => variable);
+      const p = placeholder<number>();
+      const mapResult = [];
+      const pm = p.map((n) => (mapResult.push(n), n));
+      // const pm = p.map((n) => n);
+      const result: Array<number> = [];
+      let pull;
+      observe(
+        (a) => {
+          result.push(a);
+        },
+        (pullCb) => {
+          pull = pullCb;
+          return () => {
+            throw new Error("Should not be called");
+          };
+        },
+        pm
+      );
+      p.replaceWith(b);
+      pull();
+      variable = 1;
+      pull();
+      variable = 2;
+      pull();
+      assert.deepEqual(result, [0, 1, 2], "result");
+      assert.deepEqual(mapResult, [0, 1, 2], "mapResult");
+    });
+    it("is possible to subscribe to a placeholder that has been replaced", () => {
+      const p = placeholder<string>();
+      p.replaceWith(Behavior.of("hello"));
+      p.subscribe((n) => assert.strictEqual(n, "hello"));
+    });
+    it("is possible to subscribe to a mapped placeholder that has been replaced", () => {
+      const p = placeholder<string>();
+      const mapped = p.map((s) => s.length);
+      p.replaceWith(Behavior.of("hello"));
+      observe((n) => assert.strictEqual(n, 5), () => 0 as any, mapped);
     });
     it("pushes if replaced with pushing behavior", () => {
       const stream = sinkStream();
@@ -95,39 +144,68 @@ describe("placeholder", () => {
       assert.deepEqual(cb.args, [[12]]);
     });
     it("ap works on placeholder", () => {
-      const b = placeholder<(a: number) => {}>();
-      const applied = ap(b, Behavior.of(12));
+      const bp = H.placeholder<number>();
+      const b = Behavior.of(3).ap(bp.map((n) => (m) => n + m));
+      let result = undefined;
+      b.observe(
+        (n) => {
+          result = n;
+        },
+        () => {
+          return () => {};
+        }
+      );
+      bp.replaceWith(Behavior.of(2));
+      assert.strictEqual(result, 5);
     });
     it("chain works on placeholder", () => {
       const b = placeholder();
       const chained = b.chain((n: any) => Behavior.of(n));
       b.replaceWith(Behavior.of(3));
     });
-    it("should work with consumers that only wants to pull", () => {
+    it("is possible to snapshot a placeholder that has been replaced", () => {
       const { activate, push, producer } = createTestProducerBehavior(0);
       const pB = placeholder();
       const s = sinkStream<string>();
       const shot = snapshot(pB, s);
       const callback = subscribeSpy(shot);
       pB.replaceWith(producer);
-      assert.isTrue(activate.calledOnce);
-      publish("a", s);
-      publish("b", s);
+      s.push("a");
+      s.push("b");
       push(1);
-      publish("c", s);
-      publish("d", s);
+      s.push("c");
+      s.push("d");
       push(4);
-      publish("e", s);
+      s.push("e");
       assert.deepEqual(callback.args, [[0], [0], [1], [1], [4]]);
     });
-    it("adds puller to the behavior it has been replaced with", () => {
-      const { activate, push, producer } = createTestProducerBehavior(0);
-      const pB = placeholder();
-      const s = sinkStream<string>();
-      pB.replaceWith(producer);
-      const shot = snapshot(pB, s);
-      const callback = subscribeSpy(shot);
-      assert.isTrue(activate.calledOnce);
+    it("supports circular dependency and switcher", () => {
+      // The important part of this test is the circular dependency and that the
+      // placeholder is replaced by a `switcher` that should have its `last`
+      // property set.
+      const [setTime, restore] = mockNow();
+      setTime(2000);
+      const sum = H.placeholder<number>();
+      const change = sum.map((_) => 1);
+      const sum2 = H.at(H.switcher(H.at(H.integrate(change)), H.empty));
+      const results = [];
+      let pull;
+      observe(
+        (n: number) => results.push(n),
+        (p) => {
+          pull = p;
+          return () => {};
+        },
+        sum
+      );
+      sum.replaceWith(sum2);
+      pull();
+      setTime(4000);
+      pull();
+      setTime(7000);
+      pull();
+      assert.deepEqual(results, [0, 2, 5]);
+      restore();
     });
   });
   describe("stream", () => {
@@ -234,6 +312,49 @@ describe("placeholder", () => {
         clock.tick(2);
         assert.strictEqual(n, 2);
       });
+    });
+  });
+  describe("future", () => {
+    it("is future", () => {
+      assert.isTrue(H.isFuture(placeholder()));
+    });
+    it("subscribers are notified when replaced with occurred future", () => {
+      let result: string;
+      const p = placeholder<string>();
+      p.subscribe((n: string) => (result = n));
+      p.replaceWith(H.Future.of("Hello"));
+      assert.strictEqual(result, "Hello");
+    });
+    it("subscribers are notified when placeholder has been replaced", () => {
+      let result: string;
+      const p = placeholder<string>();
+      p.replaceWith(H.Future.of("Hello"));
+      p.subscribe((n: string) => (result = n));
+      assert.strictEqual(result, "Hello");
+    });
+    it("can be mapped", () => {
+      let result = 0;
+      const p = placeholder();
+      const mapped = p.map((s: number) => s + 1);
+      mapped.subscribe((n: number) => (result = n));
+      const fut = H.sinkFuture();
+      p.replaceWith(fut);
+      assert.strictEqual(result, 0);
+      fut.resolve(1);
+      assert.strictEqual(result, 2);
+    });
+    it("works with mapped switchTo", () => {
+      const b1 = Behavior.of(1);
+      const b2 = Behavior.of(2);
+      const p = placeholder<Behavior<number>>();
+      const cb = spy();
+      const switching = H.switchTo(b1, p);
+      const mapped = switching.map((n) => n);
+      mapped.subscribe(cb);
+      const fut = H.sinkFuture<Behavior<number>>();
+      p.replaceWith(fut);
+      fut.resolve(b2);
+      assert.deepEqual(cb.args, [[1], [2]]);
     });
   });
 });

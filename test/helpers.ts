@@ -3,12 +3,19 @@ import { ProducerStream } from "../src/stream";
 import { spy } from "sinon";
 
 import { State, Reactive } from "../src/common";
-import { Behavior, ProducerBehavior } from "../src/behavior";
+import { SinkBehavior } from "../src/behavior";
 
-export function subscribeSpy(b: Reactive<any>): sinon.SinonSpy {
+export function subscribeSpy(b: Reactive<any, any>): sinon.SinonSpy {
   const cb = spy();
   b.subscribe(cb);
   return cb;
+}
+
+export function mockNow(): [(t: number) => void, () => void] {
+  const orig = Date.now;
+  let time = 0;
+  Date.now = () => time;
+  return [(t: number) => (time = t), () => (Date.now = orig)];
 }
 
 class TestProducer<A> extends ProducerStream<A> {
@@ -31,17 +38,17 @@ export function createTestProducer() {
   const activate = spy();
   const deactivate = spy();
   const producer = new TestProducer(activate, deactivate);
-  const push = producer.push.bind(producer);
+  const push = producer.pushS.bind(producer);
   return { activate, deactivate, push, producer };
 }
 
-class TestProducerBehavior<A> extends ProducerBehavior<A> {
+class TestProducerBehavior<A> extends SinkBehavior<A> {
   constructor(
-    public last: A,
+    last: A,
     private activateSpy: sinon.SinonSpy,
     private deactivateSpy: sinon.SinonSpy
   ) {
-    super();
+    super(last);
   }
   activateProducer(): void {
     this.activateSpy();
@@ -56,6 +63,6 @@ export function createTestProducerBehavior<A>(initial: A) {
   const activate = spy();
   const deactivate = spy();
   const producer = new TestProducerBehavior(initial, activate, deactivate);
-  const push = producer.push.bind(producer);
+  const push = producer.newValue.bind(producer);
   return { activate, deactivate, push, producer };
 }

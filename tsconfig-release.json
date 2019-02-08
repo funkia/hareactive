@@ -3,10 +3,11 @@
   "compilerOptions": {
     "target": "es5",
     "moduleResolution": "node",
+    "sourceMap": false,
     "declaration": true,
-    "declarationDir": "./dist/defs",
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "downlevelIteration": true
   },
   "files": ["node_modules/@types/mocha/index.d.ts"],
   "include": ["src/**/*.ts"],

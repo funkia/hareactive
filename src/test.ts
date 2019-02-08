@@ -18,7 +18,7 @@ class TestStream<A> extends Stream<A> {
     throw new Error("You cannot deactivate a TestStream");
   }
   /* istanbul ignore next */
-  push(a: A): void {
+  pushS(t: number, a: A): void {
     throw new Error("You cannot push to a TestStream");
   }
 }
@@ -41,6 +41,9 @@ export function testStreamFromObject<A>(object: {
 class TestFuture<A> extends Future<A> {
   constructor(private semanticFuture: SemanticFuture<A>) {
     super();
+  }
+  pushS(t: number, val: A): void {
+    throw new Error("You cannot push to a TestFuture");
   }
   semantic(): SemanticFuture<A> {
     return this.semanticFuture;

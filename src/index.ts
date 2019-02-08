@@ -1,5 +1,7 @@
 import { Stream, SinkStream } from "./stream";
-import { Behavior, SinkBehavior } from "./behavior";
+import { Behavior, SinkBehavior, MapBehaviorTuple } from "./behavior";
+import { Now } from "./now";
+import { Future, MapFutureTuple } from "./future";
 
 export * from "./common";
 export * from "./behavior";
@@ -17,15 +19,32 @@ export * from "./test";
  * time the value of `b` is `bVal` then the value of the returned
  * behavior is `fn(bVal)`.
  */
+export function map<A, B>(fn: (a: A) => B, future: Future<A>): Future<B>;
 export function map<A, B>(fn: (a: A) => B, stream: Stream<A>): Stream<B>;
 export function map<A, B>(fn: (a: A) => B, behavior: Behavior<A>): Behavior<B>;
 export function map<A, B>(fn: (a: A) => B, b: any): any {
   return b.map(fn);
 }
 
-export function publish<A>(
-  a: A,
-  stream: SinkStream<A> | SinkBehavior<A>
-): void {
-  stream.push(a);
+export function lift<A extends any[], R>(
+  f: (...args: A) => R,
+  ...args: MapFutureTuple<A>
+): Future<R>;
+export function lift<A extends any[], R>(
+  f: (...args: A) => R,
+  ...args: MapBehaviorTuple<A>
+): Behavior<R>;
+export function lift<R>(f: (...args: any) => R, ...args: any): any {
+  return args[0].lift(f, ...args);
+}
+
+export function flatten<A>(b: Behavior<Behavior<A>>): Behavior<A>;
+export function flatten<A>(f: Future<Future<A>>): Future<A>;
+export function flatten<A>(n: Now<Now<A>>): Now<A>;
+export function flatten(o: { flatten: () => any }): any {
+  return o.flatten();
+}
+
+export function push<A>(a: A, sink: SinkBehavior<A> | SinkStream<A>): void {
+  sink.push(a);
 }

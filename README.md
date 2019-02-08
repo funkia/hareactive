@@ -243,7 +243,7 @@ Implementing stateful methods such as `scan` in a way that is both
 intuitive to use, pure and memory safe is very tricky.
 
 When implementing functions such as `scan` most reactive libraries in
-JavaScript does one of these two things:
+JavaScript do one of these two things:
 
 * Calling `scan` doesn't begin accumulating state at all. Only when
   someone starts observing the result of `scan` is state accumulated.
@@ -280,6 +280,35 @@ const count = sample(scan((acc, inc) => acc + inc, 0, incrementStream));
 Here `count` has type `Now<Behavior<A>>` and it represents a
 `Now`-computation that will start accumulating from the present
 moment.
+
+## Flattening nested FRP values
+
+The definition of higher-order FRP is that it allows for FRP primitives nested
+inside other FRP primitives. Combinations like streams of streams, behaviors of
+behaviors, streams of futures, and any others are possible.
+
+The benefit of higher-order FRP is increased expressiveness that makes it
+possibe to express many real-world scenarios with ease. One example whould be an
+application with a list of counters. Each counter has a value which can be
+represented as a `Behavior<number>`. A list of counters would then have the type
+`Array<Behavior<number>>`. If additionally the list itself can change (maybe new
+counters can be added) then the type whould be
+`Behavior<Array<Behavior<number>>`. This higher-order type nicely captures that
+we have a _changing_ list of _changing_ numbers.
+
+The downside of higher-order FRP is that sometimes dealing with these nested
+types can be tricky. Hareactive provides a number of functions to help with
+this. The table below gives an overview.
+
+| Inner    | Outer    | Function                   |
+| -------- | -------- | -------------------------- |
+| Behavior | anything | `sample` (when inside Now) |
+| Behavior | Behavior | `flatten`                  |
+| Behavior | Stream   | `switchStream`             |
+| Stream   | Behavior | `switcher`, `selfie`       |
+| Stream   | Stream   | `switchStreamS`            |
+| Stream   | Future   | n/a                        |
+| Future   | Behavior | `switchTo`                 |
 
 ## Tutorial/cookbook
 
@@ -400,16 +429,36 @@ misbehavingStream.log();
 
 ### Future
 
-#### `Future#listen(o: Consumer<A>): void`
+#### `Future.of<A>(a: A): Future<A>`
 
-Adds a consumer as listener to a future. If the future has already
-occurred the consumer is immediately pushed to.
+Converts any value into a future that has "always occurred". Semantically `Future.of(a)` is equivalent to `(-Infinity, a)`.
 
 #### `fromPromise<A>(p: Promise<A>): Future<A>`
 
 Converts a promise to a future.
 
+#### `isFuture(f: any): f is Future<any>`
+
+Returns `true` if `f` is a future and `false` otherwise.
+
+#### `Future#listen<A>(o: Consumer<A>): void`
+
+Adds a consumer as listener to a future. If the future has already
+occurred the consumer is immediately pushed to.
+
 ### Stream
+
+#### `empty: Stream<any>`
+
+Empty stream. 
+
+#### ~`Stream.of<A>(a: A): Stream<A>`~
+
+This function does not exist. Use `empty` to create a dummy stream for testing purposes.
+
+#### `isStream(s: any): s is Stream<any>`
+
+Returns `true` if `s` is a behavior and `false` otherwise.
 
 #### `apply<A, B>(behavior: Behavior<(a: A) => B>, stream: Stream<A>): Stream<B>`
 
@@ -459,9 +508,9 @@ A stateful scan.
 
 #### `snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B>`
 
-Creates a streams that occurs exactly when `s` occurs. Every time the
-stream `s` has an occurrence the current value of `b` is sampled. The
-value in the occurrence is then replaced with the sampled value.
+Creates a stream that occurs exactly when `s` occurs. Every time the stream `s`
+has an occurrence the current value of `b` is sampled. The value in the
+occurrence is then replaced with the sampled value.
 
 ```js
 const stream = testStreamFromObject({
@@ -537,6 +586,20 @@ Returns a stream that after occurring, ignores the next occurrences in
 
 ### Behavior
 
+#### `Behavior.of<A>(a: A): Behavior<A>`
+
+Converts any value into a constant behavior.
+
+#### `fromFunction<B>(fn: () => B): Behavior<B>`
+
+This takes an impure function that varies over time and returns a
+pull-driven behavior. This is particularly useful if the function is
+contionusly changing, like `Date.now`.
+
+#### `isBehavior(b: any): b is Behavior<any>`
+
+Returns `true` if `b` is a behavior and `false` otherwise.
+
 #### `when(b: Behavior<boolean>): Behavior<Future<{}>>`
 
 Takes a boolean valued behavior an returns a behavior that at any
@@ -559,7 +622,7 @@ occurs after which it acts like the behavior it contains.
 
 A behavior of a behavior that switches to the latest behavior from `s`.
 
-#### `stepper<B>(initial: B, steps: Stream<B>): Behavior<B>`
+#### `stepper<B>(initial: B, steps: Stream<B>): Behavior<Behavior<B>>`
 
 Creates a behavior whose value is the last occurrence in the stream.
 
@@ -570,21 +633,10 @@ occurrence in `source` the function is applied to the current value of
 the behaviour and the value of the occurrence, the returned value
 becomes the next value of the behavior.
 
-#### `fromFunction<B>(fn: () => B): Behavior<B>`
-
-This takes an impure function that varies over time and returns a
-pull-driven behavior. This is particularly useful if the function is
-contionusly changing, like `Date.now`.
-
-#### `isBehavior(b: any): b is Behavior<any>`
-
-Returns `true` if `b` is a behavior and `false` otherwise.
-
 #### `time: Behavior<Time>`
 
-A behavior whose value is the number of milliseconds elapsed win UNIX
-epoch. I.e. its current value is equal to the value got by calling
-`Date.now`.
+A behavior whose value is the number of milliseconds elapsed since UNIX epoch.
+I.e. its current value is equal to the value got by calling `Date.now`.
 
 #### `timeFrom: Behavior<Behavior<Time>>`
 
@@ -602,6 +654,10 @@ Integrate behavior with respect to time.
 The Now monad represents a computation that takes place in a given
 moment and where the moment will always be now when the computation is
 run.
+
+#### `Now.of<A>(a: A): Now<A>`
+
+Converts any value into the Now monad.
 
 #### `async<A>(comp: IO<A>): Now<Future<A>>`
 

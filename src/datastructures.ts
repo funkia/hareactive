@@ -1,17 +1,24 @@
 export class Cons<A> {
-  constructor(public readonly value: A, public tail: Cons<A> | undefined) {}
+  constructor(
+    public readonly value: A,
+    public readonly tail: Cons<A>,
+    public readonly isNil: boolean
+  ) {}
   *[Symbol.iterator](): IterableIterator<A> {
     let head: Cons<A> = this;
-    while (head !== undefined) {
-      yield head.value;
+    while (head.isNil === false) {
+      const v = head.value;
       head = head.tail;
+      yield v;
     }
   }
 }
 
-export function cons<A>(value: A, tail?: Cons<A>): Cons<A> {
-  return new Cons(value, tail);
+export function cons<A>(value: A, tail: Cons<A> = nil): Cons<A> {
+  return new Cons(value, tail, false);
 }
+
+export const nil: Cons<any> = new Cons(undefined, undefined, true);
 
 export function fromArray<A>(values: A[]): Cons<A> {
   let list = cons(values[0]);
@@ -60,8 +67,9 @@ export class DoubleLinkedList<A> {
   *[Symbol.iterator](): IterableIterator<A> {
     let { head } = this;
     while (head !== undefined) {
-      yield head.value;
+      const v = head.value;
       head = head.next;
+      yield v;
     }
   }
 }

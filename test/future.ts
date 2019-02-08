@@ -1,8 +1,33 @@
 import { assert } from "chai";
-import { lift } from "@funkia/jabz";
-import { Future, sinkFuture, fromPromise } from "../src/future";
+import { spy } from "sinon";
+
+import {
+  Future,
+  sinkFuture,
+  fromPromise,
+  nextOccurence,
+  mapCbFuture
+} from "../src/future";
+import { SinkStream, Behavior } from "../src";
+import * as H from "../src";
 
 describe("Future", () => {
+  describe("isFuture", () => {
+    it("should be true when Future object", () => {
+      assert.isTrue(H.isFuture(H.sinkFuture()));
+      assert.isTrue(H.isFuture(Future.of(3)));
+    });
+    it("should be false when not Stream object", () => {
+      assert.isFalse(H.isFuture([]));
+      assert.isFalse(H.isFuture({}));
+      assert.isFalse(H.isFuture(undefined));
+      assert.isFalse(H.isFuture(Behavior.of(2)));
+      assert.isFalse(H.isFuture("test"));
+      assert.isFalse(H.isFuture(H.empty));
+      assert.isFalse(H.isFuture(1234));
+      assert.isFalse(H.isFuture(H.isFuture));
+    });
+  });
   describe("sink", () => {
     it("notifies subscriber", () => {
       let result: number;
@@ -25,6 +50,14 @@ describe("Future", () => {
       s.resolve(1);
       assert.strictEqual(result, 9);
     });
+    it("subscribing to resolved sink gives value", () => {
+      const cb = spy();
+      const s = sinkFuture<number>();
+      s.resolve(1);
+      assert.equal(s.state, H.State.Done, "Is done");
+      s.subscribe(cb);
+      assert.deepEqual(cb.args, [[1]]);
+    });
   });
   describe("Semigroup", () => {
     it("returns the first future if it occurs first", () => {
@@ -46,6 +79,19 @@ describe("Future", () => {
       future2.resolve(2);
       future1.resolve(1);
       assert.strictEqual(result, 2);
+    });
+    it("returns when only one occurs", () => {
+      let result1: number;
+      let result2: number;
+      const future1 = sinkFuture<number>();
+      const future2 = sinkFuture<number>();
+      const combined = future1.combine(future2);
+      future1.subscribe((a) => {
+        result1 = a;
+      });
+      combined.subscribe((a) => (result2 = a));
+      future1.resolve(1);
+      assert.strictEqual(result1, 1);
     });
   });
   describe("Functor", () => {
@@ -84,7 +130,7 @@ describe("Future", () => {
     it("lifts a function of one argument", () => {
       let result: string;
       const fut = sinkFuture<string>();
-      const lifted = lift((s: string) => s + "!", fut);
+      const lifted = H.lift((s: string) => s + "!", fut);
       lifted.subscribe((s: string) => (result = s));
       assert.strictEqual(result, undefined);
       fut.resolve("Hello");
@@ -95,7 +141,7 @@ describe("Future", () => {
       const fut1 = sinkFuture<string>();
       const fut2 = sinkFuture<string>();
       const fut3 = sinkFuture<string>();
-      const lifted = lift(
+      const lifted = H.lift(
         (s1: string, s2: string, s3: string) => {
           return s1 + "-" + s2 + "+" + s3;
         },
@@ -113,12 +159,12 @@ describe("Future", () => {
       assert.strictEqual(result, "Hello-over+there");
     });
   });
-  describe("Monad", () => {
-    it("chains value", () => {
+  describe("flatMap", () => {
+    it("flatMaps value", () => {
       let result: number[] = [];
       const fut1 = sinkFuture<number>();
       const fut2 = sinkFuture<number>();
-      const chained = fut1.chain((n: number) => {
+      const chained = fut1.flatMap((n: number) => {
         result.push(n);
         return fut2;
       });
@@ -141,6 +187,38 @@ describe("Future", () => {
     resolve(12);
     return promise.then(() => {
       assert.strictEqual(result, 12);
+    });
+  });
+  describe("nextOccurence", () => {
+    it("resolves on next occurence", () => {
+      let result: string;
+      const s = new SinkStream<string>();
+      const next = nextOccurence(s);
+      s.push("a");
+      const f = next.at();
+      f.subscribe((v) => (result = v));
+      assert.strictEqual(result, undefined);
+      s.push("b");
+      assert.strictEqual(result, "b");
+    });
+  });
+  describe("mapCbFuture", () => {
+    it("resolves with result when done callback invoked", () => {
+      const fut = sinkFuture<number>();
+      const cb = spy();
+      let value;
+      let done;
+      const fut2 = mapCbFuture((v, d) => {
+        value = v;
+        done = d;
+      }, fut);
+      fut2.subscribe(cb);
+      fut.resolve(3);
+      assert.equal(value, 3);
+      assert.equal(cb.callCount, 0);
+      done(value + 1);
+      assert.equal(cb.callCount, 1);
+      assert.deepEqual(cb.args, [[4]]);
     });
   });
 });
