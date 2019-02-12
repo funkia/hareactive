@@ -31,9 +31,7 @@ export abstract class Now<A> implements Monad<A> {
   }
   static multi: boolean = false;
   multi: boolean = false;
-
   abstract test(mocks: any[], t: Time): { value: A; mocks: any[] };
-
   // Definitions below are inserted by Jabz
   flatten: <B>() => Now<B>;
   map: <B>(f: (a: A) => B) => Now<B>;
@@ -90,7 +88,6 @@ class PerformNow<A> extends Now<A> {
   run(): A {
     return this.cb();
   }
-
   test([value, ...mocks]: any[], t: Time): { value: A; mocks: any[] } {
     return { value, mocks };
   }
@@ -123,7 +120,6 @@ class PerformMapNow<A, B> extends Now<Stream<B> | Future<B>> {
       ? mapCbStream((value, done) => done(this.cb(value)), this.s)
       : mapCbFuture((value, done) => done(this.cb(value)), this.s);
   }
-
   test(
     [value, ...mocks]: any[],
     _: Time
@@ -185,7 +181,6 @@ class PerformStreamNowLatest<A> extends Now<Stream<A>> {
   run(): Stream<A> {
     return new PerformIOStreamLatest(this.s);
   }
-
   test([value, ...mocks]: any[], _: Time): { value: Stream<A>; mocks } {
     return { value, mocks };
   }
@@ -232,7 +227,6 @@ class PerformStreamNowOrdered<A> extends Now<Stream<A>> {
   run(): Stream<A> {
     return new PerformIOStreamOrdered(this.s);
   }
-
   test([value, ...mocks]: any[], _: Time): { value: Stream<A>; mocks } {
     return { value, mocks };
   }
@@ -249,7 +243,6 @@ class PlanNow<A> extends Now<Future<A>> {
   run(time: Time): Future<A> {
     return this.future.map((n) => n.run(time));
   }
-
   test(mocks: any[], t: Time): { value: Future<A>; mocks: any[] } {
     throw new Error("The PlanNow computation does not support testing yet");
   }
@@ -310,7 +303,6 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
     }
     return result;
   }
-
   test(mocks: any[], t: Time): { value: A; mocks: any[] } {
     throw new Error("The LoopNow computation does not support testing yet");
   }

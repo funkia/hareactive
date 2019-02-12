@@ -48,7 +48,6 @@ class TestFuture<A> extends Future<A> {
   semantic(): SemanticFuture<A> {
     return this.semanticFuture;
   }
-
   push(a: A): void {
     throw new Error("You cannot push to a TestFuture");
   }

@@ -13,10 +13,12 @@ export function doesOccur<A>(
 ): future is Occurrence<A> {
   return future.time !== "infinity";
 }
+
 export const neverOccurringFuture = {
   time: "infinity" as "infinity",
   value: undefined as undefined
 };
+
 export type SemanticFuture<A> = Occurrence<A> | typeof neverOccurringFuture;
 
 /**
