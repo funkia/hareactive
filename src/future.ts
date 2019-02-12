@@ -1,21 +1,23 @@
-import { monad, Monad, Semigroup } from "@funkia/jabz";
+import { monad, Semigroup } from "@funkia/jabz";
 import { State, SListener, Parent, BListener, Time } from "./common";
 import { Reactive } from "./common";
 import { cons, fromArray, Node } from "./datastructures";
 import { Behavior, FunctionBehavior } from "./behavior";
 import { tick } from "./clock";
-import { Stream } from "./stream";
+import { Stream, Occurrence } from "./stream";
 
 export type MapFutureTuple<A> = { [K in keyof A]: Future<A[K]> };
 
-export type SemanticFuture<A> =
-  | { time: number; value: A }
-  | { time: 9007199254740991; value: never };
-
-const neverOccuringSemanticFuture = {
-  time: 9007199254740991,
-  value: undefined
-} as SemanticFuture<any>;
+export function doesOccur<A>(
+  future: SemanticFuture<A>
+): future is Occurrence<A> {
+  return future.time !== "infinity";
+}
+export const neverOccurringFuture = {
+  time: "infinity" as "infinity",
+  value: undefined as undefined
+};
+export type SemanticFuture<A> = Occurrence<A> | typeof neverOccurringFuture;
 
 /**
  * A future is a thing that occurs at some point in time with a value.
@@ -124,8 +126,10 @@ class MapFuture<A, B> extends Future<B> {
     this.resolve(this.f(val), t);
   }
   semantic(): SemanticFuture<B> {
-    const { time, value } = this.parent.semantic();
-    return { time, value: this.f(value) };
+    const p = this.parent.semantic();
+    return doesOccur(p)
+      ? { time: p.time, value: this.f(p.value) }
+      : neverOccurringFuture;
   }
 }
 
@@ -138,8 +142,10 @@ class MapToFuture<A> extends Future<A> {
     this.resolve(this.value, t);
   }
   semantic(): SemanticFuture<A> {
-    const { time } = this.parent.semantic();
-    return { time, value: this.value };
+    const p = this.parent.semantic();
+    return doesOccur(p)
+      ? { time: p.time, value: this.value }
+      : neverOccurringFuture;
   }
 }
 
@@ -184,8 +190,12 @@ class LiftFuture<A> extends Future<A> {
   }
   semantic(): SemanticFuture<A> {
     const sems = this.futures.map((f) => f.semantic());
-    const time = Math.max(...sems.map((s) => s.time));
-    return { time, value: this.f(...sems.map((s) => s.value)) };
+    const time = Math.max(
+      ...sems.map((s) => (doesOccur(s) ? s.time : Infinity))
+    );
+    return time !== Infinity
+      ? { time, value: this.f(...sems.map((s) => s.value)) }
+      : neverOccurringFuture;
   }
 }
 
@@ -209,8 +219,13 @@ class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
   }
   semantic(): SemanticFuture<B> {
     const a = this.parent.semantic();
-    const b = this.f(a.value).semantic();
-    return { time: Math.max(a.time, b.time), value: b.value };
+    if (doesOccur(a)) {
+      const b = this.f(a.value).semantic();
+      if (doesOccur(b)) {
+        return { time: Math.max(a.time, b.time), value: b.value };
+      }
+    }
+    return neverOccurringFuture;
   }
 }
 
@@ -275,15 +290,8 @@ class NextOccurenceFuture<A> extends Future<A> implements SListener<A> {
     this.resolve(val, t);
   }
   semantic(): SemanticFuture<A> {
-    const occ = this.s.semantic().find((o) => o.time >= this.time);
-    if (occ !== undefined) {
-      return {
-        time: occ.time,
-        value: occ.value
-      };
-    } else {
-      return neverOccuringSemanticFuture;
-    }
+    const occ = this.s.semantic().find((o) => o.time > this.time);
+    return occ !== undefined ? occ : neverOccurringFuture;
   }
 }
 
