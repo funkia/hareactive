@@ -165,6 +165,22 @@ class OfFuture<A> extends Future<A> {
   }
 }
 
+class NeverFuture extends Future<any> {
+  constructor() {
+    super();
+    this.state = State.Done;
+  }
+  /* istanbul ignore next */
+  pushS(_: any): void {
+    throw new Error("A NeverFuture should never be pushed to.");
+  }
+  semantic(): SemanticFuture<any> {
+    return neverOccurringFuture;
+  }
+}
+
+export const never = new NeverFuture();
+
 /** For stateful futures that are always active */
 export abstract class ActiveFuture<A> extends Future<A> {
   constructor() {

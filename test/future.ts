@@ -94,6 +94,16 @@ describe("Future", () => {
       assert.strictEqual(result1, 1);
     });
   });
+  describe("Monoid", () => {
+    it("has no occurrence", () => {
+      let result: number;
+      H.never.map((a) => (result = a))
+      assert.strictEqual(result, undefined);
+    });
+    it("has semantic representation", () => {
+      assert.strictEqual(H.never.semantic(), H.neverOccurringFuture);
+    });
+  });
   describe("Functor", () => {
     it("maps over value", () => {
       let result: number;
