@@ -350,3 +350,20 @@ export function mapCbFuture<A, B>(
 ): Future<B> {
   return new MapCbFuture(cb, future);
 }
+
+class TestFuture<A> extends Future<A> {
+  constructor(private time: number, public value: A) {
+    super();
+  }
+  /* istanbul ignore next */
+  pushS(_: any): void {
+    throw new Error("A test pure should never be pushed to.");
+  }
+  semantic(): SemanticFuture<A> {
+    return { time: this.time, value: this.value };
+  }
+}
+
+export function testFuture<A>(time: number, value: A): Future<A> {
+  return new TestFuture(time, value);
+}
