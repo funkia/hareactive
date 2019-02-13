@@ -94,6 +94,16 @@ describe("Future", () => {
       assert.strictEqual(result1, 1);
     });
   });
+  describe("Monoid", () => {
+    it("has no occurrence", () => {
+      let result: number;
+      H.never.map((a) => (result = a));
+      assert.strictEqual(result, undefined);
+    });
+    it("has semantic representation", () => {
+      assert.strictEqual(H.never.semantic(), H.neverOccurringFuture);
+    });
+  });
   describe("Functor", () => {
     it("maps over value", () => {
       let result: number;
@@ -117,16 +127,13 @@ describe("Future", () => {
       s.resolve(4);
       assert.strictEqual(result, "horse");
     });
-  });
-  describe("Applicative", () => {
-    it("of gives future that has occurred", () => {
-      let result: number;
-      const o = Future.of(12);
-      o.subscribe((x) => (result = x));
-      assert.strictEqual(result, 12);
-      o.of(7).subscribe((x) => (result = x));
-      assert.strictEqual(result, 7);
+    it("has semantic", () => {
+      const fut = H.testFuture(3, "hello");
+      const fut2 = fut.map((s) => s.toUpperCase());
+      assert.deepEqual(fut2.semantic(), H.testFuture(3, "HELLO").semantic());
     });
+  });
+  describe("Apply", () => {
     it("lifts a function of one argument", () => {
       let result: string;
       const fut = sinkFuture<string>();
@@ -157,6 +164,29 @@ describe("Future", () => {
       assert.strictEqual(result, undefined);
       fut3.resolve("there");
       assert.strictEqual(result, "Hello-over+there");
+    });
+    describe("semantics", () => {
+      it("applies function to values with last time", () => {
+        const f1 = H.testFuture(2, 2);
+        const f2 = H.testFuture(5, 3);
+        const f3 = H.testFuture(1, 7);
+        const f4 = H.lift((a, b, c) => a * b + c, f1, f2, f3);
+        assert.deepEqual(f4.semantic(), H.testFuture(5, 13).semantic());
+      });
+    });
+  });
+  describe("Applicative", () => {
+    it("of gives future that has occurred", () => {
+      let result: number;
+      const o = Future.of(12);
+      o.subscribe((x) => (result = x));
+      assert.strictEqual(result, 12);
+      o.of(7).subscribe((x) => (result = x));
+      assert.strictEqual(result, 7);
+    });
+    it("has semantic", () => {
+      const fut = H.Future.of(12);
+      assert.deepEqual(fut.semantic(), { time: -Infinity, value: 12 });
     });
   });
   describe("flatMap", () => {

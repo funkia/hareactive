@@ -1,5 +1,6 @@
 import { Stream, SemanticStream } from "./stream";
 import { Behavior, SemanticBehavior } from "./behavior";
+import { Future, SemanticFuture } from ".";
 
 class TestStream<A> extends Stream<A> {
   constructor(private semanticStream: SemanticStream<A>) {
@@ -35,4 +36,23 @@ export function testStreamFromObject<A>(object: {
     value: object[key]
   }));
   return new TestStream(semanticStream);
+}
+
+class TestFuture<A> extends Future<A> {
+  constructor(private semanticFuture: SemanticFuture<A>) {
+    super();
+  }
+  pushS(t: number, val: A): void {
+    throw new Error("You cannot push to a TestFuture");
+  }
+  semantic(): SemanticFuture<A> {
+    return this.semanticFuture;
+  }
+  push(a: A): void {
+    throw new Error("You cannot push to a TestFuture");
+  }
+}
+
+export function testFuture<A>(time: number, value: A): Future<A> {
+  return new TestFuture({ time, value });
 }

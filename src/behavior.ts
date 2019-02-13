@@ -490,7 +490,7 @@ class TestBehavior<A> extends Behavior<A> {
   }
 }
 
-export function testBehavior<A>(b: SemanticBehavior<A>): Behavior<A> {
+export function testBehavior<A>(b: (time: number) => A): Behavior<A> {
   return new TestBehavior(b);
 }
 

@@ -31,7 +31,13 @@ import {
   sinkStream,
   SinkStream,
   time,
-  toPromise
+  toPromise,
+  perform,
+  testFuture,
+  testStreamFromArray,
+  isStream,
+  stepper,
+  isBehavior
 } from "../src";
 import * as H from "../src";
 
@@ -108,6 +114,14 @@ describe("Now", () => {
       } catch {
         done();
       }
+    });
+  });
+  describe("perform", () => {
+    it("can be tested", () => {
+      const ref1 = createRef(1);
+      const comp = performIO(mutateRef(2, ref1));
+      const result = testNow(comp, [testFuture(0, "foo")]);
+      assert(result.semantic().value, "foo");
     });
   });
   describe("async", () => {
@@ -252,6 +266,29 @@ describe("Now", () => {
         });
       });
     });
+    it("can be tested", () => {
+      let requests: number[] = [];
+      const model = fgo(function*({ click }) {
+        const request = click.mapTo(
+          withEffects((n: number) => {
+            requests.push(n);
+            return n + 2;
+          })
+        );
+        const response: Stream<string> = yield performStream(request);
+        return { res: response };
+      });
+      const click = testStreamFromArray([1, 2, 3, 4, 5]);
+      const out: { res: Stream<string> } = testNow(model({ click }), [
+        testStreamFromArray(["old1", "old2", "response"])
+      ]);
+      assert(isStream(out.res));
+      assert.deepEqual(
+        out.res.semantic(),
+        testStreamFromArray(["old1", "old2", "response"]).semantic()
+      );
+      assert.deepEqual(requests, []);
+    });
   });
   describe("performMap", () => {
     it("runs callback and uses return value for stream", () => {
@@ -311,6 +348,33 @@ describe("Now", () => {
         done();
       });
     });
+    it("can be tested", () => {
+      let requests: number[] = [];
+      const model = fgo(function*({ click }) {
+        const request = click.mapTo(
+          withEffects((n: number) => {
+            requests.push(n);
+            return n + 2;
+          })
+        );
+        const response = yield performStreamLatest(request);
+        const res = stepper("", response.map((e) => e.toString()));
+        return { res };
+      });
+      const click = testStreamFromArray([1, 2, 3, 4, 5]);
+      const out: { res: Behavior<Behavior<string>> } = testNow(
+        model({ click }),
+        [testStreamFromArray(["old", "old", "response"])]
+      );
+      assert(isBehavior(out.res));
+      assert.equal(
+        out.res
+          .semantic()(0)
+          .semantic()(4),
+        "response"
+      );
+      assert.deepEqual(requests, []);
+    });
   });
 
   describe("performStreamOrdered", () => {
@@ -327,6 +391,30 @@ describe("Now", () => {
         assert.deepEqual(results, [60]);
         done();
       });
+    });
+
+    it("can be tested", () => {
+      let requests: number[] = [];
+      const model = fgo(function*({ click }) {
+        const request = click.mapTo(
+          withEffects((n: number) => {
+            requests.push(n);
+            return n + 2;
+          })
+        );
+        const response: Stream<string> = yield performStreamOrdered(request);
+        return { res: response };
+      });
+      const click = testStreamFromArray([1, 2, 3, 4, 5]);
+      const out: { res: Stream<string> } = testNow(model({ click }), [
+        testStreamFromArray(["old1", "old2", "response"])
+      ]);
+      assert(isStream(out.res));
+      assert.deepEqual(
+        out.res.semantic(),
+        testStreamFromArray(["old1", "old2", "response"]).semantic()
+      );
+      assert.deepEqual(requests, []);
     });
 
     it("runs io actions and makes sure to keep the results in the same order", (done: Function) => {
