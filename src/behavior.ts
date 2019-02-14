@@ -403,6 +403,9 @@ export class FunctionBehavior<A> extends ActiveBehavior<A> {
   update(t: Time): A {
     return this.f(t);
   }
+  semantic(): SemanticBehavior<A> {
+    return (t: number) => this.f(t);
+  }
 }
 
 export function fromFunction<B>(f: (t: Time) => B): Behavior<B> {

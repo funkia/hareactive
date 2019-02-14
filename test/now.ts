@@ -121,7 +121,7 @@ describe("Now", () => {
       const ref1 = createRef(1);
       const comp = performIO(mutateRef(2, ref1));
       const result = testNow(comp, [testFuture(0, "foo")]);
-      assert(result.semantic().value, "foo");
+      assert(result.test().value, "foo");
     });
   });
   describe("async", () => {

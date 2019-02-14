@@ -8,19 +8,6 @@ import { Stream, Occurrence } from "./stream";
 
 export type MapFutureTuple<A> = { [K in keyof A]: Future<A[K]> };
 
-export function doesOccur<A>(
-  future: SemanticFuture<A>
-): future is Occurrence<A> {
-  return future.time !== "infinity";
-}
-
-export const neverOccurringFuture = {
-  time: "infinity" as "infinity",
-  value: undefined as undefined
-};
-
-export type SemanticFuture<A> = Occurrence<A> | typeof neverOccurringFuture;
-
 /**
  * A future is a thing that occurs at some point in time with a value.
  * It can be understood as a pair consisting of the time the future
@@ -68,7 +55,6 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
   mapTo<B>(b: B): Future<B> {
     return new MapToFuture<B>(b, this);
   }
-  abstract semantic(): SemanticFuture<A>;
   // A future is an applicative. `of` gives a future that has always
   // occurred at all points in time.
   static of<B>(b: B): Future<B> {
@@ -104,7 +90,7 @@ export function isFuture(a: any): a is Future<any> {
   return typeof a === "object" && "resolve" in a;
 }
 
-class CombineFuture<A> extends Future<A> {
+export class CombineFuture<A> extends Future<A> {
   constructor(private future1: Future<A>, private future2: Future<A>) {
     super();
     this.parents = cons(future1, cons(future2));
@@ -112,14 +98,9 @@ class CombineFuture<A> extends Future<A> {
   pushS(t: number, val: A): void {
     this.resolve(val, t);
   }
-  semantic(): SemanticFuture<A> {
-    const a = this.future1.semantic();
-    const b = this.future2.semantic();
-    return a.time <= b.time ? a : b;
-  }
 }
 
-class MapFuture<A, B> extends Future<B> {
+export class MapFuture<A, B> extends Future<B> {
   constructor(private f: (a: A) => B, private parent: Future<A>) {
     super();
     this.parents = cons(parent);
@@ -127,15 +108,9 @@ class MapFuture<A, B> extends Future<B> {
   pushS(t: number, val: A): void {
     this.resolve(this.f(val), t);
   }
-  semantic(): SemanticFuture<B> {
-    const p = this.parent.semantic();
-    return doesOccur(p)
-      ? { time: p.time, value: this.f(p.value) }
-      : neverOccurringFuture;
-  }
 }
 
-class MapToFuture<A> extends Future<A> {
+export class MapToFuture<A> extends Future<A> {
   constructor(public value: A, private parent: Future<any>) {
     super();
     this.parents = cons(parent);
@@ -143,15 +118,9 @@ class MapToFuture<A> extends Future<A> {
   pushS(t: any, _val: any): void {
     this.resolve(this.value, t);
   }
-  semantic(): SemanticFuture<A> {
-    const p = this.parent.semantic();
-    return doesOccur(p)
-      ? { time: p.time, value: this.value }
-      : neverOccurringFuture;
-  }
 }
 
-class OfFuture<A> extends Future<A> {
+export class OfFuture<A> extends Future<A> {
   constructor(public value: A) {
     super();
     this.state = State.Done;
@@ -160,12 +129,9 @@ class OfFuture<A> extends Future<A> {
   pushS(_: any): void {
     throw new Error("A PureFuture should never be pushed to.");
   }
-  semantic(): SemanticFuture<A> {
-    return { time: -Infinity, value: this.value };
-  }
 }
 
-class NeverFuture extends Future<any> {
+export class NeverFuture extends Future<any> {
   constructor() {
     super();
     this.state = State.Done;
@@ -173,9 +139,6 @@ class NeverFuture extends Future<any> {
   /* istanbul ignore next */
   pushS(_: any): void {
     throw new Error("A NeverFuture should never be pushed to.");
-  }
-  semantic(): SemanticFuture<any> {
-    return neverOccurringFuture;
   }
 }
 
@@ -190,7 +153,7 @@ export abstract class ActiveFuture<A> extends Future<A> {
   activate(): void {}
 }
 
-class LiftFuture<A> extends Future<A> {
+export class LiftFuture<A> extends Future<A> {
   private missing: number;
   constructor(private f: Function, private futures: Future<any>[]) {
     super();
@@ -206,18 +169,9 @@ class LiftFuture<A> extends Future<A> {
       this.resolve(this.f.apply(undefined, this.futures), t);
     }
   }
-  semantic(): SemanticFuture<A> {
-    const sems = this.futures.map((f) => f.semantic());
-    const time = Math.max(
-      ...sems.map((s) => (doesOccur(s) ? s.time : Infinity))
-    );
-    return time !== Infinity
-      ? { time, value: this.f(...sems.map((s) => s.value)) }
-      : neverOccurringFuture;
-  }
 }
 
-class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
+export class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
   private parentOccurred: boolean = false;
   private node: Node<this> = new Node(this);
   constructor(private f: (a: A) => Future<B>, private parent: Future<A>) {
@@ -235,16 +189,6 @@ class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
       this.resolve(val, t);
     }
   }
-  semantic(): SemanticFuture<B> {
-    const a = this.parent.semantic();
-    if (doesOccur(a)) {
-      const b = this.f(a.value).semantic();
-      if (doesOccur(b)) {
-        return { time: Math.max(a.time, b.time), value: b.value };
-      }
-    }
-    return neverOccurringFuture;
-  }
 }
 
 /**
@@ -255,9 +199,6 @@ export class SinkFuture<A> extends ActiveFuture<A> {
   /* istanbul ignore next */
   pushS(t: number, val: any): void {
     throw new Error("A sink should not be pushed to.");
-  }
-  semantic(): never {
-    throw new Error("The SinkFuture does not have a semantic representation");
   }
 }
 
@@ -299,17 +240,13 @@ export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
   }
 }
 
-class NextOccurenceFuture<A> extends Future<A> implements SListener<A> {
+export class NextOccurenceFuture<A> extends Future<A> implements SListener<A> {
   constructor(private s: Stream<A>, private time: Time) {
     super();
     this.parents = cons(s);
   }
   pushS(t: number, val: any): void {
     this.resolve(val, t);
-  }
-  semantic(): SemanticFuture<A> {
-    const occ = this.s.semantic().find((o) => o.time > this.time);
-    return occ !== undefined ? occ : neverOccurringFuture;
   }
 }
 
@@ -331,11 +268,6 @@ class MapCbFuture<A, B> extends ActiveFuture<B> {
   pushS(_: number, value: A): void {
     this.cb(value, this.doneCb);
   }
-  semantic(): never {
-    throw new Error(
-      "The BehaviorFuture does not have a semantic representation"
-    );
-  }
 }
 
 /**
@@ -349,21 +281,4 @@ export function mapCbFuture<A, B>(
   future: Future<A>
 ): Future<B> {
   return new MapCbFuture(cb, future);
-}
-
-class TestFuture<A> extends Future<A> {
-  constructor(private time: number, public value: A) {
-    super();
-  }
-  /* istanbul ignore next */
-  pushS(_: any): void {
-    throw new Error("A test pure should never be pushed to.");
-  }
-  semantic(): SemanticFuture<A> {
-    return { time: this.time, value: this.value };
-  }
-}
-
-export function testFuture<A>(time: number, value: A): Future<A> {
-  return new TestFuture(time, value);
 }

@@ -442,11 +442,6 @@ export function selfie<A>(s: Stream<Behavior<A>>): Stream<A> {
   return new SelfieStream(s);
 }
 
-export function combine<A>(...streams: Stream<A>[]): Stream<A> {
-  // FIXME: More performant implementation with benchmark
-  return streams.reduce((s1, s2) => s1.combine(s2), empty);
-}
-
 export function isStream(s: any): s is Stream<any> {
   return typeof s === "object" && "scanS" in s;
 }

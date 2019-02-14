@@ -1,4 +1,4 @@
-import { Stream, SinkStream } from "./stream";
+import { Stream, SinkStream, empty } from "./stream";
 import { Behavior, SinkBehavior, MapBehaviorTuple } from "./behavior";
 import { Now } from "./now";
 import { Future, MapFutureTuple } from "./future";
@@ -47,4 +47,13 @@ export function flatten(o: { flatten: () => any }): any {
 
 export function push<A>(a: A, sink: SinkBehavior<A> | SinkStream<A>): void {
   sink.push(a);
+}
+
+export function combine<A>(...streams: Future<A>[]): Future<A>;
+export function combine<A>(...streams: Stream<A>[]): Stream<A>;
+export function combine<A>(
+  ...values: Future<A>[] | Stream<A>[]
+): Future<A> | Stream<A> {
+  // FIXME: More performant implementation with benchmark
+  return (values as any).reduce((a: any, b: any) => a.combine(b));
 }
