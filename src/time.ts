@@ -1,12 +1,7 @@
 import { Time, State } from "./common";
-import { cons, nil } from "./datastructures";
+import { cons } from "./datastructures";
 import { Stream, SemanticStream } from "./stream";
-import {
-  Behavior,
-  SemanticBehavior,
-  FunctionBehavior,
-  fromFunction
-} from "./behavior";
+import { Behavior, fromFunction } from "./behavior";
 
 /*
  * Time related behaviors and functions
@@ -70,21 +65,12 @@ export function debounce<A>(ms: number, stream: Stream<A>): Stream<A> {
   return new DebounceStream<A>(stream, ms);
 }
 
-class TimeBehavior extends FunctionBehavior<Time> {
-  constructor() {
-    super(() => Date.now());
-  }
-  semantic(): SemanticBehavior<Time> {
-    return (time: Time) => time;
-  }
-}
-
 /**
  * A behavior whose value is the number of milliseconds elapsed in
  * UNIX epoch. I.e. its current value is equal to the value got by
  * calling `Date.now`.
  */
-export const time: Behavior<Time> = new TimeBehavior();
+export const time: Behavior<Time> = fromFunction((_) => Date.now());
 
 /**
  * A behavior giving access to continuous time. When sampled the outer

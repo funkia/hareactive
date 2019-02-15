@@ -8,13 +8,6 @@ import { tick, getTime } from "./clock";
 
 export type MapBehaviorTuple<A> = { [K in keyof A]: Behavior<A[K]> };
 
-/**
- * A behavior is a value that changes over time. Conceptually it can
- * be thought of as a function from time to a value. I.e. `type
- * Behavior<A> = (t: Time) => A`.
- */
-export type SemanticBehavior<A> = (time: Time) => A;
-
 @monad
 export abstract class Behavior<A> extends Reactive<A, BListener>
   implements Parent<BListener> {
@@ -101,9 +94,6 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
     if (this.state === State.Push) {
       refresh(this, t);
     }
-  }
-  semantic(): SemanticBehavior<A> {
-    throw new Error("The behavior does not have a semantic representation");
   }
   log(prefix?: string): Behavior<A> {
     this.subscribe((a) => console.log(`${prefix || ""} `, a));
@@ -226,12 +216,8 @@ export class MapBehavior<A, B> extends Behavior<B> {
     super();
     this.parents = cons(parent);
   }
-  update(t: number): B {
+  update(_t: number): B {
     return this.f(this.parent.last);
-  }
-  semantic(): SemanticBehavior<B> {
-    const g = this.parent.semantic();
-    return (t) => this.f(g(t));
   }
 }
 
@@ -383,9 +369,6 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
   update(_t: number): A {
     return this.last;
   }
-  semantic(): SemanticBehavior<A> {
-    return (_) => this.last;
-  }
 }
 
 /** @private */
@@ -402,9 +385,6 @@ export class FunctionBehavior<A> extends ActiveBehavior<A> {
   }
   update(t: Time): A {
     return this.f(t);
-  }
-  semantic(): SemanticBehavior<A> {
-    return (t: number) => this.f(t);
   }
 }
 
@@ -481,22 +461,6 @@ export function freezeAt<A>(
   return snapshotAt(behavior, shouldFreeze).map((f) => freezeTo(behavior, f));
 }
 
-class TestBehavior<A> extends Behavior<A> {
-  constructor(private semanticBehavior: SemanticBehavior<A>) {
-    super();
-  }
-  update(_t: number): A {
-    throw new Error("Test behavior never updates");
-  }
-  semantic(): SemanticBehavior<A> {
-    return this.semanticBehavior;
-  }
-}
-
-export function testBehavior<A>(b: (time: number) => A): Behavior<A> {
-  return new TestBehavior(b);
-}
-
 /** @private */
 class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
   implements SListener<A> {
@@ -528,28 +492,22 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
   }
 }
 
-class ScanBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
-  constructor(private f: any, private b: any, private c: any) {
+export class ScanBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
+  constructor(
+    public f: (a: A, b: B) => B,
+    public initial: B,
+    public source: Stream<A>
+  ) {
     super();
     this.state = State.Pull;
   }
   update(t: number): Behavior<B> {
-    return new ActiveScanBehavior(this.f, this.b, this.c, t);
+    return new ActiveScanBehavior(this.f, this.initial, this.source, t);
   }
   pull(t: Time): void {
     this.last = this.update(t);
     this.changedAt = t;
     this.pulledAt = t;
-  }
-  semantic(): SemanticBehavior<Behavior<B>> {
-    const stream = this.c.semantic();
-    return (t1) =>
-      testBehavior<B>((t2) =>
-        stream
-          .filter(({ time }) => t1 <= time && time <= t2)
-          .map((o) => o.value)
-          .reduce((acc, cur) => this.f(cur, acc), this.b)
-      );
   }
 }
 

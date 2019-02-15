@@ -96,4 +96,60 @@ describe("testing", () => {
       });
     });
   });
+  describe("behavior", () => {
+    describe("time", () => {
+      it("is the identity function", () => {
+        assert.strictEqual(testAt(0, H.time), 0);
+        assert.strictEqual(testAt(1.3, H.time), 1.3);
+        assert.strictEqual(testAt(17, H.time), 17);
+      });
+    });
+    describe("map", () => {
+      it("has semantic representation", () => {
+        const b = H.testBehavior((t) => t);
+        const mapped = b.map((t) => t * t);
+        const semantic = mapped.model();
+        assert.strictEqual(semantic(1), 1);
+        assert.strictEqual(semantic(2), 4);
+        assert.strictEqual(semantic(3), 9);
+      });
+    });
+    describe("mapTo", () => {
+      it("creates constant function", () => {
+        const b = H.testBehavior((t) => {
+          throw new Error("Don't call me");
+        });
+        const mapped = b.mapTo(7);
+        const semantic = mapped.model();
+        assert.strictEqual(semantic(-3), 7);
+        assert.strictEqual(semantic(4), 7);
+        assert.strictEqual(semantic(9), 7);
+      });
+    });
+    describe("scan", () => {
+      it("accumulates state", () => {
+        const s = H.testStreamFromObject({
+          1: 1,
+          2: 1,
+          4: 2,
+          6: 3,
+          7: 1
+        });
+        const scanned = H.scan((n, m) => n + m, 0, s);
+        const semantic = scanned.model();
+        const from0 = semantic(0).model();
+        assert.strictEqual(from0(0), 0);
+        assert.strictEqual(from0(1), 1);
+        assert.strictEqual(from0(2), 2);
+        assert.strictEqual(from0(3), 2);
+        assert.strictEqual(from0(4), 4);
+        const from3 = semantic(3).model();
+        assert.strictEqual(from3(3), 0);
+        assert.strictEqual(from3(4), 2);
+        assert.strictEqual(from3(5), 2);
+        assert.strictEqual(from3(6), 5);
+        assert.strictEqual(from3(7), 6);
+      });
+    });
+  });
 });

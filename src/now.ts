@@ -65,16 +65,14 @@ class FlatMapNow<A, B> extends Now<B> {
   }
 }
 
-class SampleNow<A> extends Now<A> {
+export class SampleNow<A> extends Now<A> {
   constructor(private b: Behavior<A>) {
     super();
   }
   run(t: Time): A {
     return this.b.at(t);
   }
-  test(mocks: any[], t: Time): { value: A; mocks: any[] } {
-    return { value: this.b.semantic()(t), mocks };
-  }
+  test: <A>(mocks: any[], t: Time) => { value: A; mocks: any[] };
 }
 
 export function sample<A>(b: Behavior<A>): Now<A> {
@@ -137,11 +135,10 @@ export function performMap<A, B>(
   cb: (a: A) => B,
   s: Stream<A> | Future<A>
 ): Now<Stream<B> | Future<B>> {
-  return perform(
-    () =>
-      isStream(s)
-        ? mapCbStream((value, done) => done(cb(value)), s)
-        : mapCbFuture((value, done) => done(cb(value)), s)
+  return perform(() =>
+    isStream(s)
+      ? mapCbStream((value, done) => done(cb(value)), s)
+      : mapCbFuture((value, done) => done(cb(value)), s)
   );
 }
 

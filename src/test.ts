@@ -1,6 +1,12 @@
 import * as assert from "assert";
 import { Stream, SemanticStream } from "./stream";
-import { Behavior } from "./behavior";
+import {
+  Behavior,
+  MapBehavior,
+  ScanBehavior,
+  FunctionBehavior,
+  ConstantBehavior
+} from "./behavior";
 import {
   Future,
   CombineFuture,
@@ -13,6 +19,11 @@ import {
   NextOccurenceFuture
 } from "./future";
 import { Occurrence } from "./stream";
+import { Time } from "./common";
+import { SampleNow } from "./now";
+import { time } from "./time";
+
+// Future
 
 declare module "./future" {
   interface Future<A> {
@@ -85,6 +96,38 @@ NextOccurenceFuture.prototype.test = function() {
   return occ !== undefined ? occ : neverOccurringFuture;
 };
 
+class TestFuture<A> extends Future<A> {
+  constructor(private semanticFuture: SemanticFuture<A>) {
+    super();
+  }
+  /* istanbul ignore next */
+  pushS(_t: number, _val: A): void {
+    throw new Error("You cannot push to a TestFuture");
+  }
+  test(): SemanticFuture<A> {
+    return this.semanticFuture;
+  }
+  /* istanbul ignore next */
+  push(_a: A): void {
+    throw new Error("You cannot push to a TestFuture");
+  }
+}
+
+export function testFuture<A>(time: number, value: A): Future<A> {
+  return new TestFuture({ time, value });
+}
+
+export function assertFutureEqual<A>(
+  future1: Future<A>,
+  future2: Future<A>
+): void {
+  const a = future1.test();
+  const b = future2.test();
+  assert.deepEqual(a, b);
+}
+
+// Stream
+
 class TestStream<A> extends Stream<A> {
   constructor(private semanticStream: SemanticStream<A>) {
     super();
@@ -121,34 +164,62 @@ export function testStreamFromObject<A>(object: {
   return new TestStream(semanticStream);
 }
 
-class TestFuture<A> extends Future<A> {
-  constructor(private semanticFuture: SemanticFuture<A>) {
+// Behavior
+
+/**
+ * A behavior is a value that changes over time. Conceptually it can
+ * be thought of as a function from time to a value. I.e. `type
+ * Behavior<A> = (t: Time) => A`.
+ */
+export type BehaviorModel<A> = (time: Time) => A;
+
+declare module "./behavior" {
+  interface Behavior<A> {
+    model(): BehaviorModel<A>;
+  }
+}
+
+MapBehavior.prototype.model = function() {
+  const g = this.parent.model();
+  return (t) => this.f(g(t));
+};
+
+ConstantBehavior.prototype.model = function() {
+  return (_) => this.last;
+};
+
+FunctionBehavior.prototype.model = function() {
+  return (t: number) => this.f(t);
+};
+
+time.model = () => (t: Time) => t;
+
+ScanBehavior.prototype.model = function<A, B>(this: ScanBehavior<A, B>) {
+  const stream = this.source.semantic();
+  return (t1) =>
+    testBehavior<B>((t2) =>
+      stream
+        .filter(({ time }) => t1 <= time && time <= t2)
+        .map((o) => o.value)
+        .reduce((acc, cur) => this.f(cur, acc), this.initial)
+    );
+};
+
+class TestBehavior<A> extends Behavior<A> {
+  constructor(private semanticBehavior: BehaviorModel<A>) {
     super();
   }
   /* istanbul ignore next */
-  pushS(_t: number, _val: A): void {
-    throw new Error("You cannot push to a TestFuture");
+  update(_t: number): A {
+    throw new Error("Test behavior never updates");
   }
-  test(): SemanticFuture<A> {
-    return this.semanticFuture;
-  }
-  /* istanbul ignore next */
-  push(_a: A): void {
-    throw new Error("You cannot push to a TestFuture");
+  model(): BehaviorModel<A> {
+    return this.semanticBehavior;
   }
 }
 
-export function testFuture<A>(time: number, value: A): Future<A> {
-  return new TestFuture({ time, value });
-}
-
-export function assertFutureEqual<A>(
-  future1: Future<A>,
-  future2: Future<A>
-): void {
-  const a = future1.test();
-  const b = future2.test();
-  assert.deepEqual(a, b);
+export function testBehavior<A>(b: (time: number) => A): Behavior<A> {
+  return new TestBehavior(b);
 }
 
 /**
@@ -156,5 +227,14 @@ export function assertFutureEqual<A>(
  * behaviors value at that point in time.
  */
 export function testAt<A>(t: number, b: Behavior<A>): A {
-  return b.semantic()(t);
+  return b.model()(t);
 }
+
+// * Now
+
+SampleNow.prototype.test = function<A>(
+  mocks: any[],
+  t: Time
+): { value: A; mocks: any[] } {
+  return { value: testAt(t, this.b), mocks };
+};

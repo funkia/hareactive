@@ -151,7 +151,7 @@ describe("Now", () => {
       const stream = testStreamFromObject({ 1: 1, 2: 3, 4: 2 });
       const now = sample(scan((n, m) => n + m, 0, stream));
       const result = testNow(now);
-      const fn = result.semantic();
+      const fn = result.model();
       assert.deepEqual([fn(0), fn(1), fn(2), fn(3), fn(4)], [0, 1, 4, 4, 6]);
     });
     it("it can test with go", () => {
@@ -162,7 +162,7 @@ describe("Now", () => {
       });
       const stream = testStreamFromObject({ 1: 0, 2: 0, 4: 0 });
       const result = testNow<Behavior<number>>(model(stream));
-      const fn = result.semantic();
+      const fn = result.model();
       assert.strictEqual(fn(0), 0);
       assert.strictEqual(fn(1), 1);
       assert.strictEqual(fn(2), 2);
@@ -369,8 +369,8 @@ describe("Now", () => {
       assert(isBehavior(out.res));
       assert.equal(
         out.res
-          .semantic()(0)
-          .semantic()(4),
+          .model()(0)
+          .model()(4),
         "response"
       );
       assert.deepEqual(requests, []);

@@ -387,7 +387,7 @@ class SnapshotStream<B> extends Stream<B> {
     this.stream.removeListener(this.node);
   }
   semantic(): SemanticStream<B> {
-    const b = this.behavior.semantic();
+    const b = (this.behavior as any).model();
     return this.stream.semantic().map(({ time }) => ({ time, value: b(time) }));
   }
 }
