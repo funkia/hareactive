@@ -1,9 +1,21 @@
 import * as sinon from "sinon";
-import { ProducerStream } from "../src/stream";
 import { spy } from "sinon";
+import { IO, withEffects } from "@funkia/jabz";
 
+import { ProducerStream } from "../src/stream";
 import { State, Reactive } from "../src/common";
 import { SinkBehavior } from "../src/behavior";
+
+// A reference that can be mutated
+export type Ref<A> = { ref: A };
+
+export function createRef<A>(a: A): Ref<A> {
+  return { ref: a };
+}
+
+export const mutateRef: <A>(a: A, r: Ref<A>) => IO<{}> = withEffects(
+  (a: any, r: Ref<any>) => (r.ref = a)
+);
 
 export function subscribeSpy(b: Reactive<any, any>): sinon.SinonSpy {
   const cb = spy();

@@ -3,8 +3,8 @@ import { placeholder } from "./placeholder";
 import { Time, SListener } from "./common";
 import { Future, fromPromise, mapCbFuture } from "./future";
 import { Node } from "./datastructures";
-import { Behavior, at } from "./behavior";
-import { ActiveStream, Stream, mapCbStream, empty, isStream } from "./stream";
+import { Behavior } from "./behavior";
+import { ActiveStream, Stream, mapCbStream, isStream } from "./stream";
 import { tick } from "./clock";
 
 @monad
@@ -31,7 +31,6 @@ export abstract class Now<A> implements Monad<A> {
   }
   static multi: boolean = false;
   multi: boolean = false;
-  abstract test(mocks: any[], t: Time): { value: A; mocks: any[] };
   // Definitions below are inserted by Jabz
   flatten: <B>() => Now<B>;
   map: <B>(f: (a: A) => B) => Now<B>;
@@ -40,28 +39,21 @@ export abstract class Now<A> implements Monad<A> {
   lift: (f: Function, ...ms: any[]) => Now<any>;
 }
 
-class OfNow<A> extends Now<A> {
+export class OfNow<A> extends Now<A> {
   constructor(private value: A) {
     super();
   }
   run(_: Time): A {
     return this.value;
   }
-  test(mocks: any[], _: Time): { value: A; mocks: any[] } {
-    return { value: this.value, mocks };
-  }
 }
 
-class FlatMapNow<A, B> extends Now<B> {
+export class FlatMapNow<A, B> extends Now<B> {
   constructor(private first: Now<A>, private f: (a: A) => Now<B>) {
     super();
   }
   run(t: Time): B {
     return this.f(this.first.run(t)).run(t);
-  }
-  test(mocks: any[], t: Time): { value: B; mocks: any[] } {
-    const { value, mocks: m } = this.first.test(mocks, t);
-    return this.f(value).test(m, t);
   }
 }
 
@@ -72,22 +64,18 @@ export class SampleNow<A> extends Now<A> {
   run(t: Time): A {
     return this.b.at(t);
   }
-  test: <A>(mocks: any[], t: Time) => { value: A; mocks: any[] };
 }
 
 export function sample<A>(b: Behavior<A>): Now<A> {
   return new SampleNow(b);
 }
 
-class PerformNow<A> extends Now<A> {
+export class PerformNow<A> extends Now<A> {
   constructor(private cb: () => A) {
     super();
   }
   run(): A {
     return this.cb();
-  }
-  test([value, ...mocks]: any[], t: Time): { value: A; mocks: any[] } {
-    return { value, mocks };
   }
 }
 
@@ -109,7 +97,7 @@ export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   );
 }
 
-class PerformMapNow<A, B> extends Now<Stream<B> | Future<B>> {
+export class PerformMapNow<A, B> extends Now<Stream<B> | Future<B>> {
   constructor(private cb: (a: A) => B, private s: Stream<A> | Future<A>) {
     super();
   }
@@ -117,12 +105,6 @@ class PerformMapNow<A, B> extends Now<Stream<B> | Future<B>> {
     return isStream(this.s)
       ? mapCbStream((value, done) => done(this.cb(value)), this.s)
       : mapCbFuture((value, done) => done(this.cb(value)), this.s);
-  }
-  test(
-    [value, ...mocks]: any[],
-    _: Time
-  ): { value: Stream<B> | Future<B>; mocks } {
-    return { value, mocks };
   }
 }
 
@@ -142,7 +124,7 @@ export function performMap<A, B>(
   );
 }
 
-class PerformIOStreamLatest<A> extends ActiveStream<A>
+class PerformIOLatestStream<A> extends ActiveStream<A>
   implements SListener<IO<A>> {
   private node: Node<this> = new Node(this);
   constructor(s: Stream<IO<A>>) {
@@ -171,20 +153,17 @@ class PerformIOStreamLatest<A> extends ActiveStream<A>
   }
 }
 
-class PerformStreamNowLatest<A> extends Now<Stream<A>> {
+export class PerformStreamLatestNow<A> extends Now<Stream<A>> {
   constructor(private s: Stream<IO<A>>) {
     super();
   }
   run(): Stream<A> {
-    return new PerformIOStreamLatest(this.s);
-  }
-  test([value, ...mocks]: any[], _: Time): { value: Stream<A>; mocks } {
-    return { value, mocks };
+    return new PerformIOLatestStream(this.s);
   }
 }
 
 export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
-  return perform(() => new PerformIOStreamLatest(s));
+  return perform(() => new PerformIOLatestStream(s));
 }
 
 class PerformIOStreamOrdered<A> extends ActiveStream<A> {
@@ -196,7 +175,7 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   nextId: number = 0;
   next: number = 0;
   buffer: { value: A }[] = []; // Object-wrapper to support a result as undefined
-  pushS(t: number, io: IO<A>): void {
+  pushS(_t: number, io: IO<A>): void {
     const id = this.nextId++;
     runIO(io).then((a: A) => {
       if (id === this.next) {
@@ -217,20 +196,17 @@ class PerformIOStreamOrdered<A> extends ActiveStream<A> {
   }
 }
 
-class PerformStreamNowOrdered<A> extends Now<Stream<A>> {
+export class PerformStreamOrderedNow<A> extends Now<Stream<A>> {
   constructor(private s: Stream<IO<A>>) {
     super();
   }
   run(): Stream<A> {
     return new PerformIOStreamOrdered(this.s);
   }
-  test([value, ...mocks]: any[], _: Time): { value: Stream<A>; mocks } {
-    return { value, mocks };
-  }
 }
 
 export function performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>> {
-  return new PerformStreamNowOrdered(s);
+  return new PerformStreamOrderedNow(s);
 }
 
 class PlanNow<A> extends Now<Future<A>> {
@@ -240,9 +216,6 @@ class PlanNow<A> extends Now<Future<A>> {
   run(time: Time): Future<A> {
     return this.future.map((n) => n.run(time));
   }
-  test(mocks: any[], t: Time): { value: Future<A>; mocks: any[] } {
-    throw new Error("The PlanNow computation does not support testing yet");
-  }
 }
 
 export function plan<A>(future: Future<Now<A>>): Now<Future<A>> {
@@ -251,16 +224,6 @@ export function plan<A>(future: Future<Now<A>>): Now<Future<A>> {
 
 export function runNow<A>(now: Now<A>, time: Time = tick()): A {
   return now.run(time);
-}
-
-/**
- * Test run a now computation without executing its side-effects.
- * @param now The now computation to test.
- * @param time The point in time at which the now computation should
- * be run. Defaults to 0.
- */
-export function testNow<A>(now: Now<A>, mocks: any[] = [], time: Time = 0): A {
-  return now.test(mocks, time).value;
 }
 
 export interface ReactivesObject {
@@ -299,9 +262,6 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
       placeholderObject[name].replaceWith(result[name]);
     }
     return result;
-  }
-  test(mocks: any[], t: Time): { value: A; mocks: any[] } {
-    throw new Error("The LoopNow computation does not support testing yet");
   }
 }
 

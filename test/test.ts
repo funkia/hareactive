@@ -1,5 +1,6 @@
 import { assert } from "chai";
 import * as H from "../src";
+import { Behavior, Stream } from "../src";
 import {
   testFuture,
   assertFutureEqual,
@@ -7,8 +8,12 @@ import {
   testAt,
   testStreamFromArray,
   assertStreamEqual,
-  testBehavior
+  testBehavior,
+  testNow
 } from "../src/test";
+import { createRef, mutateRef } from "./helpers";
+import { performIO, Now } from "../src";
+import { fgo, withEffects } from "@funkia/jabz";
 
 describe("testing", () => {
   describe("future", () => {
@@ -191,10 +196,10 @@ describe("testing", () => {
       });
     });
     it("works", () => {
-      function foobar(stream1, stream2) {
+      function foobar(s1: Stream<number>, s2: Stream<number>) {
         const isEven = (n) => n % 2 === 0;
-        const a = stream1.filter(isEven).map((n) => n * n);
-        const b = stream2.filter((n) => !isEven(n)).map(Math.sqrt);
+        const a = s1.filter(isEven).map((n) => n * n);
+        const b = s2.filter((n) => !isEven(n)).map(Math.sqrt);
         return a.combine(b);
       }
       const a = H.testStreamFromObject({ 0: 1, 2: 4, 4: 6 });
@@ -302,6 +307,132 @@ describe("testing", () => {
         assert.strictEqual(from3(5), 2);
         assert.strictEqual(from3(6), 5);
         assert.strictEqual(from3(7), 6);
+      });
+    });
+  });
+  describe("behavior", () => {
+    describe("of", () => {
+      it("can be tested", () => {
+        assert.strictEqual(testNow(Now.of(12)), 12);
+      });
+    });
+    describe("flatMap", () => {
+      it("can be tested", () => {
+        const now = Now.of(3).flatMap((n) => Now.of(n * 4));
+        assert.strictEqual(testNow(now), 12);
+      });
+    });
+    describe("perform", () => {
+      it("can be tested", () => {
+        const ref1 = createRef(1);
+        const comp = performIO(mutateRef(2, ref1));
+        const result = testNow(comp, [testFuture(0, "foo")]);
+        assert(result.test().value, "foo");
+      });
+    });
+    describe("sample", () => {
+      it("can be tested", () => {
+        const stream = testStreamFromObject({ 1: 1, 2: 3, 4: 2 });
+        const now = H.sample(H.scan((n, m) => n + m, 0, stream));
+        const result = testNow(now);
+        const fn = result.model();
+        assert.deepEqual([fn(0), fn(1), fn(2), fn(3), fn(4)], [0, 1, 4, 4, 6]);
+      });
+      it("it can test with go", () => {
+        const model = fgo(function*(incrementClick: Stream<any>) {
+          const increment = incrementClick.mapTo(1);
+          const count = yield H.sample(H.scan((n, m) => n + m, 0, increment));
+          return count;
+        });
+        const stream = testStreamFromObject({ 1: 0, 2: 0, 4: 0 });
+        const result = testNow<Behavior<number>>(model(stream));
+        const fn = result.model();
+        assert.strictEqual(fn(0), 0);
+        assert.strictEqual(fn(1), 1);
+        assert.strictEqual(fn(2), 2);
+        assert.strictEqual(fn(3), 2);
+        assert.strictEqual(fn(4), 3);
+      });
+    });
+    describe("performStream", () => {
+      it("can be tested", () => {
+        let requests: number[] = [];
+        const model = fgo(function*({ click }) {
+          const request = click.mapTo(
+            withEffects((n: number) => {
+              requests.push(n);
+              return n + 2;
+            })
+          );
+          const response: Stream<string> = yield H.performStream(request);
+          return { res: response };
+        });
+        const click = testStreamFromArray([1, 2, 3, 4, 5]);
+        const out: { res: Stream<string> } = testNow(model({ click }), [
+          testStreamFromArray(["old1", "old2", "response"])
+        ]);
+        assert(H.isStream(out.res));
+        assert.deepEqual(
+          out.res.model(),
+          testStreamFromArray(["old1", "old2", "response"]).model()
+        );
+        assert.deepEqual(requests, []);
+      });
+    });
+    describe("performStreamLatest", () => {
+      it("can be tested", () => {
+        let requests: number[] = [];
+        const model = fgo(function*({ click }) {
+          const request = click.mapTo(
+            withEffects((n: number) => {
+              requests.push(n);
+              return n + 2;
+            })
+          );
+          const response = yield H.performStreamLatest(request);
+          const res = H.stepper("", response.map((e) => e.toString()));
+          return { res };
+        });
+        const click = testStreamFromArray([1, 2, 3, 4, 5]);
+        const out: { res: Behavior<Behavior<string>> } = testNow(
+          model({ click }),
+          [testStreamFromArray(["old", "old", "response"])]
+        );
+        assert(H.isBehavior(out.res));
+        assert.equal(
+          out.res
+            .model()(0)
+            .model()(4),
+          "response"
+        );
+        assert.deepEqual(requests, []);
+      });
+    });
+    describe("performStreamOrdered", () => {
+      it("can be tested", () => {
+        let requests: number[] = [];
+        const model = fgo(function*({ click }) {
+          const request = click.mapTo(
+            withEffects((n: number) => {
+              requests.push(n);
+              return n + 2;
+            })
+          );
+          const response: Stream<string> = yield H.performStreamOrdered(
+            request
+          );
+          return { res: response };
+        });
+        const click = testStreamFromArray([1, 2, 3, 4, 5]);
+        const out: { res: Stream<string> } = testNow(model({ click }), [
+          testStreamFromArray(["old1", "old2", "response"])
+        ]);
+        assert(H.isStream(out.res));
+        assert.deepEqual(
+          out.res.model(),
+          testStreamFromArray(["old1", "old2", "response"]).model()
+        );
+        assert.deepEqual(requests, []);
       });
     });
   });

@@ -29,7 +29,16 @@ import {
   NextOccurenceFuture
 } from "./future";
 import { Time } from "./common";
-import { SampleNow } from "./now";
+import {
+  SampleNow,
+  OfNow,
+  FlatMapNow,
+  PerformNow,
+  PerformMapNow,
+  PerformStreamLatestNow,
+  PerformStreamOrderedNow,
+  Now
+} from "./now";
 import { time, DelayStream } from "./time";
 
 // Future
@@ -321,9 +330,67 @@ export function testAt<A>(t: number, b: Behavior<A>): A {
 
 // * Now
 
-SampleNow.prototype.test = function<A>(
+type NowModel<A> = { value: A; mocks: any[] };
+
+declare module "./now" {
+  interface Now<A> {
+    test(mocks: any[], t: Time): NowModel<A>;
+  }
+}
+
+OfNow.prototype.test = function test<A>(mocks: any[], _t: Time): NowModel<A> {
+  return { value: this.value, mocks };
+};
+
+FlatMapNow.prototype.test = function test<A>(
   mocks: any[],
   t: Time
-): { value: A; mocks: any[] } {
+): NowModel<A> {
+  const { value, mocks: m } = this.first.test(mocks, t);
+  return this.f(value).test(m, t);
+};
+
+SampleNow.prototype.test = function<A>(mocks: any[], t: Time): NowModel<A> {
   return { value: testAt(t, this.b), mocks };
 };
+
+PerformNow.prototype.test = function<A>(
+  [value, ...mocks]: any[],
+  _t: Time
+): NowModel<A> {
+  return { value, mocks };
+};
+
+PerformMapNow.prototype.test = function<A, B>(
+  this: PerformMapNow<A, B>,
+  [value, ...mocks]: any[],
+  _t: Time
+): { value: Stream<B> | Future<B>; mocks: any } {
+  return { value, mocks };
+};
+
+PerformStreamLatestNow.prototype.test = function<A>(
+  this: PerformStreamLatestNow<A>,
+  [value, ...mocks]: any[],
+  _t: Time
+): NowModel<A> {
+  return { value, mocks };
+};
+
+PerformStreamOrderedNow.prototype.test = function<A>(
+  this: PerformStreamOrderedNow<A>,
+  [value, ...mocks]: any[],
+  _t: Time
+): NowModel<A> {
+  return { value, mocks };
+};
+
+/**
+ * Test run a now computation without executing its side-effects.
+ * @param now The now computation to test.
+ * @param time The point in time at which the now computation should
+ * be run. Defaults to 0.
+ */
+export function testNow<A>(now: Now<A>, mocks: any[] = [], time: Time = 0): A {
+  return now.test(mocks, time).value;
+}
