@@ -4,7 +4,7 @@ import { Reactive } from "./common";
 import { cons, fromArray, Node } from "./datastructures";
 import { Behavior, FunctionBehavior } from "./behavior";
 import { tick } from "./clock";
-import { Stream, Occurrence } from "./stream";
+import { Stream } from "./stream";
 
 export type MapFutureTuple<A> = { [K in keyof A]: Future<A[K]> };
 
@@ -241,7 +241,7 @@ export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
 }
 
 export class NextOccurenceFuture<A> extends Future<A> implements SListener<A> {
-  constructor(private s: Stream<A>, private time: Time) {
+  constructor(readonly s: Stream<A>, readonly time: Time) {
     super();
     this.parents = cons(s);
   }

@@ -1,5 +1,15 @@
 import * as assert from "assert";
-import { Stream, SemanticStream } from "./stream";
+import {
+  Stream,
+  MapStream,
+  MapToStream,
+  FilterStream,
+  empty,
+  ScanStream,
+  CombineStream,
+  SnapshotStream,
+  isStream
+} from "./stream";
 import {
   Behavior,
   MapBehavior,
@@ -18,12 +28,16 @@ import {
   FlatMapFuture,
   NextOccurenceFuture
 } from "./future";
-import { Occurrence } from "./stream";
 import { Time } from "./common";
 import { SampleNow } from "./now";
-import { time } from "./time";
+import { time, DelayStream } from "./time";
 
 // Future
+
+export type Occurrence<A> = {
+  time: Time;
+  value: A;
+};
 
 declare module "./future" {
   interface Future<A> {
@@ -91,8 +105,8 @@ FlatMapFuture.prototype.test = function() {
   return neverOccurringFuture;
 };
 
-NextOccurenceFuture.prototype.test = function() {
-  const occ = this.s.semantic().find((o) => o.time > this.time);
+NextOccurenceFuture.prototype.test = function<A>(this: NextOccurenceFuture<A>) {
+  const occ = this.s.model().find((o) => o.time > this.time);
   return occ !== undefined ? occ : neverOccurringFuture;
 };
 
@@ -128,19 +142,82 @@ export function assertFutureEqual<A>(
 
 // Stream
 
+export type StreamModel<A> = Occurrence<A>[];
+
+declare module "./stream" {
+  interface Stream<A> {
+    model(): StreamModel<A>;
+  }
+}
+
+MapStream.prototype.model = function<A, B>(this: MapStream<A, B>) {
+  const s = this.parent.model();
+  return s.map(({ time, value }) => ({ time, value: this.f(value) }));
+};
+
+MapToStream.prototype.model = function<A, B>(this: MapToStream<A, B>) {
+  const s = (<Stream<A>>this.parents.value).model();
+  return s.map(({ time }) => ({ time, value: this.b }));
+};
+
+FilterStream.prototype.model = function<A>(this: FilterStream<A>) {
+  const s = this.parent.model();
+  return s.filter(({ value }) => this.fn(value));
+};
+
+empty.model = () => [];
+
+ScanStream.prototype.model = function<A, B>(this: ScanStream<A, B>) {
+  const s = this.parent.model();
+  let acc = this.last;
+  return s
+    .filter((o) => this.t < o.time)
+    .map(({ time, value }) => {
+      acc = this.f(value, acc);
+      return { time, value: acc };
+    });
+};
+
+CombineStream.prototype.model = function<A, B>(this: CombineStream<A, B>) {
+  const result: Occurrence<A | B>[] = [];
+  const a = this.s1.model();
+  const b = this.s2.model();
+  for (let i = 0, j = 0; i < a.length || j < b.length; ) {
+    if (j === b.length || (i < a.length && a[i].time <= b[j].time)) {
+      result.push(a[i]);
+      i++;
+    } else {
+      result.push(b[j]);
+      j++;
+    }
+  }
+  return result;
+};
+
+SnapshotStream.prototype.model = function<B>(this: SnapshotStream<B>) {
+  return this.stream
+    .model()
+    .map(({ time }) => ({ time, value: testAt(time, this.behavior) }));
+};
+
+DelayStream.prototype.model = function<A>(this: DelayStream<A>) {
+  const s = (<Stream<A>>this.parents.value).model();
+  return s.map(({ time, value }) => ({ time: time + this.ms, value }));
+};
+
 class TestStream<A> extends Stream<A> {
-  constructor(private semanticStream: SemanticStream<A>) {
+  constructor(private streamModel: StreamModel<A>) {
     super();
   }
-  semantic(): SemanticStream<A> {
-    return this.semanticStream;
+  model(): StreamModel<A> {
+    return this.streamModel;
   }
   /* istanbul ignore next */
-  activate(): SemanticStream<A> {
-    throw new Error("You cannot activate a TestStream");
+  activate(): void {
+    // throw new Error("You cannot activate a TestStream");
   }
   /* istanbul ignore next */
-  deactivate(): SemanticStream<A> {
+  deactivate(): StreamModel<A> {
     throw new Error("You cannot deactivate a TestStream");
   }
   /* istanbul ignore next */
@@ -164,13 +241,25 @@ export function testStreamFromObject<A>(object: {
   return new TestStream(semanticStream);
 }
 
+export function assertStreamEqual<A>(s1: Stream<A>, s2: Stream<A>): void;
+export function assertStreamEqual<A>(
+  s1: Stream<A>,
+  s2: {
+    [time: number]: A;
+  }
+): void;
+export function assertStreamEqual<A>(s1: Stream<A>, s2: A[]): void;
+export function assertStreamEqual<A>(s1: Stream<A>, s2): void {
+  const s2_ = isStream(s2)
+    ? s2
+    : Array.isArray(s2)
+    ? testStreamFromArray(s2)
+    : testStreamFromObject(s2);
+  assert.deepEqual(s1.model(), s2_.model());
+}
+
 // Behavior
 
-/**
- * A behavior is a value that changes over time. Conceptually it can
- * be thought of as a function from time to a value. I.e. `type
- * Behavior<A> = (t: Time) => A`.
- */
 export type BehaviorModel<A> = (time: Time) => A;
 
 declare module "./behavior" {
@@ -195,7 +284,7 @@ FunctionBehavior.prototype.model = function() {
 time.model = () => (t: Time) => t;
 
 ScanBehavior.prototype.model = function<A, B>(this: ScanBehavior<A, B>) {
-  const stream = this.source.semantic();
+  const stream = this.source.model();
   return (t1) =>
     testBehavior<B>((t2) =>
       stream

@@ -4,7 +4,10 @@ import {
   testFuture,
   assertFutureEqual,
   testStreamFromObject,
-  testAt
+  testAt,
+  testStreamFromArray,
+  assertStreamEqual,
+  testBehavior
 } from "../src/test";
 
 describe("testing", () => {
@@ -93,6 +96,156 @@ describe("testing", () => {
       });
       it("returns never when no next occurrence", () => {
         assertFutureEqual(testAt(10, b), H.never);
+      });
+    });
+  });
+  describe("stream", () => {
+    describe("test streams", () => {
+      it("creates test stream with increasing times from array", () => {
+        const s = testStreamFromArray([0, 1, 2, 3]);
+        assert.deepEqual(s.model(), [
+          { value: 0, time: 0 },
+          { value: 1, time: 1 },
+          { value: 2, time: 2 },
+          { value: 3, time: 3 }
+        ]);
+      });
+      it("creates test stream from object", () => {
+        const s = H.testStreamFromObject({
+          2: "one",
+          4: "two",
+          5.5: "three"
+        });
+        assert.deepEqual(s.model(), [
+          { value: "one", time: 2 },
+          { value: "two", time: 4 },
+          { value: "three", time: 5.5 }
+        ]);
+      });
+    });
+    describe("map", () => {
+      it("applies function to values", () => {
+        const s = testStreamFromArray([1, 2, 3]);
+        const mapped = s.map((n) => n * n);
+        assertStreamEqual(mapped, [1, 4, 9]);
+      });
+    });
+    describe("map", () => {
+      it("changes values to constant", () => {
+        const s = testStreamFromArray([1, 2, 3]);
+        const mapped = s.mapTo(7);
+        assertStreamEqual(mapped, [7, 7, 7]);
+      });
+    });
+    describe("filter", () => {
+      it("filter values semantically", () => {
+        const s = H.testStreamFromArray([1, 3, 2, 4, 1]);
+        const filtered = s.filter((n) => n > 2);
+        assert.deepEqual(filtered.model(), [
+          { time: 1, value: 3 },
+          { time: 3, value: 4 }
+        ]);
+      });
+    });
+    describe("combine", () => {
+      it("interleaves occurrences", () => {
+        const s1 = H.testStreamFromObject({
+          0: "#1",
+          2: "#3"
+        });
+        const s2 = H.testStreamFromObject({
+          1: "#2",
+          2: "#4",
+          3: "#5"
+        });
+        const combined = s2.combine(s1);
+        assert.deepEqual(combined.model(), [
+          { time: 0, value: "#1" },
+          { time: 1, value: "#2" },
+          { time: 2, value: "#3" },
+          { time: 2, value: "#4" },
+          { time: 3, value: "#5" }
+        ]);
+      });
+    });
+    describe("filter", () => {
+      it("has semantic representation", () => {
+        const b = testBehavior((t) => t * t);
+        const s = H.testStreamFromObject({
+          1: 1,
+          4: 4,
+          8: 8
+        });
+        const shot = H.snapshot(b, s);
+        const expected = H.testStreamFromObject({
+          1: 1,
+          4: 16,
+          8: 8 * 8
+        });
+        assertStreamEqual(shot, expected);
+      });
+    });
+    describe("empty", () => {
+      it("is empty array semantically", () => {
+        assertStreamEqual(H.empty, []);
+      });
+    });
+    it("works", () => {
+      function foobar(stream1, stream2) {
+        const isEven = (n) => n % 2 === 0;
+        const a = stream1.filter(isEven).map((n) => n * n);
+        const b = stream2.filter((n) => !isEven(n)).map(Math.sqrt);
+        return a.combine(b);
+      }
+      const a = H.testStreamFromObject({ 0: 1, 2: 4, 4: 6 });
+      const b = H.testStreamFromObject({ 1: 9, 3: 8 });
+      const result = foobar(a, b);
+      const expected = H.testStreamFromObject({ 1: 3, 2: 16, 4: 36 });
+      assert.deepEqual(result.model(), expected.model());
+    });
+    describe("scanS", () => {
+      it("accumulates state", () => {
+        const s = H.testStreamFromObject({
+          1: 1,
+          2: 1,
+          4: 2,
+          6: 3,
+          7: 1
+        });
+        const scanned = H.scanS((n, m) => n + m, 0, s);
+        const from0 = testAt(0, scanned);
+        assertStreamEqual(from0, {
+          1: 1,
+          2: 2,
+          4: 4,
+          6: 7,
+          7: 8
+        });
+        console.log("first");
+        const from3 = testAt(3, scanned);
+        assertStreamEqual(from3, {
+          4: 2,
+          6: 5,
+          7: 6
+        });
+      });
+    });
+    describe("delay", () => {
+      it("delays occurrences", () => {
+        const s = H.testStreamFromObject({
+          1: 1,
+          2: 1,
+          4: 2,
+          6: 3,
+          7: 1
+        });
+        assertStreamEqual(H.delay(3, s), {
+          4: 1,
+          5: 1,
+          7: 2,
+          9: 3,
+          10: 1
+        });
       });
     });
   });

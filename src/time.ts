@@ -1,19 +1,15 @@
 import { Time, State } from "./common";
 import { cons } from "./datastructures";
-import { Stream, SemanticStream } from "./stream";
+import { Stream } from "./stream";
 import { Behavior, fromFunction } from "./behavior";
 
 /*
  * Time related behaviors and functions
  */
 export class DelayStream<A> extends Stream<A> {
-  constructor(parent: Stream<A>, private ms: number) {
+  constructor(parent: Stream<A>, readonly ms: number) {
     super();
     this.parents = cons(parent);
-  }
-  semantic(): SemanticStream<A> {
-    const s = (<Stream<A>>this.parents.value).semantic();
-    return s.map(({ time, value }) => ({ time: time + this.ms, value }));
   }
   pushS(t: number, a: A): void {
     setTimeout(() => {

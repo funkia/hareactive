@@ -32,7 +32,6 @@ import {
   SinkStream,
   time,
   toPromise,
-  perform,
   testFuture,
   testStreamFromArray,
   isStream,
@@ -284,8 +283,8 @@ describe("Now", () => {
       ]);
       assert(isStream(out.res));
       assert.deepEqual(
-        out.res.semantic(),
-        testStreamFromArray(["old1", "old2", "response"]).semantic()
+        out.res.model(),
+        testStreamFromArray(["old1", "old2", "response"]).model()
       );
       assert.deepEqual(requests, []);
     });
@@ -411,8 +410,8 @@ describe("Now", () => {
       ]);
       assert(isStream(out.res));
       assert.deepEqual(
-        out.res.semantic(),
-        testStreamFromArray(["old1", "old2", "response"]).semantic()
+        out.res.model(),
+        testStreamFromArray(["old1", "old2", "response"]).model()
       );
       assert.deepEqual(requests, []);
     });

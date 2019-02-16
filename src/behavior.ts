@@ -8,6 +8,11 @@ import { tick, getTime } from "./clock";
 
 export type MapBehaviorTuple<A> = { [K in keyof A]: Behavior<A[K]> };
 
+/**
+ * A behavior is a value that changes over time. Conceptually it can
+ * be thought of as a function from time to a value. I.e. `type
+ * Behavior<A> = (t: Time) => A`.
+ */
 @monad
 export abstract class Behavior<A> extends Reactive<A, BListener>
   implements Parent<BListener> {
