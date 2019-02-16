@@ -288,7 +288,7 @@ inside other FRP primitives. Combinations like streams of streams, behaviors of
 behaviors, streams of futures, and any others are possible.
 
 The benefit of higher-order FRP is increased expressiveness that makes it
-possibe to express many real-world scenarios with ease. One example whould be an
+possibe to express many real-world scenarios with ease. One example would be an
 application with a list of counters. Each counter has a value which can be
 represented as a `Behavior<number>`. A list of counters would then have the type
 `Array<Behavior<number>>`. If additionally the list itself can change (maybe new
