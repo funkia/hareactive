@@ -100,9 +100,6 @@ describe("Future", () => {
       H.never.map((a) => (result = a));
       assert.strictEqual(result, undefined);
     });
-    it("has semantic representation", () => {
-      assert.strictEqual(H.never.semantic(), H.neverOccurringFuture);
-    });
   });
   describe("Functor", () => {
     it("maps over value", () => {
@@ -126,11 +123,6 @@ describe("Future", () => {
       assert.strictEqual(result, undefined);
       s.resolve(4);
       assert.strictEqual(result, "horse");
-    });
-    it("has semantic", () => {
-      const fut = H.testFuture(3, "hello");
-      const fut2 = fut.map((s) => s.toUpperCase());
-      assert.deepEqual(fut2.semantic(), H.testFuture(3, "HELLO").semantic());
     });
   });
   describe("Apply", () => {
@@ -165,15 +157,6 @@ describe("Future", () => {
       fut3.resolve("there");
       assert.strictEqual(result, "Hello-over+there");
     });
-    describe("semantics", () => {
-      it("applies function to values with last time", () => {
-        const f1 = H.testFuture(2, 2);
-        const f2 = H.testFuture(5, 3);
-        const f3 = H.testFuture(1, 7);
-        const f4 = H.lift((a, b, c) => a * b + c, f1, f2, f3);
-        assert.deepEqual(f4.semantic(), H.testFuture(5, 13).semantic());
-      });
-    });
   });
   describe("Applicative", () => {
     it("of gives future that has occurred", () => {
@@ -183,10 +166,6 @@ describe("Future", () => {
       assert.strictEqual(result, 12);
       o.of(7).subscribe((x) => (result = x));
       assert.strictEqual(result, 7);
-    });
-    it("has semantic", () => {
-      const fut = H.Future.of(12);
-      assert.deepEqual(fut.semantic(), { time: -Infinity, value: 12 });
     });
   });
   describe("flatMap", () => {

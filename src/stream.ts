@@ -3,13 +3,6 @@ import { cons, Node, DoubleLinkedList } from "./datastructures";
 import { Behavior, fromFunction, scan, at, stepper } from "./behavior";
 import { tick } from "./clock";
 
-export type Occurrence<A> = {
-  time: Time;
-  value: A;
-};
-
-export type SemanticStream<A> = Occurrence<A>[];
-
 /**
  * A stream is a list of occurrences over time. Each occurrence
  * happens at a point in time and has an associated value.
@@ -43,10 +36,6 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
     this.subscribe((a) => console.log(`${prefix || ""} `, a));
     return this;
   }
-  /* istanbul ignore next */
-  semantic(): SemanticStream<A> {
-    throw new Error("The stream does not have a semantic representation");
-  }
   abstract pushS(t: number, value: any): void;
   pushSToChildren(t: number, value: any): void {
     for (const child of this.children) {
@@ -56,13 +45,9 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
 }
 
 export class MapStream<A, B> extends Stream<B> {
-  constructor(private parent: Stream<A>, private f: (a: A) => B) {
+  constructor(readonly parent: Stream<A>, readonly f: (a: A) => B) {
     super();
     this.parents = cons(parent);
-  }
-  semantic(): SemanticStream<B> {
-    const s = (<Stream<A>>this.parents.value).semantic();
-    return s.map(({ time, value }) => ({ time, value: this.f(value) }));
   }
   pushS(t: number, v: A): void {
     this.pushSToChildren(t, this.f(v));
@@ -70,27 +55,19 @@ export class MapStream<A, B> extends Stream<B> {
 }
 
 export class MapToStream<A, B> extends Stream<B> {
-  constructor(parent: Stream<A>, private readonly b: B) {
+  constructor(readonly parent: Stream<A>, readonly b: B) {
     super();
     this.parents = cons(parent);
-  }
-  semantic(): SemanticStream<B> {
-    const s = (<Stream<A>>this.parents.value).semantic();
-    return s.map(({ time }) => ({ time, value: this.b }));
   }
   pushS(t: number, _v: A): void {
     this.pushSToChildren(t, this.b);
   }
 }
 
-class FilterStream<A> extends Stream<A> {
-  constructor(readonly parent: Stream<A>, private fn: (a: A) => boolean) {
+export class FilterStream<A> extends Stream<A> {
+  constructor(readonly parent: Stream<A>, readonly fn: (a: A) => boolean) {
     super();
     this.parents = cons(parent);
-  }
-  semantic(): SemanticStream<A> {
-    const s = (<Stream<A>>this.parent).semantic();
-    return s.filter(({ value }) => this.fn(value));
   }
   pushS(t: number, v: A): void {
     if (this.fn(v) === true) {
@@ -103,12 +80,13 @@ export function apply<A, B>(
   behavior: Behavior<(a: A) => B>,
   stream: Stream<A>
 ): Stream<B> {
+  // FIXME: The implementation here should propagate clock
   return stream.map((a: A) => behavior.at()(a));
 }
 
 /**
- * @param fn A predicate function that returns a boolean for `A`.
- * @param stream The stream to filter.
+ * @param predicate A predicate function that returns a boolean for `A`.
+ * @param s The stream to filter.
  * @returns Stream that only contains the occurrences from `stream`
  * for which `fn` returns true.
  */
@@ -132,6 +110,7 @@ export function filterApply<A>(
   predicate: Behavior<(a: A) => boolean>,
   stream: Stream<A>
 ): Stream<A> {
+  // FIXME: The implementation here should propagate clock
   return stream.filter((a: A) => predicate.at()(a));
 }
 
@@ -139,6 +118,7 @@ export function keepWhen<A>(
   stream: Stream<A>,
   behavior: Behavior<boolean>
 ): Stream<A> {
+  // FIXME: The implementation here should propagate clock
   return stream.filter((_) => behavior.at());
 }
 
@@ -152,39 +132,28 @@ class EmptyStream extends ActiveStream<any> {
   constructor() {
     super();
   }
-  semantic(): SemanticStream<any> {
-    return [];
-  }
   /* istanbul ignore next */
-  pushS(t: number): void {
+  pushS(_t: number): void {
     throw new Error("You cannot push to an empty stream");
   }
 }
 
 export const empty: Stream<any> = new EmptyStream();
 
-class ScanStream<A, B> extends ActiveStream<B> {
+export class ScanStream<A, B> extends ActiveStream<B> {
   private node: Node<this> = new Node(this);
   constructor(
-    private fn: (a: A, b: B) => B,
+    readonly f: (a: A, b: B) => B,
     public last: B,
-    public parent: Stream<A>,
-    t: Time
+    readonly parent: Stream<A>,
+    readonly t: Time
   ) {
     super();
     this.parents = cons(parent);
     parent.addListener(this.node, t);
   }
-  semantic(): SemanticStream<B> {
-    const s = this.parent.semantic();
-    let acc = this.last;
-    return s.map(({ time, value }) => {
-      acc = this.fn(value, acc);
-      return { time, value: acc };
-    });
-  }
   pushS(t: number, a: A): void {
-    this.last = this.fn(a, this.last);
+    this.last = this.f(a, this.last);
     this.pushSToChildren(t, this.last);
   }
 }
@@ -255,7 +224,7 @@ class ChangesStream<A> extends Stream<A> implements BListener {
     super();
     this.parents = cons(parent);
   }
-  changeStateDown(state: State): void {
+  changeStateDown(_state: State): void {
     throw new Error("Method not implemented.");
   }
   pushB(t: number): void {
@@ -270,25 +239,10 @@ export function changes<A>(b: Behavior<A>): Stream<A> {
   return new ChangesStream(b);
 }
 
-class CombineStream<A, B> extends Stream<A | B> {
-  constructor(private s1: Stream<A>, private s2: Stream<B>) {
+export class CombineStream<A, B> extends Stream<A | B> {
+  constructor(readonly s1: Stream<A>, readonly s2: Stream<B>) {
     super();
     this.parents = cons<Stream<A | B>>(s1, cons(s2));
-  }
-  semantic(): SemanticStream<A | B> {
-    const result: Occurrence<A | B>[] = [];
-    const a = this.s1.semantic();
-    const b = this.s2.semantic();
-    for (let i = 0, j = 0; i < a.length || j < b.length; ) {
-      if (j === b.length || (i < a.length && a[i].time <= b[j].time)) {
-        result.push(a[i]);
-        i++;
-      } else {
-        result.push(b[j]);
-        j++;
-      }
-    }
-    return result;
   }
   pushS(t: number, a: A | B): void {
     this.pushSToChildren(t, a);
@@ -299,12 +253,6 @@ export abstract class ProducerStream<A> extends Stream<A> {
   constructor() {
     super();
     this.state = State.Push;
-  }
-  /* istanbul ignore next */
-  semantic(): SemanticStream<A> {
-    throw new Error(
-      "A producer stream does not have a semantic representation"
-    );
   }
   pushS(t: number = tick(), a: A): void {
     this.pushSToChildren(t, a);
@@ -370,9 +318,9 @@ export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
   stream.subscribe(fn);
 }
 
-class SnapshotStream<B> extends Stream<B> {
+export class SnapshotStream<B> extends Stream<B> {
   private node: Node<this> = new Node(this);
-  constructor(private behavior: Behavior<B>, private stream: Stream<any>) {
+  constructor(readonly behavior: Behavior<B>, readonly stream: Stream<any>) {
     super();
     this.parents = cons(stream);
   }
@@ -385,10 +333,6 @@ class SnapshotStream<B> extends Stream<B> {
   }
   deactivate(): void {
     this.stream.removeListener(this.node);
-  }
-  semantic(): SemanticStream<B> {
-    const b = this.behavior.semantic();
-    return this.stream.semantic().map(({ time }) => ({ time, value: b(time) }));
   }
 }
 
@@ -440,11 +384,6 @@ export class SelfieStream<A> extends Stream<A> {
  */
 export function selfie<A>(s: Stream<Behavior<A>>): Stream<A> {
   return new SelfieStream(s);
-}
-
-export function combine<A>(...streams: Stream<A>[]): Stream<A> {
-  // FIXME: More performant implementation with benchmark
-  return streams.reduce((s1, s2) => s1.combine(s2), empty);
 }
 
 export function isStream(s: any): s is Stream<any> {

@@ -1,24 +1,238 @@
-import { Stream, SemanticStream } from "./stream";
-import { Behavior, SemanticBehavior } from "./behavior";
-import { Future, SemanticFuture } from ".";
+import * as assert from "assert";
+import {
+  Stream,
+  MapStream,
+  MapToStream,
+  FilterStream,
+  empty,
+  ScanStream,
+  CombineStream,
+  SnapshotStream,
+  isStream
+} from "./stream";
+import {
+  Behavior,
+  MapBehavior,
+  ScanBehavior,
+  FunctionBehavior,
+  ConstantBehavior
+} from "./behavior";
+import {
+  Future,
+  CombineFuture,
+  NeverFuture,
+  MapFuture,
+  MapToFuture,
+  OfFuture,
+  LiftFuture,
+  FlatMapFuture,
+  NextOccurenceFuture
+} from "./future";
+import { Time } from "./common";
+import {
+  SampleNow,
+  OfNow,
+  FlatMapNow,
+  PerformNow,
+  PerformMapNow,
+  PerformStreamLatestNow,
+  PerformStreamOrderedNow,
+  Now
+} from "./now";
+import { time, DelayStream } from "./time";
 
-class TestStream<A> extends Stream<A> {
-  constructor(private semanticStream: SemanticStream<A>) {
+// Future
+
+export type Occurrence<A> = {
+  time: Time;
+  value: A;
+};
+
+declare module "./future" {
+  interface Future<A> {
+    model(): SemanticFuture<A>;
+  }
+}
+
+export const neverOccurringFuture = {
+  time: "infinity" as "infinity",
+  value: undefined as undefined
+};
+
+export type SemanticFuture<A> = Occurrence<A> | typeof neverOccurringFuture;
+
+export function doesOccur<A>(
+  future: SemanticFuture<A>
+): future is Occurrence<A> {
+  return future.time !== "infinity";
+}
+
+CombineFuture.prototype.model = function() {
+  const a = this.future1.model();
+  const b = this.future2.model();
+  return a.time <= b.time ? a : b;
+};
+
+MapFuture.prototype.model = function() {
+  const p = this.parent.model();
+  return doesOccur(p)
+    ? { time: p.time, value: this.f(p.value) }
+    : neverOccurringFuture;
+};
+
+MapToFuture.prototype.model = function() {
+  const p = this.parent.model();
+  return doesOccur(p)
+    ? { time: p.time, value: this.value }
+    : neverOccurringFuture;
+};
+
+OfFuture.prototype.model = function() {
+  return { time: -Infinity, value: this.value };
+};
+
+NeverFuture.prototype.model = function() {
+  return neverOccurringFuture;
+};
+
+LiftFuture.prototype.model = function() {
+  const sems = this.futures.map((f) => f.model());
+  const time = Math.max(...sems.map((s) => (doesOccur(s) ? s.time : Infinity)));
+  return time !== Infinity
+    ? { time, value: this.f(...sems.map((s) => s.value)) }
+    : neverOccurringFuture;
+};
+
+FlatMapFuture.prototype.model = function() {
+  const a = this.parent.model();
+  if (doesOccur(a)) {
+    const b = this.f(a.value).model();
+    if (doesOccur(b)) {
+      return { time: Math.max(a.time, b.time), value: b.value };
+    }
+  }
+  return neverOccurringFuture;
+};
+
+NextOccurenceFuture.prototype.model = function<A>(
+  this: NextOccurenceFuture<A>
+) {
+  const occ = this.s.model().find((o) => o.time > this.time);
+  return occ !== undefined ? occ : neverOccurringFuture;
+};
+
+class TestFuture<A> extends Future<A> {
+  constructor(private semanticFuture: SemanticFuture<A>) {
     super();
   }
-  semantic(): SemanticStream<A> {
-    return this.semanticStream;
+  /* istanbul ignore next */
+  pushS(_t: number, _val: A): void {
+    throw new Error("You cannot push to a TestFuture");
+  }
+  model(): SemanticFuture<A> {
+    return this.semanticFuture;
   }
   /* istanbul ignore next */
-  activate(): SemanticStream<A> {
-    throw new Error("You cannot activate a TestStream");
+  push(_a: A): void {
+    throw new Error("You cannot push to a TestFuture");
+  }
+}
+
+export function testFuture<A>(time: number, value: A): Future<A> {
+  return new TestFuture({ time, value });
+}
+
+export function assertFutureEqual<A>(
+  future1: Future<A>,
+  future2: Future<A>
+): void {
+  const a = future1.model();
+  const b = future2.model();
+  assert.deepEqual(a, b);
+}
+
+// Stream
+
+export type StreamModel<A> = Occurrence<A>[];
+
+declare module "./stream" {
+  interface Stream<A> {
+    model(): StreamModel<A>;
+  }
+}
+
+MapStream.prototype.model = function<A, B>(this: MapStream<A, B>) {
+  const s = this.parent.model();
+  return s.map(({ time, value }) => ({ time, value: this.f(value) }));
+};
+
+MapToStream.prototype.model = function<A, B>(this: MapToStream<A, B>) {
+  const s = (<Stream<A>>this.parents.value).model();
+  return s.map(({ time }) => ({ time, value: this.b }));
+};
+
+FilterStream.prototype.model = function<A>(this: FilterStream<A>) {
+  const s = this.parent.model();
+  return s.filter(({ value }) => this.fn(value));
+};
+
+empty.model = () => [];
+
+ScanStream.prototype.model = function<A, B>(this: ScanStream<A, B>) {
+  const s = this.parent.model();
+  let acc = this.last;
+  return s
+    .filter((o) => this.t < o.time)
+    .map(({ time, value }) => {
+      acc = this.f(value, acc);
+      return { time, value: acc };
+    });
+};
+
+CombineStream.prototype.model = function<A, B>(this: CombineStream<A, B>) {
+  const result: Occurrence<A | B>[] = [];
+  const a = this.s1.model();
+  const b = this.s2.model();
+  for (let i = 0, j = 0; i < a.length || j < b.length; ) {
+    if (j === b.length || (i < a.length && a[i].time <= b[j].time)) {
+      result.push(a[i]);
+      i++;
+    } else {
+      result.push(b[j]);
+      j++;
+    }
+  }
+  return result;
+};
+
+SnapshotStream.prototype.model = function<B>(this: SnapshotStream<B>) {
+  return this.stream
+    .model()
+    .map(({ time }) => ({ time, value: testAt(time, this.behavior) }));
+};
+
+DelayStream.prototype.model = function<A>(this: DelayStream<A>) {
+  const s = (<Stream<A>>this.parents.value).model();
+  return s.map(({ time, value }) => ({ time: time + this.ms, value }));
+};
+
+class TestStream<A> extends Stream<A> {
+  constructor(private streamModel: StreamModel<A>) {
+    super();
+  }
+  model(): StreamModel<A> {
+    return this.streamModel;
   }
   /* istanbul ignore next */
-  deactivate(): SemanticStream<A> {
+  activate(): void {
+    // throw new Error("You cannot activate a TestStream");
+  }
+  /* istanbul ignore next */
+  deactivate(): StreamModel<A> {
     throw new Error("You cannot deactivate a TestStream");
   }
   /* istanbul ignore next */
-  pushS(t: number, a: A): void {
+  pushS(_t: number, _a: A): void {
     throw new Error("You cannot push to a TestStream");
   }
 }
@@ -38,21 +252,144 @@ export function testStreamFromObject<A>(object: {
   return new TestStream(semanticStream);
 }
 
-class TestFuture<A> extends Future<A> {
-  constructor(private semanticFuture: SemanticFuture<A>) {
-    super();
+export function assertStreamEqual<A>(s1: Stream<A>, s2: Stream<A>): void;
+export function assertStreamEqual<A>(
+  s1: Stream<A>,
+  s2: {
+    [time: number]: A;
   }
-  pushS(t: number, val: A): void {
-    throw new Error("You cannot push to a TestFuture");
-  }
-  semantic(): SemanticFuture<A> {
-    return this.semanticFuture;
-  }
-  push(a: A): void {
-    throw new Error("You cannot push to a TestFuture");
+): void;
+export function assertStreamEqual<A>(s1: Stream<A>, s2: A[]): void;
+export function assertStreamEqual<A>(s1: Stream<A>, s2): void {
+  const s2_ = isStream(s2)
+    ? s2
+    : Array.isArray(s2)
+    ? testStreamFromArray(s2)
+    : testStreamFromObject(s2);
+  assert.deepEqual(s1.model(), s2_.model());
+}
+
+// Behavior
+
+export type BehaviorModel<A> = (time: Time) => A;
+
+declare module "./behavior" {
+  interface Behavior<A> {
+    model(): BehaviorModel<A>;
   }
 }
 
-export function testFuture<A>(time: number, value: A): Future<A> {
-  return new TestFuture({ time, value });
+MapBehavior.prototype.model = function() {
+  const g = this.parent.model();
+  return (t) => this.f(g(t));
+};
+
+ConstantBehavior.prototype.model = function() {
+  return (_) => this.last;
+};
+
+FunctionBehavior.prototype.model = function() {
+  return (t: number) => this.f(t);
+};
+
+time.model = () => (t: Time) => t;
+
+ScanBehavior.prototype.model = function<A, B>(this: ScanBehavior<A, B>) {
+  const stream = this.source.model();
+  return (t1) =>
+    testBehavior<B>((t2) =>
+      stream
+        .filter(({ time }) => t1 <= time && time <= t2)
+        .map((o) => o.value)
+        .reduce((acc, cur) => this.f(cur, acc), this.initial)
+    );
+};
+
+class TestBehavior<A> extends Behavior<A> {
+  constructor(private semanticBehavior: BehaviorModel<A>) {
+    super();
+  }
+  /* istanbul ignore next */
+  update(_t: number): A {
+    throw new Error("Test behavior never updates");
+  }
+  model(): BehaviorModel<A> {
+    return this.semanticBehavior;
+  }
+}
+
+export function testBehavior<A>(b: (time: number) => A): Behavior<A> {
+  return new TestBehavior(b);
+}
+
+/**
+ * Takes a behavior created from test data, a point in timer and returns the
+ * behaviors value at that point in time.
+ */
+export function testAt<A>(t: number, b: Behavior<A>): A {
+  return b.model()(t);
+}
+
+// * Now
+
+type NowModel<A> = { value: A; mocks: any[] };
+
+declare module "./now" {
+  interface Now<A> {
+    model(mocks: any[], t: Time): NowModel<A>;
+  }
+}
+
+OfNow.prototype.model = function<A>(mocks: any[], _t: Time): NowModel<A> {
+  return { value: this.value, mocks };
+};
+
+FlatMapNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
+  const { value, mocks: m } = this.first.model(mocks, t);
+  return this.f(value).model(m, t);
+};
+
+SampleNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
+  return { value: testAt(t, this.b), mocks };
+};
+
+PerformNow.prototype.model = function<A>(
+  [value, ...mocks]: any[],
+  _t: Time
+): NowModel<A> {
+  return { value, mocks };
+};
+
+PerformMapNow.prototype.model = function<A, B>(
+  this: PerformMapNow<A, B>,
+  [value, ...mocks]: any[],
+  _t: Time
+): { value: Stream<B> | Future<B>; mocks: any } {
+  return { value, mocks };
+};
+
+PerformStreamLatestNow.prototype.model = function<A>(
+  this: PerformStreamLatestNow<A>,
+  [value, ...mocks]: any[],
+  _t: Time
+): NowModel<A> {
+  return { value, mocks };
+};
+
+PerformStreamOrderedNow.prototype.model = function<A>(
+  this: PerformStreamOrderedNow<A>,
+  [value, ...mocks]: any[],
+  _t: Time
+): NowModel<A> {
+  return { value, mocks };
+};
+
+/**
+ * Test run a now computation without executing its side-effects.
+ * @param now The now computation to test.
+ * @param time The point in time at which the now computation should
+ * be run. Defaults to 0.
+ */
+export function testNow<A>(now: Now<A>, mocks: any[] = [], time: Time = 0): A {
+  return now.model(mocks, time).value;
 }

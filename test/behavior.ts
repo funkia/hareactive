@@ -125,7 +125,6 @@ describe("behavior", () => {
         const b = Behavior.of(3);
         assert.strictEqual(at(b, 1), 3);
         const mapped = map(double, b);
-
         let a;
         mapped.observe((v) => (a = v), () => {});
         assert.strictEqual(a, 6);
@@ -158,30 +157,12 @@ describe("behavior", () => {
         });
         assert.deepEqual(cb.args, [[0], [2], [4], [6]]);
       });
-      it("has semantic representation", () => {
-        const b = H.testBehavior((t) => t);
-        const mapped = b.map((t) => t * t);
-        const semantic = mapped.semantic();
-        assert.strictEqual(semantic(1), 1);
-        assert.strictEqual(semantic(2), 4);
-        assert.strictEqual(semantic(3), 9);
-      });
     });
     describe("mapTo", () => {
       it("maps to constant", () => {
         const b = Behavior.of(1);
         const b2 = mapTo(2, b);
         assert.strictEqual(at(b2), 2);
-      });
-      it("has semantic representation", () => {
-        const b = H.testBehavior((t) => {
-          throw new Error("Don't call me");
-        });
-        const mapped = b.mapTo(7);
-        const semantic = mapped.semantic();
-        assert.strictEqual(semantic(-3), 7);
-        assert.strictEqual(semantic(4), 7);
-        assert.strictEqual(semantic(9), 7);
       });
     });
   });
@@ -794,29 +775,6 @@ describe("Behavior and Stream", () => {
       s.push(4);
       assert.strictEqual(b.at(), 10);
     });
-    it("has semantic representation", () => {
-      const s = H.testStreamFromObject({
-        1: 1,
-        2: 1,
-        4: 2,
-        6: 3,
-        7: 1
-      });
-      const scanned = H.scan((n, m) => n + m, 0, s);
-      const semantic = scanned.semantic();
-      const from0 = semantic(0).semantic();
-      assert.strictEqual(from0(0), 0);
-      assert.strictEqual(from0(1), 1);
-      assert.strictEqual(from0(2), 2);
-      assert.strictEqual(from0(3), 2);
-      assert.strictEqual(from0(4), 4);
-      const from3 = semantic(3).semantic();
-      assert.strictEqual(from3(3), 0);
-      assert.strictEqual(from3(4), 2);
-      assert.strictEqual(from3(5), 2);
-      assert.strictEqual(from3(6), 5);
-      assert.strictEqual(from3(7), 6);
-    });
   });
   describe("scanCombine", () => {
     it("combines several streams", () => {
@@ -915,11 +873,6 @@ describe("Behavior and Stream", () => {
         const now = Date.now();
         assert(now - 2 <= t && t <= now);
         assert.strictEqual(endPull, false);
-      });
-      it("has semantic representation", () => {
-        const f = H.time.semantic();
-        assert.strictEqual(f(0), 0);
-        assert.strictEqual(f(1.3), 1.3);
       });
     });
   });

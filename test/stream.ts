@@ -17,29 +17,6 @@ const addTwo = (v: number): number => v + 2;
 const sum = (a: number, b: number): number => a + b;
 
 describe("stream", () => {
-  describe("test streams", () => {
-    it("creates test stream with increasing times from array", () => {
-      const s = testStreamFromArray([0, 1, 2, 3]);
-      assert.deepEqual(s.semantic(), [
-        { value: 0, time: 0 },
-        { value: 1, time: 1 },
-        { value: 2, time: 2 },
-        { value: 3, time: 3 }
-      ]);
-    });
-    it("creates test stream from object", () => {
-      const s = H.testStreamFromObject({
-        2: "one",
-        4: "two",
-        5.5: "three"
-      });
-      assert.deepEqual(s.semantic(), [
-        { value: "one", time: 2 },
-        { value: "two", time: 4 },
-        { value: "three", time: 5.5 }
-      ]);
-    });
-  });
   describe("isStream", () => {
     it("should be true when Stream object", () => {
       assert.isTrue(H.isStream(H.empty));
@@ -155,33 +132,7 @@ describe("stream", () => {
       assert.deepEqual(callback.args, [[1], [2]]);
     });
   });
-  describe("empty", () => {
-    it("is empty array semantically", () => {
-      assert.deepEqual(H.empty.semantic(), []);
-    });
-  });
   describe("combine", () => {
-    describe("semantics", () => {
-      it("interleaves occurrences", () => {
-        const s1 = H.testStreamFromObject({
-          0: "#1",
-          2: "#3"
-        });
-        const s2 = H.testStreamFromObject({
-          1: "#2",
-          2: "#4",
-          3: "#5"
-        });
-        const combined = s2.combine(s1);
-        assert.deepEqual(combined.semantic(), [
-          { time: 0, value: "#1" },
-          { time: 1, value: "#2" },
-          { time: 2, value: "#3" },
-          { time: 2, value: "#4" },
-          { time: 3, value: "#5" }
-        ]);
-      });
-    });
     it("should combine two streams", () => {
       const stream1 = H.sinkStream();
       const stream2 = H.sinkStream();
@@ -205,14 +156,6 @@ describe("stream", () => {
     });
   });
   describe("map", () => {
-    it("maps values semantically", () => {
-      const s = testStreamFromArray([1, 2, 3]);
-      const mapped = s.map((n) => n * n);
-      assert.deepEqual(
-        mapped.semantic(),
-        H.testStreamFromArray([1, 4, 9]).semantic()
-      );
-    });
     it("should map the published values", () => {
       const obs = H.sinkStream();
       const callback = spy();
@@ -232,14 +175,6 @@ describe("stream", () => {
       stream.push(2);
       stream.push(3);
       assert.deepEqual(callback.args, [[7], [7], [7]]);
-    });
-    it("maps to constant semantically", () => {
-      const s = testStreamFromArray([1, 2, 3]);
-      const mapped = s.mapTo(7);
-      assert.deepEqual(
-        mapped.semantic(),
-        testStreamFromArray([7, 7, 7]).semantic()
-      );
     });
   });
   describe("apply", () => {
@@ -263,14 +198,6 @@ describe("stream", () => {
     });
   });
   describe("filter", () => {
-    it("filter values semantically", () => {
-      const s = H.testStreamFromArray([1, 3, 2, 4, 1]);
-      const filtered = s.filter((n) => n > 2);
-      assert.deepEqual(filtered.semantic(), [
-        { time: 1, value: 3 },
-        { time: 3, value: 4 }
-      ]);
-    });
     it("should filter the unwanted values", () => {
       const sink = H.sinkStream();
       const callback = spy();
@@ -477,21 +404,6 @@ describe("stream", () => {
       push(4, e);
       assert.deepEqual(callback.args, [[0], [1], [3], [5], [6]]);
     });
-    it("has semantic representation", () => {
-      const b = testBehavior((t) => t * t);
-      const s = H.testStreamFromObject({
-        1: 1,
-        4: 4,
-        8: 8
-      });
-      const shot = H.snapshot(b, s);
-      const expected = H.testStreamFromObject({
-        1: 1,
-        4: 16,
-        8: 8 * 8
-      });
-      assert.deepEqual(shot.semantic(), expected.semantic());
-    });
   });
   describe("selfie", () => {
     it("samples behavior on occurrence", () => {
@@ -536,18 +448,5 @@ describe("stream", () => {
       assert.deepEqual(cb.args, [[1], [2], [3]]);
     });
     */
-  });
-  it("works", () => {
-    function foobar(stream1, stream2) {
-      const isEven = (n) => n % 2 === 0;
-      const a = stream1.filter(isEven).map((n) => n * n);
-      const b = stream2.filter((n) => !isEven(n)).map(Math.sqrt);
-      return a.combine(b);
-    }
-    const a = H.testStreamFromObject({ 0: 1, 2: 4, 4: 6 });
-    const b = H.testStreamFromObject({ 1: 9, 3: 8 });
-    const result = foobar(a, b);
-    const expected = H.testStreamFromObject({ 1: 3, 2: 16, 4: 36 });
-    assert.deepEqual(result.semantic(), expected.semantic());
   });
 });

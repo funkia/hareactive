@@ -50,6 +50,7 @@
     "@types/benchmark": "^1.0.31",
     "@types/chai": "^4.1.6",
     "@types/mocha": "^5.2.5",
+    "@types/node": "^11.9.3",
     "@types/sinon": "^5.0.5",
     "benchmark": "^2.1.4",
     "browser-env": "^3.2.5",
