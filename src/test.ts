@@ -237,8 +237,8 @@ class TestStream<A> extends Stream<A> {
   }
 }
 
-export function testStreamFromArray<A>(array: A[]): Stream<A> {
-  const semanticStream = array.map((value, time) => ({ value, time }));
+export function testStreamFromArray<A>(array: ([Time, A])[]): Stream<A> {
+  const semanticStream = array.map(([t, value]) => ({ value, time: t }));
   return new TestStream(semanticStream);
 }
 
@@ -259,7 +259,7 @@ export function assertStreamEqual<A>(
     [time: number]: A;
   }
 ): void;
-export function assertStreamEqual<A>(s1: Stream<A>, s2: A[]): void;
+export function assertStreamEqual<A>(s1: Stream<A>, s2: ([Time, A])[]): void;
 export function assertStreamEqual<A>(s1: Stream<A>, s2): void {
   const s2_ = isStream(s2)
     ? s2

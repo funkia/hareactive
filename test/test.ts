@@ -107,7 +107,7 @@ describe("testing", () => {
   describe("stream", () => {
     describe("test streams", () => {
       it("creates test stream with increasing times from array", () => {
-        const s = testStreamFromArray([0, 1, 2, 3]);
+        const s = testStreamFromArray([[0, 0], [1, 1], [2, 2], [3, 3]]);
         assert.deepEqual(s.model(), [
           { value: 0, time: 0 },
           { value: 1, time: 1 },
@@ -130,26 +130,23 @@ describe("testing", () => {
     });
     describe("map", () => {
       it("applies function to values", () => {
-        const s = testStreamFromArray([1, 2, 3]);
+        const s = testStreamFromArray([[1, 1], [2, 2], [3, 3]]);
         const mapped = s.map((n) => n * n);
-        assertStreamEqual(mapped, [1, 4, 9]);
+        assertStreamEqual(mapped, { 1: 1, 2: 4, 3: 9 });
       });
     });
     describe("map", () => {
       it("changes values to constant", () => {
-        const s = testStreamFromArray([1, 2, 3]);
+        const s = testStreamFromArray([[1, 1], [2, 2], [3, 3]]);
         const mapped = s.mapTo(7);
-        assertStreamEqual(mapped, [7, 7, 7]);
+        assertStreamEqual(mapped, [[1, 7], [2, 7], [3, 7]]);
       });
     });
     describe("filter", () => {
       it("filter values semantically", () => {
-        const s = H.testStreamFromArray([1, 3, 2, 4, 1]);
+        const s = H.testStreamFromObject({ 0: 1, 1: 3, 2: 2, 3: 4, 4: 1 });
         const filtered = s.filter((n) => n > 2);
-        assert.deepEqual(filtered.model(), [
-          { time: 1, value: 3 },
-          { time: 3, value: 4 }
-        ]);
+        assertStreamEqual(filtered, { 1: 3, 3: 4 });
       });
     });
     describe("combine", () => {
@@ -226,7 +223,6 @@ describe("testing", () => {
           6: 7,
           7: 8
         });
-        console.log("first");
         const from3 = testAt(3, scanned);
         assertStreamEqual(from3, {
           4: 2,
@@ -367,14 +363,24 @@ describe("testing", () => {
           const response: Stream<string> = yield H.performStream(request);
           return { res: response };
         });
-        const click = testStreamFromArray([1, 2, 3, 4, 5]);
+        const click = testStreamFromArray([
+          [1, 1],
+          [2, 2],
+          [3, 3],
+          [4, 4],
+          [5, 5]
+        ]);
         const out: { res: Stream<string> } = testNow(model({ click }), [
-          testStreamFromArray(["old1", "old2", "response"])
+          testStreamFromArray([[0, "old1"], [1, "old2"], [2, "response"]])
         ]);
         assert(H.isStream(out.res));
         assert.deepEqual(
           out.res.model(),
-          testStreamFromArray(["old1", "old2", "response"]).model()
+          testStreamFromArray([
+            [0, "old1"],
+            [1, "old2"],
+            [2, "response"]
+          ]).model()
         );
         assert.deepEqual(requests, []);
       });
@@ -393,10 +399,16 @@ describe("testing", () => {
           const res = H.stepper("", response.map((e) => e.toString()));
           return { res };
         });
-        const click = testStreamFromArray([1, 2, 3, 4, 5]);
+        const click = testStreamFromArray([
+          [1, 1],
+          [2, 2],
+          [3, 3],
+          [4, 4],
+          [5, 5]
+        ]);
         const out: { res: Behavior<Behavior<string>> } = testNow(
           model({ click }),
-          [testStreamFromArray(["old", "old", "response"])]
+          [testStreamFromArray([[0, "old"], [1, "old"], [2, "response"]])]
         );
         assert(H.isBehavior(out.res));
         assert.equal(
@@ -423,14 +435,24 @@ describe("testing", () => {
           );
           return { res: response };
         });
-        const click = testStreamFromArray([1, 2, 3, 4, 5]);
+        const click = testStreamFromArray([
+          [1, 1],
+          [2, 2],
+          [3, 3],
+          [4, 4],
+          [5, 5]
+        ]);
         const out: { res: Stream<string> } = testNow(model({ click }), [
-          testStreamFromArray(["old1", "old2", "response"])
+          testStreamFromArray([[0, "old1"], [1, "old2"], [2, "response"]])
         ]);
         assert(H.isStream(out.res));
         assert.deepEqual(
           out.res.model(),
-          testStreamFromArray(["old1", "old2", "response"]).model()
+          testStreamFromArray([
+            [0, "old1"],
+            [1, "old2"],
+            [2, "response"]
+          ]).model()
         );
         assert.deepEqual(requests, []);
       });
