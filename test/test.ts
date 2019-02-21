@@ -255,7 +255,7 @@ describe("testing", () => {
       });
     });
   });
-  describe("behavior", () => {
+  describe("now", () => {
     describe("of", () => {
       it("can be tested", () => {
         assert.strictEqual(testNow(Now.of(12)), 12);
@@ -372,6 +372,45 @@ describe("testing", () => {
           testStreamFromObject({ 0: "old1", 1: "old2", 2: "response" })
         );
         assert.deepEqual(requests, []);
+      });
+    });
+    describe("examples", () => {
+      it("can test counter", () => {
+        type CounterModelInput = {
+          incrementClick: Stream<any>;
+          decrementClick: Stream<any>;
+        };
+        const counterModel = fgo(function*({
+          incrementClick,
+          decrementClick
+        }: CounterModelInput) {
+          const increment = incrementClick.mapTo(1);
+          const decrement = decrementClick.mapTo(-1);
+          const changes = H.combine(increment, decrement);
+          const count = yield H.sample(H.scan((n, m) => n + m, 0, changes));
+          return { count };
+        });
+        const { count } = testNow(
+          counterModel({
+            incrementClick: testStreamFromObject({
+              1: 0,
+              2: 0,
+              3: 0,
+              5: 0,
+              7: 0
+            }),
+            decrementClick: testStreamFromObject({ 4: 0, 6: 0 })
+          })
+        );
+        assertBehaviorEqual(count, {
+          1.1: 1,
+          2.1: 2,
+          3.1: 3,
+          4.1: 2,
+          5.1: 3,
+          6.1: 2,
+          7.1: 3
+        });
       });
     });
   });
