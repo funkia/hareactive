@@ -249,9 +249,18 @@ describe("testing", () => {
         const scanned = H.scan((n, m) => n + m, 0, s);
         const semantic = scanned.model();
         const from0 = semantic(0);
-        assertBehaviorEqual(from0, { 0: 0, 1: 1, 2: 2, 3: 2, 4: 4 });
+        assertBehaviorEqual(from0, {
+          0.1: 0,
+          1: 0,
+          1.1: 1,
+          2: 1,
+          2.1: 2,
+          3: 2,
+          4: 2,
+          4.1: 4
+        });
         const from3 = semantic(3);
-        assertBehaviorEqual(from3, { 3: 0, 4: 2, 5: 2, 6: 5, 7: 6 });
+        assertBehaviorEqual(from3, { 3.1: 0, 4.1: 2, 5.1: 2, 6.1: 5, 7.1: 6 });
       });
     });
   });
@@ -280,7 +289,7 @@ describe("testing", () => {
         const stream = testStreamFromObject({ 1: 1, 2: 3, 4: 2 });
         const now = H.sample(H.scan((n, m) => n + m, 0, stream));
         const result = testNow(now);
-        assertBehaviorEqual(result, { 0: 0, 1: 1, 2: 4, 3: 4, 4: 6 });
+        assertBehaviorEqual(result, { 0.1: 0, 1.1: 1, 2.1: 4, 3.1: 4, 4.1: 6 });
       });
       it("it can test with go", () => {
         const model = fgo(function*(incrementClick: Stream<any>) {
@@ -290,7 +299,7 @@ describe("testing", () => {
         });
         const stream = testStreamFromObject({ 1: 0, 2: 0, 4: 0 });
         const result = testNow<Behavior<number>>(model(stream));
-        assertBehaviorEqual(result, { 0: 0, 1: 1, 2: 2, 3: 2, 4: 3 });
+        assertBehaviorEqual(result, { 0.1: 0, 1.1: 1, 2.1: 2, 3.1: 2, 4.1: 3 });
       });
     });
     describe("performStream", () => {

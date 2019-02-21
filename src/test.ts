@@ -299,7 +299,7 @@ ScanBehavior.prototype.model = function<A, B>(this: ScanBehavior<A, B>) {
   return (t1) =>
     testBehavior<B>((t2) =>
       stream
-        .filter(({ time }) => t1 <= time && time <= t2)
+        .filter(({ time }) => t1 <= time && time < t2)
         .map((o) => o.value)
         .reduce((acc, cur) => this.f(cur, acc), this.initial)
     );
