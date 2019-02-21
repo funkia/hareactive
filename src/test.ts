@@ -330,6 +330,18 @@ export function testAt<A>(t: number, b: Behavior<A>): A {
   return b.model()(t);
 }
 
+export function assertBehaviorEqual<A>(
+  b1: Behavior<A>,
+  b2: {
+    [time: number]: A;
+  }
+): void {
+  const b = b1.model();
+  for (const [t, v] of Object.entries(b2)) {
+    assert.deepEqual(b(parseFloat(t)), v);
+  }
+}
+
 // * Now
 
 type NowModel<A> = { value: A; mocks: any[] };
