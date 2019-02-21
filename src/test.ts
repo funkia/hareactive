@@ -50,7 +50,7 @@ export type Occurrence<A> = {
 
 declare module "./future" {
   interface Future<A> {
-    test(): SemanticFuture<A>;
+    model(): SemanticFuture<A>;
   }
 }
 
@@ -67,46 +67,46 @@ export function doesOccur<A>(
   return future.time !== "infinity";
 }
 
-CombineFuture.prototype.test = function() {
-  const a = this.future1.test();
-  const b = this.future2.test();
+CombineFuture.prototype.model = function() {
+  const a = this.future1.model();
+  const b = this.future2.model();
   return a.time <= b.time ? a : b;
 };
 
-MapFuture.prototype.test = function() {
-  const p = this.parent.test();
+MapFuture.prototype.model = function() {
+  const p = this.parent.model();
   return doesOccur(p)
     ? { time: p.time, value: this.f(p.value) }
     : neverOccurringFuture;
 };
 
-MapToFuture.prototype.test = function() {
-  const p = this.parent.test();
+MapToFuture.prototype.model = function() {
+  const p = this.parent.model();
   return doesOccur(p)
     ? { time: p.time, value: this.value }
     : neverOccurringFuture;
 };
 
-OfFuture.prototype.test = function() {
+OfFuture.prototype.model = function() {
   return { time: -Infinity, value: this.value };
 };
 
-NeverFuture.prototype.test = function() {
+NeverFuture.prototype.model = function() {
   return neverOccurringFuture;
 };
 
-LiftFuture.prototype.test = function() {
-  const sems = this.futures.map((f) => f.test());
+LiftFuture.prototype.model = function() {
+  const sems = this.futures.map((f) => f.model());
   const time = Math.max(...sems.map((s) => (doesOccur(s) ? s.time : Infinity)));
   return time !== Infinity
     ? { time, value: this.f(...sems.map((s) => s.value)) }
     : neverOccurringFuture;
 };
 
-FlatMapFuture.prototype.test = function() {
-  const a = this.parent.test();
+FlatMapFuture.prototype.model = function() {
+  const a = this.parent.model();
   if (doesOccur(a)) {
-    const b = this.f(a.value).test();
+    const b = this.f(a.value).model();
     if (doesOccur(b)) {
       return { time: Math.max(a.time, b.time), value: b.value };
     }
@@ -114,7 +114,9 @@ FlatMapFuture.prototype.test = function() {
   return neverOccurringFuture;
 };
 
-NextOccurenceFuture.prototype.test = function<A>(this: NextOccurenceFuture<A>) {
+NextOccurenceFuture.prototype.model = function<A>(
+  this: NextOccurenceFuture<A>
+) {
   const occ = this.s.model().find((o) => o.time > this.time);
   return occ !== undefined ? occ : neverOccurringFuture;
 };
@@ -127,7 +129,7 @@ class TestFuture<A> extends Future<A> {
   pushS(_t: number, _val: A): void {
     throw new Error("You cannot push to a TestFuture");
   }
-  test(): SemanticFuture<A> {
+  model(): SemanticFuture<A> {
     return this.semanticFuture;
   }
   /* istanbul ignore next */
@@ -144,8 +146,8 @@ export function assertFutureEqual<A>(
   future1: Future<A>,
   future2: Future<A>
 ): void {
-  const a = future1.test();
-  const b = future2.test();
+  const a = future1.model();
+  const b = future2.model();
   assert.deepEqual(a, b);
 }
 
@@ -334,34 +336,31 @@ type NowModel<A> = { value: A; mocks: any[] };
 
 declare module "./now" {
   interface Now<A> {
-    test(mocks: any[], t: Time): NowModel<A>;
+    model(mocks: any[], t: Time): NowModel<A>;
   }
 }
 
-OfNow.prototype.test = function test<A>(mocks: any[], _t: Time): NowModel<A> {
+OfNow.prototype.model = function<A>(mocks: any[], _t: Time): NowModel<A> {
   return { value: this.value, mocks };
 };
 
-FlatMapNow.prototype.test = function test<A>(
-  mocks: any[],
-  t: Time
-): NowModel<A> {
-  const { value, mocks: m } = this.first.test(mocks, t);
-  return this.f(value).test(m, t);
+FlatMapNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
+  const { value, mocks: m } = this.first.model(mocks, t);
+  return this.f(value).model(m, t);
 };
 
-SampleNow.prototype.test = function<A>(mocks: any[], t: Time): NowModel<A> {
+SampleNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
   return { value: testAt(t, this.b), mocks };
 };
 
-PerformNow.prototype.test = function<A>(
+PerformNow.prototype.model = function<A>(
   [value, ...mocks]: any[],
   _t: Time
 ): NowModel<A> {
   return { value, mocks };
 };
 
-PerformMapNow.prototype.test = function<A, B>(
+PerformMapNow.prototype.model = function<A, B>(
   this: PerformMapNow<A, B>,
   [value, ...mocks]: any[],
   _t: Time
@@ -369,7 +368,7 @@ PerformMapNow.prototype.test = function<A, B>(
   return { value, mocks };
 };
 
-PerformStreamLatestNow.prototype.test = function<A>(
+PerformStreamLatestNow.prototype.model = function<A>(
   this: PerformStreamLatestNow<A>,
   [value, ...mocks]: any[],
   _t: Time
@@ -377,7 +376,7 @@ PerformStreamLatestNow.prototype.test = function<A>(
   return { value, mocks };
 };
 
-PerformStreamOrderedNow.prototype.test = function<A>(
+PerformStreamOrderedNow.prototype.model = function<A>(
   this: PerformStreamOrderedNow<A>,
   [value, ...mocks]: any[],
   _t: Time
@@ -392,5 +391,5 @@ PerformStreamOrderedNow.prototype.test = function<A>(
  * be run. Defaults to 0.
  */
 export function testNow<A>(now: Now<A>, mocks: any[] = [], time: Time = 0): A {
-  return now.test(mocks, time).value;
+  return now.model(mocks, time).value;
 }

@@ -58,7 +58,7 @@ describe("testing", () => {
     });
     describe("never", () => {
       it("never occurs", () => {
-        assert.strictEqual(H.never.test().time, "infinity");
+        assert.strictEqual(H.never.model().time, "infinity");
       });
     });
     describe("lift", () => {
@@ -327,7 +327,7 @@ describe("testing", () => {
         const ref1 = createRef(1);
         const comp = performIO(mutateRef(2, ref1));
         const result = testNow(comp, [testFuture(0, "foo")]);
-        assert(result.test().value, "foo");
+        assert(result.model().value, "foo");
       });
     });
     describe("sample", () => {
