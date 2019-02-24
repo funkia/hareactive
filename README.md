@@ -541,10 +541,18 @@ Takes a stream valued behavior and returns a stream that emits values
 from the current stream at the behavior. I.e. the returned stream
 always "switches" to the current stream at the behavior.
 
-#### `changes<A>(b: Behavior<A>): Stream<A>`
+#### changes
 
+```ts
+changes<A>(b: Behavior<A>, comparator: (v: A, u: A) => boolean = (v, u) => v === u): Stream<A>;
+```
 Takes a behavior and returns a stream that has an occurrence whenever
-the behavior changes.
+the behaviors value changes.
+
+The second argument is an optional comparator that will be used to determine
+equality between values of the behavior. It defaults to using `===`. This
+default is only intended to be used for JavaScript primitives like booleans,
+numbers, strings, etc.
 
 #### `combine<A, B>(a: Stream<A>, b: Stream<B>): Stream<(A|B)>`
 

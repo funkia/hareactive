@@ -427,6 +427,27 @@ describe("stream", () => {
       b.push(3);
       assert.deepEqual(cb.args, [[1], [2], [3]]);
     });
+    it("handles custom comparator", () => {
+      type Obj = { a: number; b: number };
+      function eq(v: Obj, u: Obj): boolean {
+        return v.a === u.a && v.b === u.b;
+      }
+      const b = sinkBehavior({ a: 0, b: 0 });
+      const s = H.changes(b, eq);
+      const cb = spy();
+      H.subscribe(cb, s);
+      b.push({ a: 0, b: 0 });
+      b.push({ a: 0, b: 1 });
+      b.push({ a: 0, b: 1 });
+      b.push({ a: 1, b: 1 });
+      b.push({ a: 1, b: 0 });
+      b.push({ a: 1, b: 0 });
+      assert.deepEqual(cb.args, [
+        [{ a: 0, b: 1 }],
+        [{ a: 1, b: 1 }],
+        [{ a: 1, b: 0 }]
+      ]);
+    });
     /*
     it("gives changes from pulling behavior", () => {
       let x = 0;

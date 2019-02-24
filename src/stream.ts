@@ -220,23 +220,32 @@ export function switchStreamS<A>(s: Stream<Stream<A>>): Behavior<Stream<A>> {
 }
 
 class ChangesStream<A> extends Stream<A> implements BListener {
-  constructor(private parent: Behavior<A>) {
+  last: A;
+  constructor(
+    readonly parent: Behavior<A>,
+    readonly comparator: (v: A, u: A) => boolean
+  ) {
     super();
     this.parents = cons(parent);
   }
-  changeStateDown(_state: State): void {
-    throw new Error("Method not implemented.");
+  activate(t: Time): void {
+    super.activate(t);
+    this.last = at(this.parent, t);
   }
   pushB(t: number): void {
-    this.pushSToChildren(t, this.parent.last);
+    if (!this.comparator(this.last, this.parent.last)) {
+      this.pushSToChildren(t, this.parent.last);
+      this.last = this.parent.last;
+    }
   }
-  pushS(t: number, a: A): void {
-    this.pushSToChildren(t, a);
-  }
+  pushS(_t: number, _a: A): void {}
 }
 
-export function changes<A>(b: Behavior<A>): Stream<A> {
-  return new ChangesStream(b);
+export function changes<A>(
+  b: Behavior<A>,
+  comparator: (v: A, u: A) => boolean = (v, u) => v === u
+): Stream<A> {
+  return new ChangesStream(b, comparator);
 }
 
 export class CombineStream<A, B> extends Stream<A | B> {
