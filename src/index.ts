@@ -12,7 +12,6 @@ export * from "./dom";
 export * from "./time";
 export * from "./placeholder";
 export * from "./animation";
-export * from "./test";
 
 /**
  * Map a function over a behavior or stream. This means that if at some point in

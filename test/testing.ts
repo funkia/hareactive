@@ -11,7 +11,7 @@ import {
   testBehavior,
   testNow,
   assertBehaviorEqual
-} from "../src/test";
+} from "../src/testing";
 import { createRef, mutateRef } from "./helpers";
 import { performIO, Now } from "../src";
 import { fgo, withEffects } from "@funkia/jabz";
@@ -47,14 +47,14 @@ describe("testing", () => {
     });
     describe("functor", () => {
       it("maps value", () => {
-        const fut = H.testFuture(3, "hello");
+        const fut = testFuture(3, "hello");
         const fut2 = fut.map((s) => s.toUpperCase());
-        assertFutureEqual(fut2, H.testFuture(3, "HELLO"));
+        assertFutureEqual(fut2, testFuture(3, "HELLO"));
       });
       it("maps to constant", () => {
-        const fut = H.testFuture(7, "hello");
+        const fut = testFuture(7, "hello");
         const fut2 = fut.mapTo("world");
-        assertFutureEqual(fut2, H.testFuture(7, "world"));
+        assertFutureEqual(fut2, testFuture(7, "world"));
       });
     });
     describe("never", () => {
@@ -63,12 +63,12 @@ describe("testing", () => {
       });
     });
     describe("lift", () => {
-      const f1 = H.testFuture(2, 2);
-      const f2 = H.testFuture(5, 3);
-      const f3 = H.testFuture(1, 7);
+      const f1 = testFuture(2, 2);
+      const f2 = testFuture(5, 3);
+      const f3 = testFuture(1, 7);
       it("applies function to values with last time", () => {
         const f4 = H.lift((a, b, c) => a * b + c, f1, f2, f3);
-        assertFutureEqual(f4, H.testFuture(5, 13));
+        assertFutureEqual(f4, testFuture(5, 13));
       });
       it("returns never when given a never", () => {
         const f4 = H.lift((a, b, c) => a * b + c, H.never, f2, f3);
@@ -117,7 +117,7 @@ describe("testing", () => {
         ]);
       });
       it("creates test stream from object", () => {
-        const s = H.testStreamFromObject({
+        const s = testStreamFromObject({
           2: "one",
           4: "two",
           5.5: "three"
@@ -131,29 +131,29 @@ describe("testing", () => {
     });
     describe("map", () => {
       it("applies function to values", () => {
-        const s = H.testStreamFromArray([[1, 1], [2, 2], [3, 3]]);
+        const s = testStreamFromArray([[1, 1], [2, 2], [3, 3]]);
         const mapped = s.map((n) => n * n);
         assertStreamEqual(mapped, { 1: 1, 2: 4, 3: 9 });
       });
     });
     describe("map", () => {
       it("changes values to constant", () => {
-        const s = H.testStreamFromArray([[1, 1], [2, 2], [3, 3]]);
+        const s = testStreamFromArray([[1, 1], [2, 2], [3, 3]]);
         const mapped = s.mapTo(7);
         assertStreamEqual(mapped, { 1: 7, 2: 7, 3: 7 });
       });
     });
     describe("filter", () => {
       it("filter values semantically", () => {
-        const s = H.testStreamFromObject({ 0: 1, 1: 3, 2: 2, 3: 4, 4: 1 });
+        const s = testStreamFromObject({ 0: 1, 1: 3, 2: 2, 3: 4, 4: 1 });
         const filtered = s.filter((n) => n > 2);
         assertStreamEqual(filtered, { 1: 3, 3: 4 });
       });
     });
     describe("combine", () => {
       it("interleaves occurrences", () => {
-        const s1 = H.testStreamFromObject({ 0: "#1", 2: "#3" });
-        const s2 = H.testStreamFromObject({ 1: "#2", 2: "#4", 3: "#5" });
+        const s1 = testStreamFromObject({ 0: "#1", 2: "#3" });
+        const s2 = testStreamFromObject({ 1: "#2", 2: "#4", 3: "#5" });
         const combined = s2.combine(s1);
         assert.deepEqual(combined.model(), [
           { time: 0, value: "#1" },
@@ -167,9 +167,9 @@ describe("testing", () => {
     describe("filter", () => {
       it("has semantic representation", () => {
         const b = testBehavior((t) => t * t);
-        const s = H.testStreamFromObject({ 1: 1, 4: 4, 8: 8 });
+        const s = testStreamFromObject({ 1: 1, 4: 4, 8: 8 });
         const shot = H.snapshot(b, s);
-        const expected = H.testStreamFromObject({ 1: 1, 4: 16, 8: 8 * 8 });
+        const expected = testStreamFromObject({ 1: 1, 4: 16, 8: 8 * 8 });
         assertStreamEqual(shot, expected);
       });
     });
@@ -185,15 +185,15 @@ describe("testing", () => {
         const b = s2.filter((n) => !isEven(n)).map(Math.sqrt);
         return a.combine(b);
       }
-      const a = H.testStreamFromObject({ 0: 1, 2: 4, 4: 6 });
-      const b = H.testStreamFromObject({ 1: 9, 3: 8 });
+      const a = testStreamFromObject({ 0: 1, 2: 4, 4: 6 });
+      const b = testStreamFromObject({ 1: 9, 3: 8 });
       const result = foobar(a, b);
-      const expected = H.testStreamFromObject({ 1: 3, 2: 16, 4: 36 });
+      const expected = testStreamFromObject({ 1: 3, 2: 16, 4: 36 });
       assert.deepEqual(result.model(), expected.model());
     });
     describe("scanS", () => {
       it("accumulates state", () => {
-        const s = H.testStreamFromObject({ 1: 1, 2: 1, 4: 2, 6: 3, 7: 1 });
+        const s = testStreamFromObject({ 1: 1, 2: 1, 4: 2, 6: 3, 7: 1 });
         const scanned = H.scanS((n, m) => n + m, 0, s);
         const from0 = testAt(0, scanned);
         assertStreamEqual(from0, { 1: 1, 2: 2, 4: 4, 6: 7, 7: 8 });
@@ -203,7 +203,7 @@ describe("testing", () => {
     });
     describe("delay", () => {
       it("delays occurrences", () => {
-        const s = H.testStreamFromObject({ 1: 1, 2: 1, 4: 2, 6: 3, 7: 1 });
+        const s = testStreamFromObject({ 1: 1, 2: 1, 4: 2, 6: 3, 7: 1 });
         assertStreamEqual(H.delay(3, s), { 4: 1, 5: 1, 7: 2, 9: 3, 10: 1 });
       });
     });
@@ -229,14 +229,14 @@ describe("testing", () => {
     });
     describe("map", () => {
       it("has semantic representation", () => {
-        const b = H.testBehavior((t) => t);
+        const b = testBehavior((t) => t);
         const mapped = b.map((t) => t * t);
         assertBehaviorEqual(mapped, { "-3": 9, 1: 1, 2: 4, "4.5": 20.25 });
       });
     });
     describe("mapTo", () => {
       it("creates constant function", () => {
-        const b = H.testBehavior((t) => {
+        const b = testBehavior((t) => {
           throw new Error("Don't call me");
         });
         const mapped = b.mapTo(7);
@@ -245,7 +245,7 @@ describe("testing", () => {
     });
     describe("scan", () => {
       it("accumulates state", () => {
-        const s = H.testStreamFromObject({ 1: 1, 2: 1, 4: 2, 6: 3, 7: 1 });
+        const s = testStreamFromObject({ 1: 1, 2: 1, 4: 2, 6: 3, 7: 1 });
         const scanned = H.scan((n, m) => n + m, 0, s);
         const semantic = scanned.model();
         const from0 = semantic(0);
@@ -315,7 +315,7 @@ describe("testing", () => {
           const response: Stream<string> = yield H.performStream(request);
           return { res: response };
         });
-        const click = H.testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
+        const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
         const out: { res: Stream<string> } = testNow(model({ click }), [
           testStreamFromArray([[0, "old1"], [1, "old2"], [2, "response"]])
         ]);
@@ -341,7 +341,7 @@ describe("testing", () => {
           const res = H.stepper("", response.map((e) => e.toString()));
           return { res };
         });
-        const click = H.testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
+        const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
         const out: { res: Behavior<Behavior<string>> } = testNow(
           model({ click }),
           [testStreamFromObject({ 0: "old", 1: "old", 2: "response" })]
@@ -371,7 +371,7 @@ describe("testing", () => {
           );
           return { res: response };
         });
-        const click = H.testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
+        const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
         const out: { res: Stream<string> } = testNow(model({ click }), [
           testStreamFromArray([[0, "old1"], [1, "old2"], [2, "response"]])
         ]);

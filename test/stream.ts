@@ -1,14 +1,6 @@
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
-import {
-  map,
-  push,
-  Behavior,
-  fromFunction,
-  sinkBehavior,
-  testBehavior,
-  testStreamFromArray
-} from "../src";
+import { map, push, Behavior, fromFunction, sinkBehavior } from "../src";
 import * as H from "../src";
 
 import { subscribeSpy } from "./helpers";
