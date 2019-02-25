@@ -19,7 +19,8 @@ import {
   freezeTo,
   freezeAtFrom,
   Stream,
-  time
+  time,
+  runNow
 } from "../src";
 
 import * as H from "../src";
@@ -378,7 +379,7 @@ describe("behavior", () => {
       H.flatten(b).map((s) => s + "bar");
     });
   });
-  describe("integrate", () => {
+  describe("integrateFrom", () => {
     it("can integrate", () => {
       const clock = useFakeTimers();
       const acceleration = sinkBehavior(1);
@@ -558,12 +559,11 @@ describe("behavior", () => {
 });
 
 describe("Behavior and Future", () => {
-  describe("when", () => {
+  describe("whenFrom", () => {
     it("gives occurred future when behavior is true", () => {
       let occurred = false;
       const b = Behavior.of(true);
-      const w = H.whenFrom(b);
-      const fut = at(w);
+      const fut = runNow(H.when(b));
       fut.subscribe((_) => (occurred = true));
       assert.strictEqual(occurred, true);
     });
@@ -690,7 +690,7 @@ describe("Behavior and Future", () => {
       const cb = spy();
       const b = sinkBehavior("a");
       const f = sinkFuture<string>();
-      const frozenBehavior = freezeAtFrom(b, f).at();
+      const frozenBehavior = runNow(H.freezeAt(b, f));
       frozenBehavior.subscribe(cb);
       b.push("b");
       f.resolve("c");
@@ -705,20 +705,20 @@ describe("Behavior and Stream", () => {
       const result: number[] = [];
       const stream = H.sinkStream<Behavior<number>>();
       const initB = Behavior.of(1);
-      const outerSwitcher = H.switcherFrom(initB, stream);
-      const switchingB = at(outerSwitcher);
+      const outerSwitcher = H.switcher(initB, stream);
+      const switchingB = runNow(outerSwitcher);
       switchingB.subscribe((n) => result.push(n));
       const sinkB = sinkBehavior(2);
       stream.push(sinkB);
       sinkB.push(3);
       assert.deepEqual(result, [1, 2, 3]);
-      assert.deepEqual(at(at(outerSwitcher)), 1);
+      assert.deepEqual(at(runNow(outerSwitcher)), 1);
     });
   });
   describe("stepper", () => {
     it("steps to the last event value", () => {
       const s = H.sinkStream();
-      const b = H.stepperFrom(0, s).at();
+      const b = runNow(H.stepper(0, s));
       const cb = subscribeSpy(b);
       s.push(1);
       s.push(2);
@@ -726,14 +726,14 @@ describe("Behavior and Stream", () => {
     });
     it("saves last occurrence from stream", () => {
       const s = H.sinkStream();
-      const t = H.stepperFrom(1, s).at();
+      const t = runNow(H.stepper(1, s));
       s.push(12);
       const spy = subscribeSpy(t);
       assert.deepEqual(spy.args, [[12]]);
     });
     it("has old value in exact moment", () => {
       const s = H.sinkStream();
-      const b = H.stepperFrom(0, s).at();
+      const b = runNow(H.stepper(0, s));
       const res = H.snapshot(b, s);
       const spy = subscribeSpy(res);
       s.push(1);
@@ -743,19 +743,19 @@ describe("Behavior and Stream", () => {
       assert.deepEqual(spy.args, [[0], [1]]);
     });
   });
-  describe("scan", () => {
-    it("has scan as method on stream", () => {
-      const scanned = H.empty.scanFrom(sum, 0);
+  describe("accum", () => {
+    it("has accumFrom as method on stream", () => {
+      const accumulated = H.empty.accumFrom(sum, 0);
     });
     it("accumulates in a pure way", () => {
       const s = H.sinkStream<number>();
-      const scanned = H.accumFrom(sum, 1, s);
-      const b1 = scanned.at();
+      const accumulated = H.accumFrom(sum, 1, s);
+      const b1 = at(accumulated);
       const spy = subscribeSpy(b1);
       assert.strictEqual(at(b1), 1);
       s.push(2);
       assert.strictEqual(at(b1), 3);
-      const b2 = at(scanned);
+      const b2 = at(accumulated);
       assert.strictEqual(at(b2), 1);
       s.push(4);
       assert.strictEqual(at(b1), 7);
@@ -765,29 +765,30 @@ describe("Behavior and Stream", () => {
     it("works with placeholder", () => {
       const s = H.sinkStream<number>();
       const ps = H.placeholder();
-      const scanned = H.accumFrom(sum, 1, ps);
-      const b = scanned.at();
+      const accumulated = runNow(ps.accum(sum, 1));
       ps.replaceWith(s);
       s.push(2);
       s.push(3);
       s.push(4);
-      assert.strictEqual(b.at(), 10);
+      assert.strictEqual(accumulated.at(), 10);
     });
   });
-  describe("scanCombine", () => {
+  describe("scanCombineFrom", () => {
     it("combines several streams", () => {
       const add = H.sinkStream();
       const sub = H.sinkStream();
       const mul = H.sinkStream();
-      const b = H.accumCombineFrom(
-        [
-          [add, (n, m) => n + m],
-          [sub, (n, m) => m - n],
-          [mul, (n, m) => n * m]
-        ],
-        1
+      const b = runNow(
+        H.accumCombine(
+          [
+            [add, (n, m) => n + m],
+            [sub, (n, m) => m - n],
+            [mul, (n, m) => n * m]
+          ],
+          1
+        )
       );
-      const cb = subscribeSpy(b.at());
+      const cb = subscribeSpy(b);
       add.push(3);
       mul.push(3);
       sub.push(5);
@@ -878,15 +879,15 @@ describe("Behavior and Stream", () => {
     it("has correct initial value", () => {
       const s1 = H.sinkStream();
       const s2 = H.sinkStream();
-      const flipper1 = H.toggleFrom(true, s1, s2).at();
+      const flipper1 = runNow(H.toggle(true, s1, s2));
       assert.strictEqual(at(flipper1), true);
-      const flipper2 = H.toggleFrom(false, s1, s2).at();
+      const flipper2 = runNow(H.toggle(false, s1, s2));
       assert.strictEqual(at(flipper2), false);
     });
     it("flips properly", () => {
       const s1 = H.sinkStream();
       const s2 = H.sinkStream();
-      const flipper = H.toggleFrom(false, s1, s2).at();
+      const flipper = runNow(H.toggle(false, s1, s2));
       const cb = subscribeSpy(flipper);
       s1.push(1);
       s2.push(2);

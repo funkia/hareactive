@@ -237,12 +237,12 @@ describe("stream", () => {
     });
   });
 
-  describe("scanS", () => {
+  describe("scan", () => {
     it("should scan the values to a stream", () => {
       const eventS = H.sinkStream();
       const callback = spy();
       const sumF = (currSum: number, val: number) => currSum + val;
-      const currentSumE = H.scanFrom(sumF, 0, eventS).at();
+      const currentSumE = H.runNow(eventS.scan(sumF, 0));
       H.subscribe(callback, currentSumE);
       for (let i = 0; i < 10; i++) {
         push(i, eventS);
@@ -261,7 +261,27 @@ describe("stream", () => {
       ]);
     });
   });
-
+  describe("switchStreamFrom", () => {
+    it("returns stream that emits from latest stream", () => {
+      const s1 = H.sinkStream<number>();
+      const s2 = H.sinkStream<number>();
+      const s3 = H.sinkStream<number>();
+      const b = H.sinkStream<H.Stream<number>>();
+      const switching = H.switchStreamFrom(b).at();
+      const cb = spy();
+      switching.subscribe(cb);
+      b.push(s1);
+      s1.push(1);
+      s1.push(2);
+      b.push(s2);
+      s2.push(3);
+      b.push(s3);
+      s2.push(4);
+      s3.push(5);
+      s3.push(6);
+      assert.deepEqual(cb.args, [[1], [2], [3], [5], [6]]);
+    });
+  });
   describe("keepWhen", () => {
     it("removes occurrences when behavior is false", () => {
       let flag = true;
