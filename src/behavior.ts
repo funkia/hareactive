@@ -317,6 +317,10 @@ export function whenFrom(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
 }
 
+export function when(b: Behavior<boolean>): Now<Future<{}>> {
+  return sample(whenFrom(b));
+}
+
 class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
   private afterFuture: boolean;
   private node: Node<this> = new Node(this);
@@ -453,6 +457,13 @@ export function switcherFrom<A>(
   return fromFunction((t) => new SwitcherBehavior(init, stream, t));
 }
 
+export function switcher<A>(
+  init: Behavior<A>,
+  stream: Stream<Behavior<A>>
+): Now<Behavior<A>> {
+  return sample(switcherFrom(init, stream));
+}
+
 export function freezeTo<A>(
   init: Behavior<A>,
   freezeValue: Future<A>
@@ -460,11 +471,17 @@ export function freezeTo<A>(
   return switchTo(init, freezeValue.map(Behavior.of));
 }
 
-export function freezeAt<A>(
+export function freezeAtFrom<A>(
   behavior: Behavior<A>,
   shouldFreeze: Future<any>
 ): Behavior<Behavior<A>> {
   return snapshotAt(behavior, shouldFreeze).map((f) => freezeTo(behavior, f));
+}
+export function freezeAt<A>(
+  behavior: Behavior<A>,
+  shouldFreeze: Future<any>
+): Now<Behavior<A>> {
+  return sample(freezeAtFrom(behavior, shouldFreeze));
 }
 
 /** @private */

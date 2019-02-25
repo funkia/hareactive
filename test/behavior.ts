@@ -17,7 +17,7 @@ import {
   fromFunction,
   sinkFuture,
   freezeTo,
-  freezeAt,
+  freezeAtFrom,
   Stream,
   time
 } from "../src";
@@ -690,7 +690,7 @@ describe("Behavior and Future", () => {
       const cb = spy();
       const b = sinkBehavior("a");
       const f = sinkFuture<string>();
-      const frozenBehavior = freezeAt(b, f).at();
+      const frozenBehavior = freezeAtFrom(b, f).at();
       frozenBehavior.subscribe(cb);
       b.push("b");
       f.resolve("c");
