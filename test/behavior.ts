@@ -426,9 +426,7 @@ describe("behavior", () => {
       const b = H.fromFunction(() => {
         throw new Error("Must not be called");
       });
-      const result = H.runNow(
-        H.sample(H.integrateFrom(b)).chain((bi) => H.sample(bi))
-      );
+      const result = H.runNow(H.integrate(b).chain((bi) => H.sample(bi)));
       assert.strictEqual(result, 0);
     });
   });

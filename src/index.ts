@@ -1,13 +1,13 @@
-import { Stream, SinkStream, empty } from "./stream";
-import { Behavior, SinkBehavior, MapBehaviorTuple } from "./behavior";
 import { Now } from "./now";
+import { Stream, SinkStream } from "./stream";
+import { Behavior, SinkBehavior, MapBehaviorTuple } from "./behavior";
 import { Future, MapFutureTuple } from "./future";
 
 export * from "./common";
+export * from "./now";
 export * from "./behavior";
 export * from "./stream";
 export * from "./future";
-export * from "./now";
 export * from "./dom";
 export * from "./time";
 export * from "./placeholder";

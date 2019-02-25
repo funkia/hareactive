@@ -181,10 +181,12 @@ empty.model = () => [];
 ScanStream.prototype.model = function<A, B>(this: ScanStream<A, B>) {
   const s = this.parent.model();
   let acc = this.last;
-  return s.filter((o) => this.t < o.time).map(({ time, value }) => {
-    acc = this.f(value, acc);
-    return { time, value: acc };
-  });
+  return s
+    .filter((o) => this.t < o.time)
+    .map(({ time, value }) => {
+      acc = this.f(value, acc);
+      return { time, value: acc };
+    });
 };
 
 CombineStream.prototype.model = function<A, B>(this: CombineStream<A, B>) {
@@ -262,8 +264,8 @@ export function assertStreamEqual<A>(s1: Stream<A>, s2): void {
   const s2_ = isStream(s2)
     ? s2
     : Array.isArray(s2)
-      ? testStreamFromArray(s2)
-      : testStreamFromObject(s2);
+    ? testStreamFromArray(s2)
+    : testStreamFromObject(s2);
   assert.deepEqual(s1.model(), s2_.model());
 }
 

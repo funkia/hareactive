@@ -12,20 +12,20 @@ performant.
 
 ## Key features
 
-* Simple and precise semantics. This means that everything in the
+- Simple and precise semantics. This means that everything in the
   library can be understood based on a very simple mental model. This
   makes the library easy to use and free from surprises.
-* Purely functional API.
-* Based on classic FRP. This means that the library makes a
+- Purely functional API.
+- Based on classic FRP. This means that the library makes a
   distinction between behaviors and streams.
-* Supports continuous time for expressive and efficient creation of
+- Supports continuous time for expressive and efficient creation of
   time-dependent behavior.
-* Integrates with declarative side-effects in a way that is pure,
+- Integrates with declarative side-effects in a way that is pure,
   testable and uses FRP for powerful handling of asynchronous
   operations.
-* Declarative testing. Hareactive programs are easy to test
+- Declarative testing. Hareactive programs are easy to test
   synchronously and declaratively.
-* Great performance.
+- Great performance.
 
 ## Introduction
 
@@ -54,12 +54,12 @@ time.
 
 ## Table of contents
 
-* [Installation](#installation)
-* [Conceptual overview](#conceptual-overview)
-* [Tutorial/cookbook](#tutorial-cookbook)
-* [API documentation](#api)
-* [Contributing](#contributing)
-* [Benchmark](#benchmark)
+- [Installation](#installation)
+- [Conceptual overview](#conceptual-overview)
+- [Tutorial/cookbook](#tutorial-cookbook)
+- [API documentation](#api)
+- [Contributing](#contributing)
+- [Benchmark](#benchmark)
 
 # Installation
 
@@ -187,17 +187,17 @@ a behavior:
 
 Below are some examples:
 
-* The time remaining before an alarm goes off: The remaining time
+- The time remaining before an alarm goes off: The remaining time
   always have a current value, therefore it is a behavior.
-* The moment where the alarm goes off: This has no current value. And
+- The moment where the alarm goes off: This has no current value. And
   since the alarm only goes off a single time this is a future.
-* User clicking on a specific button: This has no notion of a current
+- User clicking on a specific button: This has no notion of a current
   value. And the user may press the button more than once. Thus a
   stream is the proper representation.
-* Whether or not a button is currently pressed: This always has a
+- Whether or not a button is currently pressed: This always has a
   current value. The button is always either pressed or not pressed.
   This should be represented as a behavior.
-* The tenth time a button is pressed: This happens once at a specific
+- The tenth time a button is pressed: This happens once at a specific
   moment in time. Use a future.
 
 ### Now
@@ -210,10 +210,10 @@ A value of type `Now` is a _description_ of something that we'd like
 to do. Such a description can declare that it wants to do one of two
 things.
 
-* Get the current value of behavior. This is done with the `sample`
+- Get the current value of behavior. This is done with the `sample`
   function. Since a `Now`-computation will always be run in the
   present it is impossible to sample a behavior in the past.
-* Describe side-effects. This is done with functions such as `perform`
+- Describe side-effects. This is done with functions such as `perform`
   and `performStream`. With these functions we can describe things
   that should happen when a stream occurs.
 
@@ -235,21 +235,21 @@ A notorious problem in FRP is how to implement functions that return
 behaviors or streams that depend on the past. Such behaviors or
 streams are called "stateful"
 
-For instance `scanFrom` creates a behavior that accumulates values over
+For instance `accumFrom` creates a behavior that accumulates values over
 time. Clearly such a behavior depends on the past. Thus we say that
-`scanFrom` returns a stateful behavior.
+`accumFrom` returns a stateful behavior.
 
-Implementing stateful methods such as `scanFrom` in a way that is both
+Implementing stateful methods such as `accumFrom` in a way that is both
 intuitive to use, pure and memory safe is very tricky.
 
-When implementing functions such as `scanFrom` most reactive libraries in
+When implementing functions such as `accumFrom` most reactive libraries in
 JavaScript do one of these two things:
 
-* Calling `scanFrom` doesn't begin accumulating state at all. Only when
-  someone starts observing the result of `scanFrom` is state accumulated.
+- Calling `accumFrom` doesn't begin accumulating state at all. Only when
+  someone starts observing the result of `accumFrom` is state accumulated.
   This is very counter intuitive behavior.
-* Calling `scanFrom` starts accumulating state from when `scan` is called.
-  This is pretty easy to understand. But it makes `scanFrom` impure as it
+- Calling `accumFrom` starts accumulating state from when `accumFrom` is called.
+  This is pretty easy to understand. But it makes `accumFrom` impure as it
   will not return the same behavior when called at different time.
 
 To solve this problem Hareactive uses a solution invented by Atze van
@@ -260,21 +260,21 @@ behavior and purity.
 The solution means that some functions return a value that, compared
 to what one might expect, is wrapped in an "extra" behavior. This
 "behavior wrapping" is applied to all functions that return a result
-that depends on the past. The before mentioned `scanFrom`, for instance,
+that depends on the past. The before mentioned `accumFrom`, for instance,
 returns a value of type `Behavior<Behavior<A>>`.
 
 Remember that a behavior is a value that depends on time. It is a
 function from time. Therefore a behavior of a behavior is like a value
-that depends on _two_ moments in time. This makes sense for `scanFrom`
+that depends on _two_ moments in time. This makes sense for `accumFrom`
 because the result of accumulating depends both on when we _start_
 accumulating and where we are now.
 
 To get rid of the extra layer of nesting we often use `sample`. The
 `sample` function returns a `Now`-computation that asks for the
-current value of a behavior. It has the type `(b: Behavior<A>) => Now<A>`. Using `sample` with `scanFrom` looks like this.
+current value of a behavior. It has the type `(b: Behavior<A>) => Now<A>`. Using `sample` with `accumFrom` looks like this.
 
 ```js
-const count = sample(scanFrom((acc, inc) => acc + inc, 0, incrementStream));
+const count = sample(accumFrom((acc, inc) => acc + inc, 0, incrementStream));
 ```
 
 Here `count` has type `Now<Behavior<A>>` and it represents a
@@ -450,7 +450,7 @@ occurred the consumer is immediately pushed to.
 
 #### `empty: Stream<any>`
 
-Empty stream. 
+Empty stream.
 
 #### ~`Stream.of<A>(a: A): Stream<A>`~
 
@@ -546,6 +546,7 @@ always "switches" to the current stream at the behavior.
 ```ts
 changes<A>(b: Behavior<A>, comparator: (v: A, u: A) => boolean = (v, u) => v === u): Stream<A>;
 ```
+
 Takes a behavior and returns a stream that has an occurrence whenever
 the behaviors value changes.
 

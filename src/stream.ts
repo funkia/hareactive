@@ -1,6 +1,13 @@
 import { Reactive, State, Time, SListener, Parent, BListener } from "./common";
 import { cons, Node, DoubleLinkedList } from "./datastructures";
-import { Behavior, fromFunction, accumFrom, at, stepperFrom } from "./behavior";
+import {
+  Behavior,
+  fromFunction,
+  accumFrom,
+  at,
+  stepperFrom,
+  accum
+} from "./behavior";
 import { tick } from "./clock";
 import { Now, sample } from "./now";
 
@@ -27,8 +34,14 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
   filter(fn: (a: A) => boolean): Stream<A> {
     return new FilterStream<A>(this, fn);
   }
+  scan<B>(fn: (a: A, b: B) => B, startingValue: B): Now<Stream<B>> {
+    return scan(fn, startingValue, this);
+  }
   scanFrom<B>(fn: (a: A, b: B) => B, startingValue: B): Behavior<Stream<B>> {
     return fromFunction((t) => new ScanStream(fn, startingValue, this, t));
+  }
+  accum<B>(fn: (a: A, b: B) => B, init: B): Now<Behavior<B>> {
+    return accum(fn, init, this);
   }
   accumFrom<B>(fn: (a: A, b: B) => B, init: B): Behavior<Behavior<B>> {
     return accumFrom(fn, init, this);
@@ -171,6 +184,14 @@ export function scanFrom<A, B>(
   stream: Stream<A>
 ): Behavior<Stream<B>> {
   return stream.scanFrom(fn, startingValue);
+}
+
+export function scan<A, B>(
+  f: (a: A, b: B) => B,
+  initial: B,
+  source: Stream<A>
+): Now<Stream<B>> {
+  return sample(scanFrom(f, initial, source));
 }
 
 class SwitchBehaviorStream<A> extends Stream<A> implements BListener {

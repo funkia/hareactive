@@ -5,7 +5,7 @@ import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import { Stream } from "./stream";
 import { tick, getTime } from "./clock";
-import { sample, Now } from "../";
+import { sample, Now } from "./now";
 
 export type MapBehaviorTuple<A> = { [K in keyof A]: Behavior<A[K]> };
 
@@ -525,6 +525,14 @@ export function accumFrom<A, B>(
   return new AccumBehavior<A, B>(f, initial, source);
 }
 
+export function accum<A, B>(
+  f: (a: A, b: B) => B,
+  initial: B,
+  source: Stream<A>
+): Now<Behavior<B>> {
+  return sample(accumFrom(f, initial, source));
+}
+
 export type AccumPair<A> = [Stream<any>, (a: any, b: A) => A];
 
 function accumPairToApp<A>([stream, fn]: AccumPair<A>): Stream<(a: A) => A> {
@@ -542,6 +550,13 @@ export function accumCombineFrom<B>(
   );
 }
 
+export function accumCombine<B>(
+  pairs: AccumPair<B>[],
+  initial: B
+): Now<Behavior<B>> {
+  return sample(accumCombineFrom(pairs, initial));
+}
+
 const firstArg = (a, b) => a;
 
 /**
@@ -557,6 +572,15 @@ export function stepperFrom<B>(
 }
 
 /**
+ * Creates a Behavior whose value is the last occurrence in the stream.
+ * @param initial - the initial value that the behavior has
+ * @param steps - the stream that will change the value of the behavior
+ */
+export function stepper<B>(initial: B, steps: Stream<B>): Now<Behavior<B>> {
+  return sample(stepperFrom(initial, steps));
+}
+
+/**
  *
  * @param initial the initial value
  * @param turnOn the streams that turn the behavior on
@@ -568,6 +592,20 @@ export function toggleFrom(
   turnOff: Stream<any>
 ): Behavior<Behavior<boolean>> {
   return stepperFrom(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
+}
+
+/**
+ *
+ * @param initial the initial value
+ * @param turnOn the streams that turn the behavior on
+ * @param turnOff the streams that turn the behavior off
+ */
+export function toggle(
+  initial: boolean,
+  turnOn: Stream<any>,
+  turnOff: Stream<any>
+): Now<Behavior<boolean>> {
+  return sample(toggleFrom(initial, turnOn, turnOff));
 }
 
 export type SampleAt = <B>(b: Behavior<B>) => B;
