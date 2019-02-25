@@ -477,6 +477,7 @@ export function freezeAtFrom<A>(
 ): Behavior<Behavior<A>> {
   return snapshotAt(behavior, shouldFreeze).map((f) => freezeTo(behavior, f));
 }
+
 export function freezeAt<A>(
   behavior: Behavior<A>,
   shouldFreeze: Future<any>
@@ -485,7 +486,7 @@ export function freezeAt<A>(
 }
 
 /** @private */
-class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
+class ActiveAccumBehavior<A, B> extends ActiveBehavior<B>
   implements SListener<A> {
   private node: Node<this> = new Node(this);
   constructor(
@@ -511,7 +512,7 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
     throw new Error("Update should never be called.");
   }
   changeStateDown(state: State): void {
-    // No-op as an `ActiveScanBehavior` is always in `Push` state
+    // No-op as an `ActiveAccumBehavior` is always in `Push` state
   }
 }
 
@@ -525,7 +526,7 @@ export class AccumBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
     this.state = State.Pull;
   }
   update(t: number): Behavior<B> {
-    return new ActiveScanBehavior(this.f, this.initial, this.source, t);
+    return new ActiveAccumBehavior(this.f, this.initial, this.source, t);
   }
   pull(t: Time): void {
     this.last = this.update(t);
@@ -598,7 +599,7 @@ export function stepper<B>(initial: B, steps: Stream<B>): Now<Behavior<B>> {
 }
 
 /**
- *
+ * Creates a Behavior whose value is `true` after `turnOn` occurring and `false` after `turnOff` occurring.
  * @param initial the initial value
  * @param turnOn the streams that turn the behavior on
  * @param turnOff the streams that turn the behavior off
@@ -612,7 +613,7 @@ export function toggleFrom(
 }
 
 /**
- *
+ * Creates a Behavior whose value is `true` after `turnOn` occurring and `false` after `turnOff` occurring.
  * @param initial the initial value
  * @param turnOn the streams that turn the behavior on
  * @param turnOff the streams that turn the behavior off
