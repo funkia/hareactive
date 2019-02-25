@@ -242,7 +242,7 @@ describe("stream", () => {
       const eventS = H.sinkStream();
       const callback = spy();
       const sumF = (currSum: number, val: number) => currSum + val;
-      const currentSumE = H.scanS(sumF, 0, eventS).at();
+      const currentSumE = H.scanFrom(sumF, 0, eventS).at();
       H.subscribe(callback, currentSumE);
       for (let i = 0; i < 10; i++) {
         push(i, eventS);

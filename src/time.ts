@@ -2,6 +2,7 @@ import { Time, State } from "./common";
 import { cons } from "./datastructures";
 import { Stream } from "./stream";
 import { Behavior, fromFunction } from "./behavior";
+import { sample, Now } from "./now";
 
 /*
  * Time related behaviors and functions
@@ -96,8 +97,12 @@ class IntegrateBehavior extends Behavior<number> {
   }
 }
 
-export function integrate(
+export function integrateFrom(
   behavior: Behavior<number>
 ): Behavior<Behavior<number>> {
   return fromFunction((t) => new IntegrateBehavior(behavior, t));
+}
+
+export function integrate(behavior: Behavior<number>): Now<Behavior<number>> {
+  return sample(integrateFrom(behavior));
 }

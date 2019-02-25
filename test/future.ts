@@ -5,7 +5,7 @@ import {
   Future,
   sinkFuture,
   fromPromise,
-  nextOccurence,
+  nextOccurrenceFrom,
   mapCbFuture
 } from "../src/future";
 import { SinkStream, Behavior } from "../src";
@@ -202,7 +202,7 @@ describe("Future", () => {
     it("resolves on next occurence", () => {
       let result: string;
       const s = new SinkStream<string>();
-      const next = nextOccurence(s);
+      const next = nextOccurrenceFrom(s);
       s.push("a");
       const f = next.at();
       f.subscribe((v) => (result = v));

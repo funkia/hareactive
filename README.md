@@ -235,21 +235,21 @@ A notorious problem in FRP is how to implement functions that return
 behaviors or streams that depend on the past. Such behaviors or
 streams are called "stateful"
 
-For instance `scan` creates a behavior that accumulates values over
+For instance `scanFrom` creates a behavior that accumulates values over
 time. Clearly such a behavior depends on the past. Thus we say that
-`scan` returns a stateful behavior.
+`scanFrom` returns a stateful behavior.
 
-Implementing stateful methods such as `scan` in a way that is both
+Implementing stateful methods such as `scanFrom` in a way that is both
 intuitive to use, pure and memory safe is very tricky.
 
-When implementing functions such as `scan` most reactive libraries in
+When implementing functions such as `scanFrom` most reactive libraries in
 JavaScript do one of these two things:
 
-* Calling `scan` doesn't begin accumulating state at all. Only when
-  someone starts observing the result of `scan` is state accumulated.
+* Calling `scanFrom` doesn't begin accumulating state at all. Only when
+  someone starts observing the result of `scanFrom` is state accumulated.
   This is very counter intuitive behavior.
-* Calling `scan` starts accumulating state from when `scan` is called.
-  This is pretty easy to understand. But it makes `scan` impure as it
+* Calling `scanFrom` starts accumulating state from when `scan` is called.
+  This is pretty easy to understand. But it makes `scanFrom` impure as it
   will not return the same behavior when called at different time.
 
 To solve this problem Hareactive uses a solution invented by Atze van
@@ -260,21 +260,21 @@ behavior and purity.
 The solution means that some functions return a value that, compared
 to what one might expect, is wrapped in an "extra" behavior. This
 "behavior wrapping" is applied to all functions that return a result
-that depends on the past. The before mentioned `scan`, for instance,
+that depends on the past. The before mentioned `scanFrom`, for instance,
 returns a value of type `Behavior<Behavior<A>>`.
 
 Remember that a behavior is a value that depends on time. It is a
 function from time. Therefore a behavior of a behavior is like a value
-that depends on _two_ moments in time. This makes sense for `scan`
+that depends on _two_ moments in time. This makes sense for `scanFrom`
 because the result of accumulating depends both on when we _start_
 accumulating and where we are now.
 
 To get rid of the extra layer of nesting we often use `sample`. The
 `sample` function returns a `Now`-computation that asks for the
-current value of a behavior. It has the type `(b: Behavior<A>) => Now<A>`. Using `sample` with `scan` looks like this.
+current value of a behavior. It has the type `(b: Behavior<A>) => Now<A>`. Using `sample` with `scanFrom` looks like this.
 
 ```js
-const count = sample(scan((acc, inc) => acc + inc, 0, incrementStream));
+const count = sample(scanFrom((acc, inc) => acc + inc, 0, incrementStream));
 ```
 
 Here `count` has type `Now<Behavior<A>>` and it represents a
@@ -305,8 +305,8 @@ this. The table below gives an overview.
 | Behavior | anything | `sample` (when inside Now) |
 | Behavior | Behavior | `flatten`                  |
 | Behavior | Stream   | `switchStream`             |
-| Stream   | Behavior | `switcher`, `selfie`       |
-| Stream   | Stream   | `switchStreamS`            |
+| Stream   | Behavior | `switcherFrom`, `selfie`   |
+| Stream   | Stream   | `switchStreamFrom`         |
 | Stream   | Future   | n/a                        |
 | Future   | Behavior | `switchTo`                 |
 
@@ -387,10 +387,10 @@ lift((n, m, q) => (n + m) / q, behaviorN, behaviorM, behaviorQ);
 
 #### How do I turn a stream into a behavior?
 
-You probably want `stepper`:
+You probably want `stepperFrom`:
 
 ```js
-const b = stepper(initial, stream);
+const b = stepperFrom(initial, stream);
 ```
 
 ### Creating behaviors and streams
@@ -502,7 +502,7 @@ considered. If it is `true` then the returned stream also has the
 occurrence—otherwise it doesn't. The behavior works as a filter that
 decides whether or not values are let through.
 
-#### `scanS<A, B>(fn: (a: A, b: B) => B, startingValue: B, stream: Stream<A>): Behavior<Stream<B>>`
+#### `scanFrom<A, B>(fn: (a: A, b: B) => B, startingValue: B, stream: Stream<A>): Behavior<Stream<B>>`
 
 A stateful scan.
 
@@ -608,7 +608,7 @@ contionusly changing, like `Date.now`.
 
 Returns `true` if `b` is a behavior and `false` otherwise.
 
-#### `when(b: Behavior<boolean>): Behavior<Future<{}>>`
+#### `whenFrom(b: Behavior<boolean>): Behavior<Future<{}>>`
 
 Takes a boolean valued behavior an returns a behavior that at any
 point in time contains a future that occurs in the next moment where
@@ -626,15 +626,15 @@ future occurs.
 Creates a new behavior that acts exactly like `initial` until `next`
 occurs after which it acts like the behavior it contains.
 
-#### `switcher<A>(init: Behavior<A>, s: Stream<Behavior<A>>): Behavior<Behavior<A>>`
+#### `switcherFrom<A>(init: Behavior<A>, s: Stream<Behavior<A>>): Behavior<Behavior<A>>`
 
 A behavior of a behavior that switches to the latest behavior from `s`.
 
-#### `stepper<B>(initial: B, steps: Stream<B>): Behavior<Behavior<B>>`
+#### `stepperFrom<B>(initial: B, steps: Stream<B>): Behavior<Behavior<B>>`
 
 Creates a behavior whose value is the last occurrence in the stream.
 
-#### `scan<A, B>(fn: (a: A, b: B) => B, init: B, source: Stream<A>): Behavior<Behavior<B>>`
+#### `scanFrom<A, B>(fn: (a: A, b: B) => B, init: B, source: Stream<A>): Behavior<Behavior<B>>`
 
 The returned behavior initially has the initial value, on each
 occurrence in `source` the function is applied to the current value of
@@ -653,7 +653,7 @@ behavior gives a behavior with values that contain the difference
 between the current sample time and the time at which the outer
 behavior was sampled.
 
-#### `integrate(behavior: Behavior<number>): Behavior<Behavior<number>>`
+#### `integrateFrom(behavior: Behavior<number>): Behavior<Behavior<number>>`
 
 Integrate behavior with respect to time.
 

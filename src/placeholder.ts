@@ -115,7 +115,7 @@ function installMethods(): void {
 }
 
 export function placeholder<A>(): Placeholder<A> & Stream<A> & Future<A> {
-  if ((<any>Placeholder).prototype.scanS === undefined) {
+  if ((<any>Placeholder).prototype.scanFrom === undefined) {
     // The methods are installed lazily when the placeholder is first
     // used. This avoids a top-level impure expression that would
     // prevent tree-shaking.

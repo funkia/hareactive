@@ -240,7 +240,7 @@ export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
   }
 }
 
-export class NextOccurenceFuture<A> extends Future<A> implements SListener<A> {
+export class NextOccurrenceFuture<A> extends Future<A> implements SListener<A> {
   constructor(readonly s: Stream<A>, readonly time: Time) {
     super();
     this.parents = cons(s);
@@ -250,8 +250,8 @@ export class NextOccurenceFuture<A> extends Future<A> implements SListener<A> {
   }
 }
 
-export function nextOccurence<A>(stream: Stream<A>): Behavior<Future<A>> {
-  return new FunctionBehavior((t: Time) => new NextOccurenceFuture(stream, t));
+export function nextOccurrenceFrom<A>(stream: Stream<A>): Behavior<Future<A>> {
+  return new FunctionBehavior((t: Time) => new NextOccurrenceFuture(stream, t));
 }
 
 class MapCbFuture<A, B> extends ActiveFuture<B> {

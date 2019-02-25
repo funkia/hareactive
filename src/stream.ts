@@ -1,7 +1,8 @@
 import { Reactive, State, Time, SListener, Parent, BListener } from "./common";
 import { cons, Node, DoubleLinkedList } from "./datastructures";
-import { Behavior, fromFunction, scan, at, stepper } from "./behavior";
+import { Behavior, fromFunction, accumFrom, at, stepperFrom } from "./behavior";
 import { tick } from "./clock";
+import { Now, sample } from "./now";
 
 /**
  * A stream is a list of occurrences over time. Each occurrence
@@ -26,11 +27,11 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
   filter(fn: (a: A) => boolean): Stream<A> {
     return new FilterStream<A>(this, fn);
   }
-  scanS<B>(fn: (a: A, b: B) => B, startingValue: B): Behavior<Stream<B>> {
+  scanFrom<B>(fn: (a: A, b: B) => B, startingValue: B): Behavior<Stream<B>> {
     return fromFunction((t) => new ScanStream(fn, startingValue, this, t));
   }
-  scan<B>(fn: (a: A, b: B) => B, init: B): Behavior<Behavior<B>> {
-    return scan(fn, init, this);
+  accumFrom<B>(fn: (a: A, b: B) => B, init: B): Behavior<Behavior<B>> {
+    return accumFrom(fn, init, this);
   }
   log(prefix?: string): Stream<A> {
     this.subscribe((a) => console.log(`${prefix || ""} `, a));
@@ -164,12 +165,12 @@ export class ScanStream<A, B> extends ActiveStream<B> {
  * behavior and the value of the occurrence, the returned value
  * becomes the next value of the behavior.
  */
-export function scanS<A, B>(
+export function scanFrom<A, B>(
   fn: (a: A, b: B) => B,
   startingValue: B,
   stream: Stream<A>
 ): Behavior<Stream<B>> {
-  return stream.scanS(fn, startingValue);
+  return stream.scanFrom(fn, startingValue);
 }
 
 class SwitchBehaviorStream<A> extends Stream<A> implements BListener {
@@ -215,8 +216,8 @@ export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
  * Takes a stream of a stream and returns a stream that emits from the last
  * stream.
  */
-export function switchStreamS<A>(s: Stream<Stream<A>>): Behavior<Stream<A>> {
-  return stepper(empty, s).map(switchStream);
+export function switchStreamFrom<A>(s: Stream<Stream<A>>): Behavior<Stream<A>> {
+  return stepperFrom(empty, s).map(switchStream);
 }
 
 class ChangesStream<A> extends Stream<A> implements BListener {
@@ -329,53 +330,56 @@ export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
 
 export class SnapshotStream<B> extends Stream<B> {
   private node: Node<this> = new Node(this);
-  constructor(readonly behavior: Behavior<B>, readonly stream: Stream<any>) {
+  constructor(readonly target: Behavior<B>, readonly trigger: Stream<any>) {
     super();
-    this.parents = cons(stream);
+    this.parents = cons(trigger);
   }
   pushS(t: number, _: any): void {
-    const b = this.behavior.at(t);
+    const b = this.target.at(t);
     this.pushSToChildren(t, b);
   }
   activate(t: number): void {
-    this.stream.addListener(this.node, t);
+    this.trigger.addListener(this.node, t);
   }
   deactivate(): void {
-    this.stream.removeListener(this.node);
+    this.trigger.removeListener(this.node);
   }
 }
 
-export function snapshot<B>(b: Behavior<B>, s: Stream<any>): Stream<B> {
-  return new SnapshotStream(b, s);
+export function snapshot<B>(
+  target: Behavior<B>,
+  trigger: Stream<any>
+): Stream<B> {
+  return new SnapshotStream(target, trigger);
 }
 
 class SnapshotWithStream<A, B, C> extends Stream<C> {
   private node: Node<this> = new Node(this);
   constructor(
     private fn: (a: A, b: B) => C,
-    private behavior: Behavior<B>,
-    private stream: Stream<A>
+    private target: Behavior<B>,
+    private trigger: Stream<A>
   ) {
     super();
   }
   pushS(t: number, a: A): void {
-    const c = this.fn(a, this.behavior.at(t));
+    const c = this.fn(a, this.target.at(t));
     this.pushSToChildren(t, c);
   }
   activate(t: number): void {
-    this.stream.addListener(this.node, t);
+    this.trigger.addListener(this.node, t);
   }
   deactivate(): void {
-    this.stream.removeListener(this.node);
+    this.trigger.removeListener(this.node);
   }
 }
 
 export function snapshotWith<A, B, C>(
   f: (a: A, b: B) => C,
-  b: Behavior<B>,
-  s: Stream<A>
+  target: Behavior<B>,
+  trigger: Stream<A>
 ): Stream<C> {
-  return new SnapshotWithStream(f, b, s);
+  return new SnapshotWithStream(f, target, trigger);
 }
 
 export class SelfieStream<A> extends Stream<A> {
@@ -383,20 +387,20 @@ export class SelfieStream<A> extends Stream<A> {
     super();
     this.parents = cons(parent);
   }
-  pushS(t: number, v: Behavior<A>): void {
-    this.pushSToChildren(t, at(v, t));
+  pushS(t: number, target: Behavior<A>): void {
+    this.pushSToChildren(t, at(target, t));
   }
 }
 
 /**
  * On each occurrence the behavior is sampled at the time of the occurrence.
  */
-export function selfie<A>(s: Stream<Behavior<A>>): Stream<A> {
-  return new SelfieStream(s);
+export function selfie<A>(stream: Stream<Behavior<A>>): Stream<A> {
+  return new SelfieStream(stream);
 }
 
 export function isStream(s: any): s is Stream<any> {
-  return typeof s === "object" && "scanS" in s;
+  return typeof s === "object" && "scanFrom" in s;
 }
 
 class PerformCbStream<A, B> extends ActiveStream<B> implements SListener<A> {
@@ -404,10 +408,10 @@ class PerformCbStream<A, B> extends ActiveStream<B> implements SListener<A> {
   doneCb = (result: B): void => this.pushSToChildren(tick(), result);
   constructor(
     private cb: (value: A, done: (result: B) => void) => void,
-    s: Stream<A>
+    stream: Stream<A>
   ) {
     super();
-    s.addListener(this.node, tick());
+    stream.addListener(this.node, tick());
   }
   pushS(_: number, value: A): void {
     this.cb(value, this.doneCb);
@@ -422,7 +426,7 @@ class PerformCbStream<A, B> extends ActiveStream<B> implements SListener<A> {
  */
 export function mapCbStream<A, B>(
   cb: (value: A, done: (result: B) => void) => void,
-  s: Stream<A>
+  stream: Stream<A>
 ): Stream<B> {
-  return new PerformCbStream(cb, s);
+  return new PerformCbStream(cb, stream);
 }

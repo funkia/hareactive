@@ -5,6 +5,7 @@ import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import { Stream } from "./stream";
 import { tick, getTime } from "./clock";
+import { sample, Now } from "../";
 
 export type MapBehaviorTuple<A> = { [K in keyof A]: Behavior<A[K]> };
 
@@ -312,7 +313,7 @@ class WhenBehavior extends Behavior<Future<{}>> {
   }
 }
 
-export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
+export function whenFrom(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
 }
 
@@ -445,7 +446,7 @@ export function switchTo<A>(
   return new SwitcherBehavior(init, next, tick());
 }
 
-export function switcher<A>(
+export function switcherFrom<A>(
   init: Behavior<A>,
   stream: Stream<Behavior<A>>
 ): Behavior<Behavior<A>> {
@@ -497,7 +498,7 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
   }
 }
 
-export class ScanBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
+export class AccumBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
   constructor(
     public f: (a: A, b: B) => B,
     public initial: B,
@@ -516,25 +517,29 @@ export class ScanBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
   }
 }
 
-export function scan<A, B>(
+export function accumFrom<A, B>(
   f: (a: A, b: B) => B,
   initial: B,
   source: Stream<A>
 ): Behavior<Behavior<B>> {
-  return new ScanBehavior<A, B>(f, initial, source);
+  return new AccumBehavior<A, B>(f, initial, source);
 }
 
-export type ScanPair<A> = [Stream<any>, (a: any, b: A) => A];
+export type AccumPair<A> = [Stream<any>, (a: any, b: A) => A];
 
-function scanPairToApp<A>([stream, fn]: ScanPair<A>): Stream<(a: A) => A> {
+function accumPairToApp<A>([stream, fn]: AccumPair<A>): Stream<(a: A) => A> {
   return stream.map((a) => (b: A) => fn(a, b));
 }
 
-export function scanCombine<B>(
-  pairs: ScanPair<B>[],
+export function accumCombineFrom<B>(
+  pairs: AccumPair<B>[],
   initial: B
 ): Behavior<Behavior<B>> {
-  return scan((a, b) => a(b), initial, combine(...pairs.map(scanPairToApp)));
+  return accumFrom(
+    (a, b) => a(b),
+    initial,
+    combine(...pairs.map(accumPairToApp))
+  );
 }
 
 const firstArg = (a, b) => a;
@@ -544,11 +549,11 @@ const firstArg = (a, b) => a;
  * @param initial - the initial value that the behavior has
  * @param steps - the stream that will change the value of the behavior
  */
-export function stepper<B>(
+export function stepperFrom<B>(
   initial: B,
   steps: Stream<B>
 ): Behavior<Behavior<B>> {
-  return scan(firstArg, initial, steps);
+  return accumFrom(firstArg, initial, steps);
 }
 
 /**
@@ -557,12 +562,12 @@ export function stepper<B>(
  * @param turnOn the streams that turn the behavior on
  * @param turnOff the streams that turn the behavior off
  */
-export function toggle(
+export function toggleFrom(
   initial: boolean,
   turnOn: Stream<any>,
   turnOff: Stream<any>
 ): Behavior<Behavior<boolean>> {
-  return stepper(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
+  return stepperFrom(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
 }
 
 export type SampleAt = <B>(b: Behavior<B>) => B;

@@ -13,7 +13,7 @@ import {
 import {
   Behavior,
   MapBehavior,
-  ScanBehavior,
+  AccumBehavior,
   FunctionBehavior,
   ConstantBehavior
 } from "./behavior";
@@ -26,7 +26,7 @@ import {
   OfFuture,
   LiftFuture,
   FlatMapFuture,
-  NextOccurenceFuture
+  NextOccurrenceFuture
 } from "./future";
 import { Time } from "./common";
 import {
@@ -114,8 +114,8 @@ FlatMapFuture.prototype.model = function() {
   return neverOccurringFuture;
 };
 
-NextOccurenceFuture.prototype.model = function<A>(
-  this: NextOccurenceFuture<A>
+NextOccurrenceFuture.prototype.model = function<A>(
+  this: NextOccurrenceFuture<A>
 ) {
   const occ = this.s.model().find((o) => o.time > this.time);
   return occ !== undefined ? occ : neverOccurringFuture;
@@ -181,12 +181,10 @@ empty.model = () => [];
 ScanStream.prototype.model = function<A, B>(this: ScanStream<A, B>) {
   const s = this.parent.model();
   let acc = this.last;
-  return s
-    .filter((o) => this.t < o.time)
-    .map(({ time, value }) => {
-      acc = this.f(value, acc);
-      return { time, value: acc };
-    });
+  return s.filter((o) => this.t < o.time).map(({ time, value }) => {
+    acc = this.f(value, acc);
+    return { time, value: acc };
+  });
 };
 
 CombineStream.prototype.model = function<A, B>(this: CombineStream<A, B>) {
@@ -206,9 +204,9 @@ CombineStream.prototype.model = function<A, B>(this: CombineStream<A, B>) {
 };
 
 SnapshotStream.prototype.model = function<B>(this: SnapshotStream<B>) {
-  return this.stream
+  return this.trigger
     .model()
-    .map(({ time }) => ({ time, value: testAt(time, this.behavior) }));
+    .map(({ time }) => ({ time, value: testAt(time, this.target) }));
 };
 
 DelayStream.prototype.model = function<A>(this: DelayStream<A>) {
@@ -264,8 +262,8 @@ export function assertStreamEqual<A>(s1: Stream<A>, s2): void {
   const s2_ = isStream(s2)
     ? s2
     : Array.isArray(s2)
-    ? testStreamFromArray(s2)
-    : testStreamFromObject(s2);
+      ? testStreamFromArray(s2)
+      : testStreamFromObject(s2);
   assert.deepEqual(s1.model(), s2_.model());
 }
 
@@ -294,7 +292,7 @@ FunctionBehavior.prototype.model = function() {
 
 time.model = () => (t: Time) => t;
 
-ScanBehavior.prototype.model = function<A, B>(this: ScanBehavior<A, B>) {
+AccumBehavior.prototype.model = function<A, B>(this: AccumBehavior<A, B>) {
   const stream = this.source.model();
   return (t1) =>
     testBehavior<B>((t2) =>
