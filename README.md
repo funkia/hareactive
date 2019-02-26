@@ -300,7 +300,7 @@ The downside of higher-order FRP is that sometimes dealing with these nested
 types can be tricky. Hareactive provides a number of functions to help with
 this. The table below gives an overview.
 
-| Inner    | Outer    | Function                   |
+| Outer    | Inner    | Function                   |
 | -------- | -------- | -------------------------- |
 | Behavior | anything | `sample` (when inside Now) |
 | Behavior | Behavior | `flatten`                  |
