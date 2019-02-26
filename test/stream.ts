@@ -261,13 +261,13 @@ describe("stream", () => {
       ]);
     });
   });
-  describe("switchStreamFrom", () => {
+  describe("shiftFrom", () => {
     it("returns stream that emits from latest stream", () => {
       const s1 = H.sinkStream<number>();
       const s2 = H.sinkStream<number>();
       const s3 = H.sinkStream<number>();
       const b = H.sinkStream<H.Stream<number>>();
-      const switching = H.switchStreamFrom(b).at();
+      const switching = H.shiftFrom(b).at();
       const cb = spy();
       switching.subscribe(cb);
       b.push(s1);

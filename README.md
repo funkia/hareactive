@@ -304,9 +304,9 @@ this. The table below gives an overview.
 | -------- | -------- | -------------------------- |
 | Behavior | anything | `sample` (when inside Now) |
 | Behavior | Behavior | `flatten`                  |
-| Behavior | Stream   | `switchStream`             |
-| Stream   | Behavior | `switcherFrom`, `selfie`   |
-| Stream   | Stream   | `switchStreamFrom`         |
+| Behavior | Stream   | `shiftCurrent`             |
+| Stream   | Behavior | `switcher`, `selfie`       |
+| Stream   | Stream   | `shift`                    |
 | Stream   | Future   | n/a                        |
 | Future   | Behavior | `switchTo`                 |
 
@@ -535,11 +535,29 @@ Returns a stream that occurs whenever `s` occurs. At each occurrence
 the value from `s` and the value from `b` is passed to `f` and the
 return value is the value of the returned streams occurrence.
 
-#### `switchStream<A>(b: Behavior<Stream<A>>): Stream<A>`
+#### `shiftCurrent<A>(b: Behavior<Stream<A>>): Stream<A>`
 
-Takes a stream valued behavior and returns a stream that emits values
-from the current stream at the behavior. I.e. the returned stream
-always "switches" to the current stream at the behavior.
+Takes a stream valued behavior and returns a stream that emits values from the
+current stream at the behavior. I.e. the returned stream always "shifts" to the
+current stream at the behavior.
+
+#### `shift`
+
+```typescript
+function shift<A>(s: Stream<Stream<A>>): Now<Stream<A>>;
+```
+
+Takes a stream of a stream and returns a stream that emits from the last
+stream.
+
+#### `shiftFrom`
+
+```typescript
+function shiftFrom<A>(s: Stream<Stream<A>>): Behavior<Stream<A>>;
+```
+
+Takes a stream of a stream and returns a stream that emits from the last
+stream.
 
 #### changes
 
@@ -632,6 +650,10 @@ of the future.
 
 Creates a new behavior that acts exactly like `initial` until `next`
 occurs after which it acts like the behavior it contains.
+
+#### `switcher<A>(init: Behavior<A>, s: Stream<Behavior<A>>): Now<Behavior<A>>`
+
+A behavior of a behavior that switches to the latest behavior from `s`.
 
 #### `switcherFrom<A>(init: Behavior<A>, s: Stream<Behavior<A>>): Behavior<Behavior<A>>`
 
