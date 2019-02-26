@@ -805,13 +805,13 @@ describe("Behavior and Stream", () => {
       assert.deepEqual(cb.args, [[1], [4], [12], [7]]);
     });
   });
-  describe("switchStream", () => {
+  describe("shiftCurrent", () => {
     it("returns stream that emits from stream", () => {
       const s1 = H.sinkStream();
       const s2 = H.sinkStream();
       const s3 = H.sinkStream();
       const b = sinkBehavior(s1);
-      const switching = H.switchStream(b);
+      const switching = H.shiftCurrent(b);
       const cb = spy();
       switching.subscribe(cb);
       s1.push(1);
@@ -828,7 +828,7 @@ describe("Behavior and Stream", () => {
       const s1 = H.sinkStream<number>();
       const b = sinkBehavior(s1);
       const pB = H.placeholder<Stream<number>>();
-      const s = H.switchStream(pB);
+      const s = H.shiftCurrent(pB);
       const callback = subscribeSpy(s);
       pB.replaceWith(b);
       s1.push(0);

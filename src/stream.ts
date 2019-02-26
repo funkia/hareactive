@@ -5,6 +5,7 @@ import {
   fromFunction,
   accumFrom,
   at,
+  stepper,
   stepperFrom,
   accum
 } from "./behavior";
@@ -194,7 +195,7 @@ export function scan<A, B>(
   return sample(scanFrom(f, initial, source));
 }
 
-class SwitchBehaviorStream<A> extends Stream<A> implements BListener {
+class ShiftBehaviorStream<A> extends Stream<A> implements BListener {
   private bNode: Node<this> = new Node(this);
   private sNode: Node<this> = new Node(this);
   private currentSource: Stream<A>;
@@ -229,16 +230,24 @@ class SwitchBehaviorStream<A> extends Stream<A> implements BListener {
  * Takes a behavior of a stream and returns a stream that emits from the last
  * stream.
  */
-export function switchStream<A>(b: Behavior<Stream<A>>): Stream<A> {
-  return new SwitchBehaviorStream(b);
+export function shiftCurrent<A>(b: Behavior<Stream<A>>): Stream<A> {
+  return new ShiftBehaviorStream(b);
 }
 
 /**
  * Takes a stream of a stream and returns a stream that emits from the last
  * stream.
  */
-export function switchStreamFrom<A>(s: Stream<Stream<A>>): Behavior<Stream<A>> {
-  return stepperFrom(empty, s).map(switchStream);
+export function shift<A>(s: Stream<Stream<A>>): Now<Stream<A>> {
+  return stepper(empty, s).map(shiftCurrent);
+}
+
+/**
+ * Takes a stream of a stream and returns a stream that emits from the last
+ * stream.
+ */
+export function shiftFrom<A>(s: Stream<Stream<A>>): Behavior<Stream<A>> {
+  return stepperFrom(empty, s).map(shiftCurrent);
 }
 
 class ChangesStream<A> extends Stream<A> implements BListener {
