@@ -622,6 +622,12 @@ behavior and occurs with that value. That is, the original value of
 the future is overwritten with the behavior value at the time when the
 future occurs.
 
+#### `stepTo<A>(init: A, next: Future<A>): Behavior<A>`
+
+From an initial value and a future value, `stepTo` creates a new behavior
+that has the initial value until `next` occurs, after which it has the value
+of the future.
+
 #### `switchTo<A>(init: Behavior<A>, next: Future<Behavior<A>>): Behavior<A>`
 
 Creates a new behavior that acts exactly like `initial` until `next`

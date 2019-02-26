@@ -17,7 +17,6 @@ import {
   fromFunction,
   sinkFuture,
   freezeTo,
-  freezeAtFrom,
   Stream,
   time,
   runNow
@@ -600,6 +599,17 @@ describe("Behavior and Future", () => {
       mySnapshot.subscribe((res) => (result = res));
       bSink.push(3);
       assert.strictEqual(result, 2);
+    });
+  });
+  describe("switchTo", () => {
+    it("steps to new value", () => {
+      const futureSink = sinkFuture<number>();
+      const step = H.stepTo(3, futureSink);
+      const cb = subscribeSpy(step);
+      assert.strictEqual(at(step), 3);
+      futureSink.resolve(7);
+      assert.strictEqual(at(step), 7);
+      assert.deepEqual(cb.args, [[3], [7]]);
     });
   });
   describe("switchTo", () => {

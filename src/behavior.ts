@@ -439,6 +439,15 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
 }
 
 /**
+ * From an initial value and a future value, `stepTo` creates a new behavior
+ * that has the initial value until `next` occurs, after which it has the value
+ * of the future.
+ */
+export function stepTo<A>(init: A, next: Future<A>): Behavior<A> {
+  return new SwitcherBehavior(Behavior.of(init), next.map(Behavior.of), tick());
+}
+
+/**
  * From an initial behavior and a future of a behavior, `switcher`
  * creates a new behavior that acts exactly like `initial` until
  * `next` occurs, after which it acts like the behavior it contains.
