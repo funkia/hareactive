@@ -459,6 +459,19 @@ describe("behavior", () => {
         ["first bar then 24!"]
       ]);
     });
+    it("supports literals", () => {
+      const bs1 = sinkBehavior("foo");
+      const n = 12;
+      const s = "then";
+      const b = format`first ${bs1} ${s} ${n}!`;
+      const cb = spy();
+      b.subscribe(cb);
+      bs1.push("bar");
+      assert.deepEqual(cb.args, [
+        ["first foo then 12!"],
+        ["first bar then 12!"]
+      ]);
+    });
   });
   describe("moment", () => {
     it("works as lift", () => {

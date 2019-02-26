@@ -701,19 +701,23 @@ export function moment<A>(f: (sample: SampleAt) => A): Behavior<A> {
 class FormatBehavior extends Behavior<string> {
   constructor(
     private strings: TemplateStringsArray,
-    private behaviors: Behavior<string | number>[]
+    private behaviors: Array<string | number | Behavior<string | number>>
   ) {
     super();
     let parents = undefined;
     for (const b of behaviors) {
-      parents = cons(b, parents);
+      if (isBehavior(b)) {
+        parents = cons(b, parents);
+      }
     }
     this.parents = parents;
   }
   update(t: number): string {
     let resultString = this.strings[0];
     for (let i = 0; i < this.behaviors.length; ++i) {
-      resultString += this.behaviors[i].last + this.strings[i + 1];
+      const b = this.behaviors[i];
+      const value = isBehavior(b) ? b.last : b;
+      resultString += value + this.strings[i + 1];
     }
     return resultString;
   }
@@ -721,7 +725,7 @@ class FormatBehavior extends Behavior<string> {
 
 export function format(
   strings: TemplateStringsArray,
-  ...behaviors: Behavior<string | number>[]
+  ...behaviors: Array<string | number | Behavior<string | number>>
 ): Behavior<string> {
   return new FormatBehavior(strings, behaviors);
 }
