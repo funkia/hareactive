@@ -95,7 +95,7 @@ describe("testing", () => {
     });
     describe("nextOccurrence", () => {
       const s = testStreamFromObject({ 4: "foo", 6: "bar", 9: "baz" });
-      const b = H.nextOccurence(s);
+      const b = H.nextOccurrenceFrom(s);
       it("returns next occurrence", () => {
         assertFutureEqual(testAt(3, b), testFuture(4, "foo"));
         assertFutureEqual(testAt(7, b), testFuture(9, "baz"));
@@ -194,7 +194,7 @@ describe("testing", () => {
     describe("scanS", () => {
       it("accumulates state", () => {
         const s = testStreamFromObject({ 1: 1, 2: 1, 4: 2, 6: 3, 7: 1 });
-        const scanned = H.scanS((n, m) => n + m, 0, s);
+        const scanned = H.scanFrom((n, m) => n + m, 0, s);
         const from0 = testAt(0, scanned);
         assertStreamEqual(from0, { 1: 1, 2: 2, 4: 4, 6: 7, 7: 8 });
         const from3 = testAt(3, scanned);
@@ -246,7 +246,7 @@ describe("testing", () => {
     describe("scan", () => {
       it("accumulates state", () => {
         const s = testStreamFromObject({ 1: 1, 2: 1, 4: 2, 6: 3, 7: 1 });
-        const scanned = H.scan((n, m) => n + m, 0, s);
+        const scanned = H.accumFrom((n, m) => n + m, 0, s);
         const semantic = scanned.model();
         const from0 = semantic(0);
         assertBehaviorEqual(from0, {
@@ -287,14 +287,16 @@ describe("testing", () => {
     describe("sample", () => {
       it("can be tested", () => {
         const stream = testStreamFromObject({ 1: 1, 2: 3, 4: 2 });
-        const now = H.sample(H.scan((n, m) => n + m, 0, stream));
+        const now = H.sample(H.accumFrom((n, m) => n + m, 0, stream));
         const result = testNow(now);
         assertBehaviorEqual(result, { 0.1: 0, 1.1: 1, 2.1: 4, 3.1: 4, 4.1: 6 });
       });
       it("it can test with go", () => {
         const model = fgo(function*(incrementClick: Stream<any>) {
           const increment = incrementClick.mapTo(1);
-          const count = yield H.sample(H.scan((n, m) => n + m, 0, increment));
+          const count = yield H.sample(
+            H.accumFrom((n, m) => n + m, 0, increment)
+          );
           return count;
         });
         const stream = testStreamFromObject({ 1: 0, 2: 0, 4: 0 });
@@ -338,7 +340,7 @@ describe("testing", () => {
             })
           );
           const response = yield H.performStreamLatest(request);
-          const res = H.stepper("", response.map((e) => e.toString()));
+          const res = H.stepperFrom("", response.map((e) => e.toString()));
           return { res };
         });
         const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
@@ -396,7 +398,9 @@ describe("testing", () => {
           const increment = incrementClick.mapTo(1);
           const decrement = decrementClick.mapTo(-1);
           const changes = H.combine(increment, decrement);
-          const count = yield H.sample(H.scan((n, m) => n + m, 0, changes));
+          const count = yield H.sample(
+            H.accumFrom((n, m) => n + m, 0, changes)
+          );
           return { count };
         });
         const { count } = testNow(

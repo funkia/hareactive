@@ -7,7 +7,7 @@ import { observe } from "../src/common";
 import {
   isBehavior,
   Behavior,
-  stepper,
+  stepperFrom,
   fromFunction,
   sinkBehavior,
   ap,
@@ -118,7 +118,7 @@ describe("placeholder", () => {
     });
     it("pushes if replaced with pushing behavior", () => {
       const stream = sinkStream();
-      const b = stepper(0, stream).at();
+      const b = stepperFrom(0, stream).at();
       const p = placeholder();
       // We replace with a behavior that does not support pulling
       p.replaceWith(b);
@@ -187,7 +187,7 @@ describe("placeholder", () => {
       setTime(2000);
       const sum = H.placeholder<number>();
       const change = sum.map((_) => 1);
-      const sum2 = H.at(H.switcher(H.at(H.integrate(change)), H.empty));
+      const sum2 = H.at(H.switcherFrom(H.at(H.integrateFrom(change)), H.empty));
       const results = [];
       let pull;
       observe(

@@ -5,7 +5,7 @@ import { lift, callP, withEffects, withEffectsP, go, fgo } from "@funkia/jabz";
 import {
   Behavior,
   switchTo,
-  when,
+  whenFrom,
   Future,
   performIO,
   Now,
@@ -155,7 +155,7 @@ describe("Now", () => {
       return go(function*() {
         const b: Behavior<number> = yield loop(0);
         const e = yield sample(
-          when(
+          whenFrom(
             b.map((n: number) => {
               return n === 3;
             })

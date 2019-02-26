@@ -5,6 +5,7 @@ import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import { Stream } from "./stream";
 import { tick, getTime } from "./clock";
+import { sample, Now } from "./now";
 
 export type MapBehaviorTuple<A> = { [K in keyof A]: Behavior<A[K]> };
 
@@ -312,8 +313,12 @@ class WhenBehavior extends Behavior<Future<{}>> {
   }
 }
 
-export function when(b: Behavior<boolean>): Behavior<Future<{}>> {
+export function whenFrom(b: Behavior<boolean>): Behavior<Future<{}>> {
   return new WhenBehavior(b);
+}
+
+export function when(b: Behavior<boolean>): Now<Future<{}>> {
+  return sample(whenFrom(b));
 }
 
 class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
@@ -445,11 +450,18 @@ export function switchTo<A>(
   return new SwitcherBehavior(init, next, tick());
 }
 
-export function switcher<A>(
+export function switcherFrom<A>(
   init: Behavior<A>,
   stream: Stream<Behavior<A>>
 ): Behavior<Behavior<A>> {
   return fromFunction((t) => new SwitcherBehavior(init, stream, t));
+}
+
+export function switcher<A>(
+  init: Behavior<A>,
+  stream: Stream<Behavior<A>>
+): Now<Behavior<A>> {
+  return sample(switcherFrom(init, stream));
 }
 
 export function freezeTo<A>(
@@ -459,15 +471,22 @@ export function freezeTo<A>(
   return switchTo(init, freezeValue.map(Behavior.of));
 }
 
-export function freezeAt<A>(
+export function freezeAtFrom<A>(
   behavior: Behavior<A>,
   shouldFreeze: Future<any>
 ): Behavior<Behavior<A>> {
   return snapshotAt(behavior, shouldFreeze).map((f) => freezeTo(behavior, f));
 }
 
+export function freezeAt<A>(
+  behavior: Behavior<A>,
+  shouldFreeze: Future<any>
+): Now<Behavior<A>> {
+  return sample(freezeAtFrom(behavior, shouldFreeze));
+}
+
 /** @private */
-class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
+class ActiveAccumBehavior<A, B> extends ActiveBehavior<B>
   implements SListener<A> {
   private node: Node<this> = new Node(this);
   constructor(
@@ -493,11 +512,11 @@ class ActiveScanBehavior<A, B> extends ActiveBehavior<B>
     throw new Error("Update should never be called.");
   }
   changeStateDown(state: State): void {
-    // No-op as an `ActiveScanBehavior` is always in `Push` state
+    // No-op as an `ActiveAccumBehavior` is always in `Push` state
   }
 }
 
-export class ScanBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
+export class AccumBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
   constructor(
     public f: (a: A, b: B) => B,
     public initial: B,
@@ -507,7 +526,7 @@ export class ScanBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
     this.state = State.Pull;
   }
   update(t: number): Behavior<B> {
-    return new ActiveScanBehavior(this.f, this.initial, this.source, t);
+    return new ActiveAccumBehavior(this.f, this.initial, this.source, t);
   }
   pull(t: Time): void {
     this.last = this.update(t);
@@ -516,25 +535,44 @@ export class ScanBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
   }
 }
 
-export function scan<A, B>(
+export function accumFrom<A, B>(
   f: (a: A, b: B) => B,
   initial: B,
   source: Stream<A>
 ): Behavior<Behavior<B>> {
-  return new ScanBehavior<A, B>(f, initial, source);
+  return new AccumBehavior<A, B>(f, initial, source);
 }
 
-export type ScanPair<A> = [Stream<any>, (a: any, b: A) => A];
+export function accum<A, B>(
+  f: (a: A, b: B) => B,
+  initial: B,
+  source: Stream<A>
+): Now<Behavior<B>> {
+  return sample(accumFrom(f, initial, source));
+}
 
-function scanPairToApp<A>([stream, fn]: ScanPair<A>): Stream<(a: A) => A> {
+export type AccumPair<A> = [Stream<any>, (a: any, b: A) => A];
+
+function accumPairToApp<A>([stream, fn]: AccumPair<A>): Stream<(a: A) => A> {
   return stream.map((a) => (b: A) => fn(a, b));
 }
 
-export function scanCombine<B>(
-  pairs: ScanPair<B>[],
+export function accumCombineFrom<B>(
+  pairs: AccumPair<B>[],
   initial: B
 ): Behavior<Behavior<B>> {
-  return scan((a, b) => a(b), initial, combine(...pairs.map(scanPairToApp)));
+  return accumFrom(
+    (a, b) => a(b),
+    initial,
+    combine(...pairs.map(accumPairToApp))
+  );
+}
+
+export function accumCombine<B>(
+  pairs: AccumPair<B>[],
+  initial: B
+): Now<Behavior<B>> {
+  return sample(accumCombineFrom(pairs, initial));
 }
 
 const firstArg = (a, b) => a;
@@ -544,15 +582,38 @@ const firstArg = (a, b) => a;
  * @param initial - the initial value that the behavior has
  * @param steps - the stream that will change the value of the behavior
  */
-export function stepper<B>(
+export function stepperFrom<B>(
   initial: B,
   steps: Stream<B>
 ): Behavior<Behavior<B>> {
-  return scan(firstArg, initial, steps);
+  return accumFrom(firstArg, initial, steps);
 }
 
 /**
- *
+ * Creates a Behavior whose value is the last occurrence in the stream.
+ * @param initial - the initial value that the behavior has
+ * @param steps - the stream that will change the value of the behavior
+ */
+export function stepper<B>(initial: B, steps: Stream<B>): Now<Behavior<B>> {
+  return sample(stepperFrom(initial, steps));
+}
+
+/**
+ * Creates a Behavior whose value is `true` after `turnOn` occurring and `false` after `turnOff` occurring.
+ * @param initial the initial value
+ * @param turnOn the streams that turn the behavior on
+ * @param turnOff the streams that turn the behavior off
+ */
+export function toggleFrom(
+  initial: boolean,
+  turnOn: Stream<any>,
+  turnOff: Stream<any>
+): Behavior<Behavior<boolean>> {
+  return stepperFrom(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
+}
+
+/**
+ * Creates a Behavior whose value is `true` after `turnOn` occurring and `false` after `turnOff` occurring.
  * @param initial the initial value
  * @param turnOn the streams that turn the behavior on
  * @param turnOff the streams that turn the behavior off
@@ -561,8 +622,8 @@ export function toggle(
   initial: boolean,
   turnOn: Stream<any>,
   turnOff: Stream<any>
-): Behavior<Behavior<boolean>> {
-  return stepper(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
+): Now<Behavior<boolean>> {
+  return sample(toggleFrom(initial, turnOn, turnOff));
 }
 
 export type SampleAt = <B>(b: Behavior<B>) => B;
