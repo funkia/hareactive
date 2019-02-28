@@ -75,7 +75,9 @@ export const time: Behavior<Time> = fromFunction((_) => Date.now());
  * between the current sample time and the time at which the outer
  * behavior was sampled.
  */
-export const timeFrom = time.map((from) => time.map((t) => t - from));
+export const measureTimeFrom = time.map((from) => time.map((t) => t - from));
+
+export const measureTime = sample(measureTimeFrom);
 
 class IntegrateBehavior extends Behavior<number> {
   private lastPullTime: Time;

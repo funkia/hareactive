@@ -849,11 +849,11 @@ describe("Behavior and Stream", () => {
     });
   });
   describe("continuous time", () => {
-    describe("timeFrom", () => {
+    describe("measureTime", () => {
       it("gives time from sample point", () => {
         const [setTime, restore] = mockNow();
         setTime(3);
-        const time = at(H.timeFrom);
+        const time = runNow(H.measureTime);
         let pull;
         const results = [];
         observe(
