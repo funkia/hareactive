@@ -177,9 +177,9 @@ class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
 
 export function producerBehavior<A>(
   activate: ProducerBehaviorFunction<A>,
-  update: (t: number) => A
+  getValue: (t: number) => A
 ): Behavior<A> {
-  return new ProducerBehaviorFromFunction(activate, update);
+  return new ProducerBehaviorFromFunction(activate, getValue);
 }
 
 export class SinkBehavior<A> extends ProducerBehavior<A> {

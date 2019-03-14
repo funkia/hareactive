@@ -93,6 +93,31 @@ describe("behavior", () => {
       assert(activate.calledOnce);
       assert(deactivate.calledOnce);
     });
+    it("can push and pull", () => {
+      let variable = 0;
+      let push = undefined;
+      const setVar = (n) => {
+        variable = n;
+        if (push) {
+          push(n);
+        }
+      };
+      const producer = producerBehavior(
+        (push_) => {
+          push = push_;
+          return () => (push = undefined);
+        },
+        () => variable
+      );
+      assert.strictEqual(H.at(producer), 0);
+      variable = 1;
+      assert.strictEqual(H.at(producer), 1);
+      const spy = subscribeSpy(producer);
+      setVar(2);
+      assert.strictEqual(H.at(producer), 2);
+      setVar(3);
+      assert.deepEqual(spy.args, [[1], [2], [3]]);
+    });
   });
   describe("fromFunction", () => {
     it("pulls from time varying functions", () => {
