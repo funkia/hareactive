@@ -101,8 +101,22 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       refresh(this, t);
     }
   }
-  log(prefix?: string): Behavior<A> {
-    this.subscribe((a) => console.log(`${prefix || ""} `, a));
+  log(prefix?: string, ms: number = 100): Behavior<A> {
+    this.observe(
+      (a) => (prefix !== undefined ? console.log(prefix, a) : console.log(a)),
+      (pull) => {
+        let stop = false;
+        (function repeat() {
+          if (!stop) {
+            pull();
+            setTimeout(repeat, ms);
+          }
+        })();
+        return () => {
+          stop = true;
+        };
+      }
+    );
     return this;
   }
 }

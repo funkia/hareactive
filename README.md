@@ -611,6 +611,18 @@ Returns a stream that occurs `ms` milliseconds after `s` occurs.
 Returns a stream that after occurring, ignores the next occurrences in
 `ms` milliseconds.
 
+#### `stream.log(prefix?: string)`
+
+The log method on streams logs the value of every occurrence using
+`console.log`. It is intended to be used for debugging streams during
+development.
+
+The option `prefix` argument will be logged along with every value if specified.
+
+```
+myStream.log("myStream:");
+```
+
 ### Behavior
 
 #### `Behavior.of<A>(a: A): Behavior<A>`
@@ -693,6 +705,22 @@ The value of the behavior is treated as a rate of change per millisecond.
 Integrate behavior with respect to time.
 
 The value of the behavior is treated as a rate of change per millisecond.
+
+#### `behavior.log(prefix?: string, ms: number = 100)`
+
+The log method on behaviors logs the value of the behavior whenever it changes
+using `console.log`. It is intended to be used for debugging behaviors during
+development.
+
+If the behavior is a pull behavior (i.e. it may change infinitely often) then
+changes will only be logged every `ms` milliseconds.
+
+The option `prefix` argument will be logged along with every value if specified.
+
+```
+myBehavior.log("myBehavior:");
+time.map(t => t * t).log("Time squared is:", 1000);
+```
 
 ### Now
 

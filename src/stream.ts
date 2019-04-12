@@ -48,7 +48,9 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
     return accumFrom(fn, init, this);
   }
   log(prefix?: string): Stream<A> {
-    this.subscribe((a) => console.log(`${prefix || ""} `, a));
+    this.subscribe((a) =>
+      prefix !== undefined ? console.log(prefix, a) : console.log(a)
+    );
     return this;
   }
   abstract pushS(t: number, value: any): void;

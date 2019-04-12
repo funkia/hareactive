@@ -475,4 +475,29 @@ describe("stream", () => {
       }, /.*pull behavior.*/);
     });
   });
+  describe("log", () => {
+    it("logs every value", () => {
+      const origLog = console.log;
+      const strings = [];
+      console.log = (...s: string[]) => strings.push(s);
+      const s = H.sinkStream();
+      s.log();
+      s.push("hello");
+      s.push("world");
+      s.push("world");
+      console.log = origLog;
+      assert.deepEqual(strings, [["hello"], ["world"], ["world"]]);
+    });
+    it("logs with prefix", () => {
+      const origLog = console.log;
+      const strings = [];
+      console.log = (...s: string[]) => strings.push(s);
+      const s = H.sinkStream();
+      s.log("s");
+      s.push("hello");
+      s.push("world");
+      console.log = origLog;
+      assert.deepEqual(strings, [["s", "hello"], ["s", "world"]]);
+    });
+  });
 });

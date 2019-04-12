@@ -967,4 +967,48 @@ describe("Behavior and Stream", () => {
       assert.deepEqual(pushSpy.args, [[0], [1], [2], [3]]);
     });
   });
+  describe("log", () => {
+    it("logs every change on push behavior", () => {
+      const origLog = console.log;
+      const strings = [];
+      console.log = (...s: string[]) => strings.push(s);
+      const b = sinkBehavior("hello");
+      b.log();
+      b.push("world");
+      console.log = origLog;
+      assert.deepEqual(strings, [["hello"], ["world"]]);
+    });
+    it("logs with prefix", () => {
+      const origLog = console.log;
+      const strings = [];
+      console.log = (...s: string[]) => strings.push(s);
+      const b = sinkBehavior("hello");
+      b.log("b");
+      b.push("world");
+      console.log = origLog;
+      assert.deepEqual(strings, [["b", "hello"], ["b", "world"]]);
+    });
+    it("logs on pull behavior", () => {
+      const clock = useFakeTimers();
+      const origLog = console.log;
+      const strings = [];
+      console.log = (...s: string[]) => strings.push(s);
+
+      let v = "zero";
+      const b = fromFunction(() => v);
+      b.log("b", 1000);
+
+      clock.tick(500);
+      v = "one";
+      clock.tick(500);
+      v = "two";
+      clock.tick(1000);
+      // Restore
+      console.log = origLog;
+      clock.restore();
+
+      console.log(strings);
+      assert.deepEqual(strings, [["b", "zero"], ["b", "one"], ["b", "two"]]);
+    });
+  });
 });
