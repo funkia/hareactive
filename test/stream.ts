@@ -468,18 +468,11 @@ describe("stream", () => {
         [{ a: 1, b: 0 }]
       ]);
     });
-    /*
-    it("gives changes from pulling behavior", () => {
-      let x = 0;
-      const b = fromFunction(() => x);
-      const s = changes(b);
-      const cb = spy();
-      observe
-      x = 1;
-      x = 2;
-      x = 3;
-      assert.deepEqual(cb.args, [[1], [2], [3]]);
+    it("throws on pull behavior", () => {
+      const b = fromFunction(() => "hello");
+      assert.throws(() => {
+        H.changes(b);
+      }, /.*pull behavior.*/);
     });
-    */
   });
 });

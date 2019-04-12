@@ -276,6 +276,11 @@ export function changes<A>(
   b: Behavior<A>,
   comparator: (v: A, u: A) => boolean = (v, u) => v === u
 ): Stream<A> {
+  if (b.state === State.Pull) {
+    throw new Error(
+      "You invoked changes on a pull behavior which is not supported."
+    );
+  }
   return new ChangesStream(b, comparator);
 }
 
