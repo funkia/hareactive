@@ -204,7 +204,7 @@ describe("placeholder", () => {
       pull();
       setTime(7000);
       pull();
-      assert.deepEqual(results, [0, 2, 5]);
+      assert.deepEqual(results, [0, 2000, 5000]);
       restore();
     });
   });

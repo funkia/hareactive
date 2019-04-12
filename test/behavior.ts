@@ -1,6 +1,6 @@
 import "mocha";
 import { assert } from "chai";
-import { spy, useFakeTimers } from "sinon";
+import { spy, useFakeTimers, SinonFakeTimers } from "sinon";
 import { go, map, mapTo } from "@funkia/jabz";
 import {
   at,
@@ -404,31 +404,32 @@ describe("behavior", () => {
     });
   });
   describe("integrateFrom", () => {
-    it("can integrate", () => {
-      const clock = useFakeTimers();
-      const acceleration = sinkBehavior(1);
-      const Bintergrate = integrateFrom(acceleration);
-      Bintergrate.observe(() => {}, () => () => {});
-      const integration = at(Bintergrate);
-      integration.observe(() => {}, () => () => {});
-      assert.strictEqual(at(integration), 0);
-      clock.tick(2000);
-      assert.strictEqual(at(integration), 2);
-      clock.tick(1000);
-      assert.strictEqual(at(integration), 3);
-      clock.tick(500);
-      acceleration.push(2);
-      assert.strictEqual(at(integration), 4);
-
+    let clock: SinonFakeTimers;
+    beforeEach(() => {
+      clock = useFakeTimers();
+    });
+    afterEach(() => {
       clock.restore();
     });
+    it("can integrate", () => {
+      const acceleration = sinkBehavior(1);
+      const bIntergrate = integrateFrom(acceleration);
+      const integration = at(bIntergrate);
+      assert.strictEqual(at(integration), 0);
+      clock.tick(2000);
+      assert.strictEqual(at(integration), 2000);
+      clock.tick(1000);
+      assert.strictEqual(at(integration), 3000);
+      clock.tick(500);
+      acceleration.push(2);
+      assert.strictEqual(at(integration), 4000);
+    });
     it("supports circular dependencies", () => {
-      const clock = useFakeTimers();
       const { speed } = H.runNow(
         H.loopNow((input: { speed: Behavior<number> }) =>
           H.sample(
             H.moment((at) => {
-              const velocity = input.speed.map((s) => (s < 4 ? 1 : 0));
+              const velocity = input.speed.map((s) => (s < 4000 ? 1 : 0));
               const speed = at(H.integrateFrom(velocity));
               return { speed };
             })
@@ -438,14 +439,13 @@ describe("behavior", () => {
       speed.observe(() => {}, () => () => {});
       assert.strictEqual(at(speed), 0);
       clock.tick(3000);
-      assert.strictEqual(at(speed), 3);
+      assert.strictEqual(at(speed), 3000);
       clock.tick(1000);
-      assert.strictEqual(at(speed), 4);
+      assert.strictEqual(at(speed), 4000);
       clock.tick(1000);
-      assert.strictEqual(at(speed), 4);
+      assert.strictEqual(at(speed), 4000);
       clock.tick(1000);
-      assert.strictEqual(at(speed), 4);
-      clock.restore();
+      assert.strictEqual(at(speed), 4000);
     });
     it("does not sample parent for no delta", () => {
       const b = H.fromFunction(() => {

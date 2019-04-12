@@ -682,9 +682,17 @@ behavior gives a behavior with values that contain the difference
 between the current sample time and the time at which the outer
 behavior was sampled.
 
+#### `integrate(behavior: Behavior<number>): Behavior<Behavior<number>>`
+
+Integrate behavior with respect to time.
+
+The value of the behavior is treated as a rate of change per millisecond.
+
 #### `integrateFrom(behavior: Behavior<number>): Behavior<Behavior<number>>`
 
 Integrate behavior with respect to time.
+
+The value of the behavior is treated as a rate of change per millisecond.
 
 ### Now
 

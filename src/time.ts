@@ -92,19 +92,27 @@ class IntegrateBehavior extends Behavior<number> {
   }
   update(_t: Time): number {
     const currentPullTime = time.last;
-    const deltaSeconds = (currentPullTime - this.lastPullTime) / 1000;
-    const value = this.last + deltaSeconds * this.parent.last;
+    const deltaMs = currentPullTime - this.lastPullTime;
+    const value = this.last + deltaMs * this.parent.last;
     this.lastPullTime = currentPullTime;
     return value;
   }
 }
 
+/**
+ * Returns a `Now` computation of a behavior of the integral of the given behavior.
+ */
+export function integrate(behavior: Behavior<number>): Now<Behavior<number>> {
+  return sample(integrateFrom(behavior));
+}
+
+/**
+ * Integrate a behavior with respect to time.
+ *
+ * The value of the behavior is treated as a rate of change per millisecond.
+ */
 export function integrateFrom(
   behavior: Behavior<number>
 ): Behavior<Behavior<number>> {
   return fromFunction((t) => new IntegrateBehavior(behavior, t));
-}
-
-export function integrate(behavior: Behavior<number>): Now<Behavior<number>> {
-  return sample(integrateFrom(behavior));
 }
