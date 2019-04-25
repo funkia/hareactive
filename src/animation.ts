@@ -1,4 +1,3 @@
-import { go } from "@funkia/jabz";
 import {
   Behavior,
   stepperFrom,
@@ -6,7 +5,8 @@ import {
   accumFrom,
   Stream,
   snapshot,
-  lift
+  lift,
+  moment
 } from ".";
 
 export type TimingFunction = (t: number) => number;
@@ -17,27 +17,23 @@ export type TransitionConfig = {
   delay: number;
 };
 
-type Range = {
-  from: number;
-  to: number;
-};
-
 export function transitionBehavior(
   config: TransitionConfig,
   initial: number,
   triggerStream: Stream<number>,
   timeB: Behavior<number> = time
 ): Behavior<Behavior<number>> {
-  return go(function*(): any {
-    const rangeValueB: Behavior<Range> = yield accumFrom(
-      (newV, prev) => ({ from: prev.to, to: newV }),
-      { from: initial, to: initial },
-      triggerStream
+  return moment((at) => {
+    const rangeValueB = at(
+      accumFrom(
+        (newV, prev) => ({ from: prev.to, to: newV }),
+        { from: initial, to: initial },
+        triggerStream
+      )
     );
-    const initialStartTime: number = yield timeB;
-    const startTimeB: Behavior<number> = yield stepperFrom(
-      initialStartTime,
-      snapshot(timeB, triggerStream)
+    const initialStartTime = at(timeB);
+    const startTimeB = at(
+      stepperFrom(initialStartTime, snapshot(timeB, triggerStream))
     );
     const transition = lift(
       (range, startTime, now) => {

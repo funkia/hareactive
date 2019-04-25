@@ -1,5 +1,5 @@
 import { cons, DoubleLinkedList, Node, fromArray } from "./datastructures";
-import { monad, combine } from "@funkia/jabz";
+import { combine } from "./index";
 import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
@@ -14,7 +14,6 @@ export type MapBehaviorTuple<A> = { [K in keyof A]: Behavior<A[K]> };
  * be thought of as a function from time to a value. I.e. `type
  * Behavior<A> = (t: Time) => A`.
  */
-@monad
 export abstract class Behavior<A> extends Reactive<A, BListener>
   implements Parent<BListener> {
   // Behaviors cache their last value in `last`.
@@ -53,12 +52,14 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   static multi: boolean = true;
   multi: boolean = true;
   flatMap<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
-    return new FlatMapBehavior<A, B>(this, fn);
+    return new FlatMapBehavior(this, fn);
   }
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
-    return new FlatMapBehavior<A, B>(this, fn);
+    return new FlatMapBehavior(this, fn);
   }
-  flatten: <B>(this: Behavior<Behavior<B>>) => Behavior<B>;
+  flatten<B>(this: Behavior<Behavior<B>>): Behavior<B> {
+    return new FlatMapBehavior(this, (a) => a);
+  }
   at(t?: number): A {
     if (this.state !== State.Push) {
       const time = t === undefined ? tick() : t;
