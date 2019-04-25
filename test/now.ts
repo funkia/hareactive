@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { spy } from "sinon";
-import { lift, callP, withEffects, withEffectsP, go, fgo } from "@funkia/jabz";
+import { callP, withEffects, withEffectsP, go } from "@funkia/jabz";
 
 import {
   Behavior,
@@ -39,12 +39,20 @@ describe("Now", () => {
     });
   });
   describe("applicative", () => {
+    it("ap applies function now to value in now", () => {
+      const nowA = Now.of((n: number) => n * n);
+      const nowB = Now.of(3);
+      assert.strictEqual(runNow(nowB.ap(nowA)), 9);
+    });
     it("lifts over constant now", () => {
       const now = Now.of(1);
-      assert.strictEqual(lift((n) => n * n, now.of(3)).run(), 9);
-      assert.strictEqual(lift((n, m) => n + m, now.of(1), now.of(3)).run(), 4);
+      assert.strictEqual(runNow(H.lift((n) => n * n, now.of(3))), 9);
       assert.strictEqual(
-        lift((n, m, p) => n + m + p, now.of(1), now.of(3), now.of(5)).run(),
+        runNow(H.lift((n, m) => n + m, now.of(1), now.of(3))),
+        4
+      );
+      assert.strictEqual(
+        runNow(H.lift((n, m, p) => n + m + p, now.of(1), now.of(3), now.of(5))),
         9
       );
     });
@@ -67,11 +75,14 @@ describe("Now", () => {
       assert.strictEqual(runNow(Now.of(Now.of(12)).flatten()), 12);
     });
     it("throws in go if incorrect monad is yielded", (done) => {
-      const now = go(function*() {
-        const a = yield Now.of(1);
-        const b = yield Behavior.of(2);
-        return 3;
-      }, Now);
+      const now = go(
+        function*() {
+          const a: number = yield Now.of(1);
+          const b: number = yield Behavior.of(2);
+          return a + b;
+        },
+        Now as any
+      );
       try {
         runNow(now);
       } catch {

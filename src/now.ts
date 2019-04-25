@@ -1,4 +1,4 @@
-import { IO, runIO, Monad, monad } from "@funkia/jabz";
+import { IO, runIO } from "@funkia/io";
 import { placeholder } from "./placeholder";
 import { Time, SListener } from "./common";
 import { Future, fromPromise, mapCbFuture } from "./future";
@@ -7,8 +7,9 @@ import { Behavior } from "./behavior";
 import { ActiveStream, Stream, mapCbStream, isStream } from "./stream";
 import { tick } from "./clock";
 
-@monad
-export abstract class Now<A> implements Monad<A> {
+export type MapNowTuple<A> = { [K in keyof A]: Now<A[K]> };
+
+export abstract class Now<A> {
   isNow: true;
   constructor() {
     this.isNow = true;
@@ -23,12 +24,6 @@ export abstract class Now<A> implements Monad<A> {
   static of<B>(b: B): Now<B> {
     return new OfNow(b);
   }
-  flatMap<B>(f: (a: A) => Now<B>): Now<B> {
-    return new FlatMapNow(this, f);
-  }
-  chain<B>(f: (a: A) => Now<B>): Now<B> {
-    return new FlatMapNow(this, f);
-  }
   static multi: boolean = false;
   multi: boolean = false;
   map<B>(f: (a: A) => B): Now<B> {
@@ -37,10 +32,26 @@ export abstract class Now<A> implements Monad<A> {
   mapTo<B>(b: B): Now<B> {
     return new MapNow((_) => b, this);
   }
-  // Definitions below are inserted by Jabz
-  flatten: <B>() => Now<B>;
-  ap: <B>(a: Now<(a: A) => B>) => Now<B>;
-  lift: (f: Function, ...ms: any[]) => Now<any>;
+  flatMap<B>(f: (a: A) => Now<B>): Now<B> {
+    return new FlatMapNow(this, f);
+  }
+  chain<B>(f: (a: A) => Now<B>): Now<B> {
+    return new FlatMapNow(this, f);
+  }
+  flatten<B>(this: Now<Now<B>>): Now<B> {
+    return new FlatMapNow(this, (n) => n);
+  }
+  ap<B>(a: Now<(a: A) => B>): Now<B> {
+    return this.lift((f, a) => f(a), a, this);
+  }
+  lift<A extends any[], R>(
+    f: (...args: A) => R,
+    ...args: MapNowTuple<A>
+  ): Now<R> {
+    return args.length === 1
+      ? new MapNow(f as any, args[0])
+      : new LiftNow(f, args);
+  }
 }
 
 export class OfNow<A> extends Now<A> {
@@ -58,6 +69,15 @@ export class MapNow<A, B> extends Now<B> {
   }
   run(t: Time): B {
     return this.f(this.parent.run(t));
+  }
+}
+
+export class LiftNow<A extends any[], R> extends Now<R> {
+  constructor(readonly f: Function, readonly parents: A) {
+    super();
+  }
+  run(t: Time): R {
+    return this.f(...this.parents.map((n) => n.run(t)));
   }
 }
 
