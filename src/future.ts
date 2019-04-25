@@ -91,9 +91,9 @@ export function isFuture(a: any): a is Future<any> {
 }
 
 export class CombineFuture<A> extends Future<A> {
-  constructor(private future1: Future<A>, private future2: Future<A>) {
+  constructor(readonly parentA: Future<A>, readonly parentB: Future<A>) {
     super();
-    this.parents = cons(future1, cons(future2));
+    this.parents = cons(parentA, cons(parentB));
   }
   pushS(t: number, val: A): void {
     this.resolve(val, t);
@@ -101,7 +101,7 @@ export class CombineFuture<A> extends Future<A> {
 }
 
 export class MapFuture<A, B> extends Future<B> {
-  constructor(private f: (a: A) => B, private parent: Future<A>) {
+  constructor(private f: (a: A) => B, readonly parent: Future<A>) {
     super();
     this.parents = cons(parent);
   }
@@ -111,7 +111,7 @@ export class MapFuture<A, B> extends Future<B> {
 }
 
 export class MapToFuture<A> extends Future<A> {
-  constructor(public value: A, private parent: Future<any>) {
+  constructor(public value: A, readonly parent: Future<any>) {
     super();
     this.parents = cons(parent);
   }
@@ -174,7 +174,7 @@ export class LiftFuture<A> extends Future<A> {
 export class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
   private parentOccurred: boolean = false;
   private node: Node<this> = new Node(this);
-  constructor(private f: (a: A) => Future<B>, private parent: Future<A>) {
+  constructor(private f: (a: A) => Future<B>, readonly parent: Future<A>) {
     super();
     this.parents = cons(parent);
   }
@@ -197,7 +197,7 @@ export class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
  */
 export class SinkFuture<A> extends ActiveFuture<A> {
   /* istanbul ignore next */
-  pushS(t: number, val: any): void {
+  pushS(_t: number, _val: any): void {
     throw new Error("A sink should not be pushed to.");
   }
 }

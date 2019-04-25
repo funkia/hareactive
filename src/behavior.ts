@@ -1,5 +1,5 @@
 import { cons, DoubleLinkedList, Node, fromArray } from "./datastructures";
-import { Monad, monad, combine } from "@funkia/jabz";
+import { monad, combine } from "@funkia/jabz";
 import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
@@ -246,7 +246,7 @@ class ApBehavior<A, B> extends Behavior<B> {
     super();
     this.parents = cons<any>(fn, cons(val));
   }
-  update(t: number): B {
+  update(_t: number): B {
     return this.fn.last(this.val.last);
   }
 }
@@ -320,7 +320,7 @@ class WhenBehavior extends Behavior<Future<{}>> {
     super();
     this.parents = cons(parent);
   }
-  update(t: number): Future<{}> {
+  update(_t: number): Future<{}> {
     return this.parent.last === true
       ? Future.of({})
       : new BehaviorFuture(this.parent);
@@ -365,7 +365,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
       this.last = Future.of(val);
     }
   }
-  update(t: Time): Future<A> {
+  update(_t: Time): Future<A> {
     return this.last;
   }
 }
@@ -515,7 +515,7 @@ class ActiveAccumBehavior<A, B> extends ActiveBehavior<B>
   constructor(
     private f: (a: A, b: B) => B,
     public last: B,
-    private parent: Stream<A>,
+    parent: Stream<A>,
     t: Time
   ) {
     super();
@@ -530,11 +530,11 @@ class ActiveAccumBehavior<A, B> extends ActiveBehavior<B>
       pushToChildren(t, this);
     }
   }
-  pull(t: number): void {}
-  update(t: number): B {
+  pull(_t: number): void {}
+  update(_t: number): B {
     throw new Error("Update should never be called.");
   }
-  changeStateDown(state: State): void {
+  changeStateDown(_: State): void {
     // No-op as an `ActiveAccumBehavior` is always in `Push` state
   }
 }
@@ -598,7 +598,7 @@ export function accumCombine<B>(
   return sample(accumCombineFrom(pairs, initial));
 }
 
-const firstArg = (a, b) => a;
+const firstArg = <A>(a: A, _: any): A => a;
 
 /**
  * Creates a Behavior whose value is the last occurrence in the stream.
@@ -726,7 +726,7 @@ class FormatBehavior extends Behavior<string> {
     }
     this.parents = parents;
   }
-  update(t: number): string {
+  update(_t: number): string {
     let resultString = this.strings[0];
     for (let i = 0; i < this.behaviors.length; ++i) {
       const b = this.behaviors[i];

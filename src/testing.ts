@@ -68,8 +68,8 @@ export function doesOccur<A>(
 }
 
 CombineFuture.prototype.model = function() {
-  const a = this.future1.model();
-  const b = this.future2.model();
+  const a = this.parentA.model();
+  const b = this.parentB.model();
   return a.time <= b.time ? a : b;
 };
 
@@ -96,7 +96,7 @@ NeverFuture.prototype.model = function() {
 };
 
 LiftFuture.prototype.model = function() {
-  const sems = this.futures.map((f) => f.model());
+  const sems = (this.futures as Future<any>[]).map((f) => f.model());
   const time = Math.max(...sems.map((s) => (doesOccur(s) ? s.time : Infinity)));
   return time !== Infinity
     ? { time, value: this.f(...sems.map((s) => s.value)) }
@@ -260,7 +260,7 @@ export function assertStreamEqual<A>(
   }
 ): void;
 export function assertStreamEqual<A>(s1: Stream<A>, s2: ([Time, A])[]): void;
-export function assertStreamEqual<A>(s1: Stream<A>, s2): void {
+export function assertStreamEqual<A>(s1: Stream<A>, s2: any): void {
   const s2_ = isStream(s2)
     ? s2
     : Array.isArray(s2)
