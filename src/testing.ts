@@ -37,7 +37,8 @@ import {
   PerformMapNow,
   PerformStreamLatestNow,
   PerformStreamOrderedNow,
-  Now
+  Now,
+  MapNow
 } from "./now";
 import { time, DelayStream } from "./time";
 
@@ -354,6 +355,11 @@ declare module "./now" {
 
 OfNow.prototype.model = function<A>(mocks: any[], _t: Time): NowModel<A> {
   return { value: this.value, mocks };
+};
+
+MapNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
+  const { value, mocks: m } = this.parent.model(mocks, t);
+  return { value: this.f(value), mocks: m };
 };
 
 FlatMapNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {

@@ -270,6 +270,11 @@ describe("testing", () => {
         assert.strictEqual(testNow(Now.of(12)), 12);
       });
     });
+    describe("map", () => {
+      it("can be tested", () => {
+        assert.strictEqual(testNow(Now.of(3).map((n) => n * n)), 9);
+      });
+    });
     describe("flatMap", () => {
       it("can be tested", () => {
         const now = Now.of(3).flatMap((n) => Now.of(n * 4));

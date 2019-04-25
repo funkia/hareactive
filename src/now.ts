@@ -31,10 +31,14 @@ export abstract class Now<A> implements Monad<A> {
   }
   static multi: boolean = false;
   multi: boolean = false;
+  map<B>(f: (a: A) => B): Now<B> {
+    return new MapNow(f, this);
+  }
+  mapTo<B>(b: B): Now<B> {
+    return new MapNow((_) => b, this);
+  }
   // Definitions below are inserted by Jabz
   flatten: <B>() => Now<B>;
-  map: <B>(f: (a: A) => B) => Now<B>;
-  mapTo: <B>(b: B) => Now<B>;
   ap: <B>(a: Now<(a: A) => B>) => Now<B>;
   lift: (f: Function, ...ms: any[]) => Now<any>;
 }
@@ -45,6 +49,15 @@ export class OfNow<A> extends Now<A> {
   }
   run(_: Time): A {
     return this.value;
+  }
+}
+
+export class MapNow<A, B> extends Now<B> {
+  constructor(private f: (a: A) => B, private parent: Now<A>) {
+    super();
+  }
+  run(t: Time): B {
+    return this.f(this.parent.run(t));
   }
 }
 
