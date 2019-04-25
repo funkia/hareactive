@@ -186,7 +186,20 @@ describe("Future", () => {
       assert.deepEqual(result, [1, 2]);
     });
   });
-  it("can convert Promise to Future", () => {
+  describe("flatten", () => {
+    it("resolves when inner occurs last", () => {
+      const outer = sinkFuture<Future<number>>();
+      const inner = sinkFuture<number>();
+      const flattened = H.flatten(outer);
+      const cb = spy();
+      flattened.subscribe(cb);
+      outer.resolve(inner);
+      assert.isTrue(cb.notCalled);
+      inner.resolve(3);
+      assert.isTrue(cb.calledOnceWith(3));
+    });
+  });
+  it("can convert Promise to Future", async () => {
     let result: number;
     let resolve: (n: number) => void;
     const promise = new Promise((res) => (resolve = res));
@@ -194,9 +207,8 @@ describe("Future", () => {
     future.subscribe((res: number) => (result = res));
     assert.strictEqual(result, undefined);
     resolve(12);
-    return promise.then(() => {
-      assert.strictEqual(result, 12);
-    });
+    await promise;
+    assert.strictEqual(result, 12);
   });
   describe("nextOccurence", () => {
     it("resolves on next occurence", () => {

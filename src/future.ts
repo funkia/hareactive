@@ -1,4 +1,3 @@
-import { monad, Semigroup } from "@funkia/jabz";
 import { State, SListener, Parent, BListener, Time } from "./common";
 import { Reactive } from "./common";
 import { cons, fromArray, Node } from "./datastructures";
@@ -14,9 +13,8 @@ export type MapFutureTuple<A> = { [K in keyof A]: Future<A[K]> };
  * occurs and its associated value. It is quite like a JavaScript
  * promise.
  */
-@monad
 export abstract class Future<A> extends Reactive<A, SListener<A>>
-  implements Semigroup<Future<A>>, Parent<SListener<any>> {
+  implements Parent<SListener<any>> {
   // The value of the future. Often `undefined` until occurrence.
   value: A;
   constructor() {
@@ -83,7 +81,9 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
   chain<B>(f: (a: A) => Future<B>): Future<B> {
     return new FlatMapFuture(f, this);
   }
-  flatten: <B>() => Future<B>;
+  flatten<B>(this: Future<Future<B>>): Future<B> {
+    return new FlatMapFuture((f) => f, this);
+  }
 }
 
 export function isFuture(a: any): a is Future<any> {
