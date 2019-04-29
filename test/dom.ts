@@ -1,8 +1,11 @@
+import * as fakeRaf from "fake-raf";
+import { assert } from "chai";
+import * as browserEnv from "browser-env";
+
 import * as H from "../src/index";
 import { streamFromEvent, behaviorFromEvent } from "../src/dom";
 import "mocha";
-import { assert } from "chai";
-import * as browserEnv from "browser-env";
+import { spy } from "sinon";
 
 browserEnv();
 
@@ -87,6 +90,21 @@ describe("dom", () => {
       input.value = "second";
       H.push(0, sink);
       assert.deepEqual(result, ["initial", "second"]);
+    });
+  });
+  describe("render", () => {
+    it("renders each frame", () => {
+      fakeRaf.use();
+      let val = 0;
+      const b = H.fromFunction((_) => val);
+      const cb = spy();
+      H.render(cb, b);
+      val = 1;
+      fakeRaf.step();
+      val = 2;
+      fakeRaf.step();
+      fakeRaf.restore();
+      assert.deepEqual(cb.args, [[0], [1], [2]]);
     });
   });
 });

@@ -1,4 +1,4 @@
-import { State } from "./common";
+import { observe } from "./common";
 import { Stream, ProducerStream } from "./stream";
 import { Behavior, ProducerBehavior } from "./behavior";
 
@@ -30,7 +30,9 @@ function id<A>(a: A): A {
   return a;
 }
 
-// Overloads for Window
+/**
+ * Creates a stream from a DOM element and an event name.
+ */
 export function streamFromEvent<A, E extends WindowEventName, T extends Window>(
   target: T,
   eventName: E
@@ -92,7 +94,9 @@ class DomEventBehavior<A> extends ProducerBehavior<A> {
   }
 }
 
-// Overloads for Window
+/**
+ * Creates a behavior from a DOM element.
+ */
 export function behaviorFromEvent<
   A,
   E extends WindowEventName,
@@ -127,4 +131,30 @@ export function behaviorFromEvent<A>(
   extractor: Extractor<any, EventTarget, A>
 ): Behavior<A> {
   return new DomEventBehavior(target, eventName, getter, extractor);
+}
+
+function pullOnFrame(pull: (t?: number) => void): () => void {
+  let isPulling = true;
+  function frame(): void {
+    if (isPulling) {
+      pull();
+      window.requestAnimationFrame(frame);
+    }
+  }
+  frame();
+  return () => {
+    isPulling = false;
+  };
+}
+
+/**
+ * Used to render the value of a behaviors into the DOM, a canvas, etc. The
+ * `renderer` function is called on each frame using `requestAnimationFrame` if
+ * the behavior has changed.
+ */
+export function render<A>(
+  renderer: (a: A) => void,
+  behavior: Behavior<A>
+): void {
+  observe(renderer, pullOnFrame, behavior);
 }
