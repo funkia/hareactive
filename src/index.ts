@@ -8,7 +8,6 @@ export * from "./now";
 export * from "./behavior";
 export * from "./stream";
 export * from "./future";
-export * from "./dom";
 export * from "./time";
 export * from "./placeholder";
 export * from "./animation";
