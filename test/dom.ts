@@ -3,7 +3,7 @@ import { assert } from "chai";
 import * as browserEnv from "browser-env";
 
 import * as H from "../src/index";
-import { streamFromEvent, behaviorFromEvent } from "../src/dom";
+import { render, streamFromEvent, behaviorFromEvent } from "../src/dom";
 import "mocha";
 import { spy } from "sinon";
 
@@ -98,7 +98,7 @@ describe("dom", () => {
       let val = 0;
       const b = H.fromFunction((_) => val);
       const cb = spy();
-      H.render(cb, b);
+      render(cb, b);
       val = 1;
       fakeRaf.step();
       val = 2;
