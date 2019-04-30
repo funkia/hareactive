@@ -176,17 +176,17 @@ export class ScanStream<A, B> extends ActiveStream<B> {
 }
 
 /**
- * The returned  initially has the initial value, on each occurrence
- * in `source` the function is applied to the current value of the
- * behavior and the value of the occurrence, the returned value
- * becomes the next value of the behavior.
+ * For each occurrence on `stream` the function `f` is applied to its value. As
+ * its second argument `f` initially receives `initial` and afterwards its own
+ * previous return value. The returned stream has an occurrence with the result
+ * of each call to `f`.
  */
 export function scanFrom<A, B>(
-  fn: (a: A, b: B) => B,
-  startingValue: B,
+  f: (a: A, b: B) => B,
+  initial: B,
   stream: Stream<A>
 ): Behavior<Stream<B>> {
-  return stream.scanFrom(fn, startingValue);
+  return stream.scanFrom(f, initial);
 }
 
 export function scan<A, B>(

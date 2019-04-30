@@ -872,6 +872,14 @@ describe("Behavior and Stream", () => {
       s1.push(0);
       assert.deepEqual(callback.args, [[0]]);
     });
+    // it("can be applied to `scanFrom` stream", () => {
+    //   // FIXME: `s3` below should result in an empty stream. This probably
+    //   // requires implementing pull stream.
+    //   const s1 = H.sinkStream();
+    //   const s2 = H.scanFrom((_, b) => b + 1, 0, s1);
+    //   const s3 = H.shiftCurrent(s2);
+    //   H.subscribe((s) => console.log(s), s3);
+    // });
   });
   describe("continuous time", () => {
     describe("measureTime", () => {
