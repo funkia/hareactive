@@ -1,6 +1,7 @@
 import { observe } from "./common";
 import { Stream, ProducerStream } from "./stream";
-import { Behavior, ProducerBehavior } from "./behavior";
+import { Behavior, ProducerBehavior, toggle } from "./behavior";
+import { Now } from "./now";
 
 export type HTMLEventName = keyof HTMLElementEventMap;
 export type WindowEventName = keyof WindowEventMap;
@@ -145,6 +146,36 @@ function pullOnFrame(pull: (t?: number) => void): () => void {
   return () => {
     isPulling = false;
   };
+}
+
+/**
+ * Returns a stream that has an occurrence whenever a key is pressed down. The
+ * value is the
+ * [KeyboardEvent](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent)
+ * associated with the key press.
+ */
+export const keyDown: Stream<KeyboardEvent> = streamFromEvent(
+  window,
+  "keydown"
+);
+
+/**
+ * Returns a stream that has an occurrence whenever a key is pressed down. The
+ * value is the
+ * [KeyboardEvent](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent)
+ * associated with the key press.
+ */
+export const keyUp: Stream<KeyboardEvent> = streamFromEvent(window, "keyup");
+
+/**
+ * Returns a behavior that is true when the key is pressed and false then the
+ * key is not pressed.
+ *
+ * The code is a [KeyboardEvent.code](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code).
+ */
+export function keyPressed(code: string): Now<Behavior<boolean>> {
+  const isKey = (e: KeyboardEvent) => e.code === code;
+  return toggle(false, keyDown.filter(isKey), keyUp.filter(isKey));
 }
 
 /**
