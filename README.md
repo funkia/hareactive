@@ -687,9 +687,14 @@ becomes the next value of the behavior.
 A behavior whose value is the number of milliseconds elapsed since UNIX epoch.
 I.e. its current value is equal to the value got by calling `Date.now`.
 
+#### `measureTime: Now<Behavior<Time>>`
+
+The now-computation results in a behavior that tracks the time passed since its
+creation.
+
 #### `measureTimeFrom: Behavior<Behavior<Time>>`
 
-A behavior giving access to continous time. When sampled the outer
+A behavior giving access to continuous time. When sampled the outer
 behavior gives a behavior with values that contain the difference
 between the current sample time and the time at which the outer
 behavior was sampled.
