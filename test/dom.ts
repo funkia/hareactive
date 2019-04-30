@@ -1,13 +1,12 @@
 import * as fakeRaf from "fake-raf";
 import { assert } from "chai";
-import * as browserEnv from "browser-env";
-
 import * as H from "../src/index";
-import { render, streamFromEvent, behaviorFromEvent } from "../src/dom";
-import "mocha";
-import { spy } from "sinon";
 
-browserEnv();
+// import * as browserEnv from "browser-env";
+// browserEnv();
+
+import { render, streamFromEvent, behaviorFromEvent } from "../src/dom";
+import { spy } from "sinon";
 
 describe("dom", () => {
   describe("streamFromEvent", () => {

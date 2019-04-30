@@ -1,6 +1,7 @@
 import { assert } from "chai";
 import { spy } from "sinon";
 
+import { SinkStream, Behavior } from "../src";
 import {
   Future,
   sinkFuture,
@@ -8,7 +9,6 @@ import {
   nextOccurrenceFrom,
   mapCbFuture
 } from "../src/future";
-import { SinkStream, Behavior } from "../src";
 import * as H from "../src";
 
 describe("Future", () => {

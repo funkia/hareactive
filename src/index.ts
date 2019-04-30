@@ -1,6 +1,6 @@
 import { Now, MapNowTuple } from "./now";
-import { Stream, SinkStream } from "./stream";
 import { Behavior, SinkBehavior, MapBehaviorTuple } from "./behavior";
+import { Stream, SinkStream } from "./stream";
 import { Future, MapFutureTuple } from "./future";
 
 export * from "./common";

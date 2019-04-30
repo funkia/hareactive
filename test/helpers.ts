@@ -2,9 +2,8 @@ import * as sinon from "sinon";
 import { spy } from "sinon";
 import { IO, withEffects } from "@funkia/jabz";
 
-import { ProducerStream } from "../src/stream";
+import { ProducerStream, SinkBehavior } from "../src/index";
 import { State, Reactive } from "../src/common";
-import { SinkBehavior } from "../src/behavior";
 
 // A reference that can be mutated
 export type Ref<A> = { ref: A };

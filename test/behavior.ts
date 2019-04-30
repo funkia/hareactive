@@ -1,4 +1,3 @@
-import "mocha";
 import { assert } from "chai";
 import { spy, useFakeTimers, SinonFakeTimers } from "sinon";
 import { go, map, mapTo } from "@funkia/jabz";
@@ -1015,7 +1014,6 @@ describe("Behavior and Stream", () => {
       console.log = origLog;
       clock.restore();
 
-      console.log(strings);
       assert.deepEqual(strings, [["b", "zero"], ["b", "one"], ["b", "two"]]);
     });
   });

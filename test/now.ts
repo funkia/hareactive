@@ -184,7 +184,7 @@ describe("Now", () => {
         });
       });
     });
-    return runNow(main());
+    return toPromise(runNow(main()));
   });
   describe("performStream", () => {
     it("runs io actions", (done: Function) => {
@@ -313,7 +313,7 @@ describe("Now", () => {
       });
     });
 
-    it("should support `undefined` as result", (done: MochaDone) => {
+    it("should support `undefined` as result", (done: any) => {
       let results: any[] = [];
       const impure = withEffectsP(
         (n: number) => new Promise((resolve, reject) => resolve(n))
