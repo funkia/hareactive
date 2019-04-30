@@ -149,32 +149,33 @@ function pullOnFrame(pull: (t?: number) => void): () => void {
 }
 
 /**
- * Returns a stream that has an occurrence whenever the key described by the
- * code is pressed down.
- *
- * The code is a [KeyboardEvent.code](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code).
+ * Returns a stream that has an occurrence whenever a key is pressed down. The
+ * value is the
+ * [KeyboardEvent](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent)
+ * associated with the key press.
  */
-export function keyDown(code: string): Stream<KeyboardEvent> {
-  return streamFromEvent(window, "keydown").filter((e) => e.code === code);
-}
+export const keyDown: Stream<KeyboardEvent> = streamFromEvent(
+  window,
+  "keydown"
+);
 
 /**
- * Returns a stream that has an occurrence whenever the key described by the
- * code is released.
- *
- * The code is a [KeyboardEvent.code](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code).
+ * Returns a stream that has an occurrence whenever a key is pressed down. The
+ * value is the
+ * [KeyboardEvent](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent)
+ * associated with the key press.
  */
-export function keyUp(code: string): Stream<KeyboardEvent> {
-  return streamFromEvent(window, "keyup").filter((e) => e.code === code);
-}
+export const keyUp: Stream<KeyboardEvent> = streamFromEvent(window, "keyup");
 
 /**
- * Returns a behavior that is true when the key is pressed.
+ * Returns a behavior that is true when the key is pressed and false then the
+ * key is not pressed.
  *
  * The code is a [KeyboardEvent.code](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code).
  */
 export function keyPressed(code: string): Now<Behavior<boolean>> {
-  return toggle(false, keyDown(code), keyUp(code));
+  const isKey = (e: KeyboardEvent) => e.code === code;
+  return toggle(false, keyDown.filter(isKey), keyUp.filter(isKey));
 }
 
 /**
