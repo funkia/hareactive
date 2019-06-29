@@ -682,6 +682,77 @@ occurrence in `source` the function is applied to the current value of
 the behaviour and the value of the occurrence, the returned value
 becomes the next value of the behavior.
 
+#### `moment<A>(f: (sample: <B>(b: Behavior<B>) => B) => A): Behavior<A>`
+
+Constructs a behavior based on a function. At any point in time the value of
+the behavior is equal to the result of applying the function to a sampling
+function. The sampling function returns the current value of any behavior.
+
+`moment` is a powerful function that can do many things and sometimes it can do
+them in a way that is a lot easier than other functions. A typical usage of
+`moment` has the following form.
+
+```js
+moment((at) => {
+  ...
+})
+```
+
+Above, the `at` function above can be applied to any behavior and it will
+return the current value of the behavior. The following example adds together
+the values of three behaviors of numbers.
+
+```js
+const sum = moment((at) => at(aBeh) + at(bBeh) + at(cBeh));
+```
+
+The above could also be achieved with `lift`. However, `moment` can give better
+performance when used with a function which dynamically switches which
+behaviors it depends on. To understand this, consider the following contrived
+example.
+
+```js
+const lifted = lift((a, b, c, d) => a && b ? c : d, aB, bB, cB, dB);
+```
+
+Here the resulting behavior will _always_ depend on both `aB`, `bB`, `cB`,
+`dB`. This means that if any of them changes then the value of `lifted` will be
+recomputed. But, if for instance, `aB` is `false` then the function actually
+only uses `aB` and there is no need to recompute `lifted` if any of the other
+behaviors changes. However, `lift` can't know this since the function given to
+it is just a "black box".
+
+If, on the other hand, we use `moment`:
+
+```js
+const momented = moment((at) => at(aB) && at(bB) ? at(cB) : at(dB));
+```
+
+Then `moment` can simply check which behaviors are actually sampled inside the
+function passed to it, and it uses this information to figure out which
+behaviors `momented` depends upon in any given time. This means that when `aB`
+is `false` the implementation can figure out that, currently, `momented` only
+depends on `atB` and there is no need to recompute `momented` when any of the
+other behaviors changes.
+
+`moment` can also be very useful with behaviors nested inside behaviors. If
+`persons` is a behavior of an array of persons and is of the type `Behavior<{
+age: Behavior<number>, name: string }[]>` then the following code creates a
+behavior that at any time is equal to the name of the first person in the array
+whose age is greater than 20.
+
+```js
+const first = moment((at) => {
+  for (const person of at(persons)) {
+    if (at(person.age) > 20) {
+      return person.name;
+    }
+  }
+});
+```
+
+Achieving something similar without `moment` would be quite tricky.
+
 #### `time: Behavior<Time>`
 
 A behavior whose value is the number of milliseconds elapsed since UNIX epoch.
