@@ -7,7 +7,6 @@
     "importHelpers": true,
     "sourceMap": true,
     "skipLibCheck": true,
-    "noStrictGenericChecks": true,
     "lib": [
       "dom",
       "es5",
