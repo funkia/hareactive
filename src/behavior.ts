@@ -1,4 +1,4 @@
-import { cons, DoubleLinkedList, Node, fromArray } from "./datastructures";
+import { cons, DoubleLinkedList, Node, fromArray, nil } from "./datastructures";
 import { combine } from "./index";
 import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
 import { Future, BehaviorFuture } from "./future";
@@ -390,6 +390,7 @@ export class ConstantBehavior<A> extends ActiveBehavior<A> {
     super();
     this.state = State.Push;
     this.changedAt = getTime();
+    this.parents = nil;
   }
   update(_t: number): A {
     return this.last;

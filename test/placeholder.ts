@@ -75,6 +75,11 @@ describe("placeholder", () => {
       assert.strictEqual(beginPulling, true);
       assert.strictEqual(p.at(), 12);
     });
+    it("can be replaced with constant behavior and sampled", () => {
+      const p = H.placeholder();
+      p.replaceWith(Behavior.of(3));
+      assert.strictEqual(H.at(p), 3);
+    });
     it("can pull mapped placeholder", () => {
       let variable = 0;
       const b = fromFunction(() => variable);
