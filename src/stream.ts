@@ -254,19 +254,29 @@ export function shiftFrom<A>(s: Stream<Stream<A>>): Behavior<Stream<A>> {
 
 class ChangesStream<A> extends Stream<A> implements BListener {
   last: A;
+  initialized: boolean;
   constructor(
     readonly parent: Behavior<A>,
     readonly comparator: (v: A, u: A) => boolean
   ) {
     super();
     this.parents = cons(parent);
+    this.initialized = false;
   }
   activate(t: Time): void {
     super.activate(t);
-    this.last = at(this.parent, t);
+    // The parent may be an unreplaced placeholder and in that case
+    // we can't read its current value.
+    if (this.parent.state === State.Push) {
+      this.last = this.parent.last;
+      this.initialized = true;
+    }
   }
   pushB(t: number): void {
-    if (!this.comparator(this.last, this.parent.last)) {
+    if (!this.initialized) {
+      this.initialized = true;
+      this.last = this.parent.last;
+    } else if (!this.comparator(this.last, this.parent.last)) {
       this.pushSToChildren(t, this.parent.last);
       this.last = this.parent.last;
     }

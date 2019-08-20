@@ -212,6 +212,15 @@ describe("placeholder", () => {
       assert.deepEqual(results, [0, 2000, 5000]);
       restore();
     });
+    it("is possible to invoke changes on a placeholder", () => {
+      const p = H.placeholder<number>();
+      const b = H.changes(p);
+      const cb = subscribeSpy(b);
+      const sink = sinkBehavior(0);
+      p.replaceWith(sink);
+      sink.push(1);
+      assert.deepEqual(cb.args, [[1]]);
+    });
   });
   describe("stream", () => {
     it("is stream", () => {
