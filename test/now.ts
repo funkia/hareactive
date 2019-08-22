@@ -385,4 +385,19 @@ describe("Now", () => {
       runNow(now);
     });
   });
+  describe("instant", () => {
+    it("simpel", () => {
+      const s = sinkStream<number>();
+      s.push(1);
+      s.push(2);
+      const now = H.instant((start) => {
+        const sum = start.accum((a, b) => a + b, 0, s);
+        return sum;
+      });
+      const res = runNow(now);
+      s.push(4);
+      s.push(5);
+      assert.strictEqual(res.at(), 9);
+    });
+  });
 });
