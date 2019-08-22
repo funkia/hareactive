@@ -19,7 +19,8 @@ import {
   sinkStream,
   SinkStream,
   time,
-  toPromise
+  toPromise,
+  flash
 } from "../src";
 import * as H from "../src";
 import { createRef, mutateRef } from "./helpers";
@@ -368,6 +369,17 @@ describe("Now", () => {
         const t1 = yield sample(time);
         while (Date.now() <= t1) {}
         const t2 = yield sample(time);
+        assert.strictEqual(t1, t2);
+      });
+      runNow(now);
+    });
+  });
+  describe("flash", () => {
+    it("time doesn't pass", () => {
+      const now = flash((run) => {
+        const t1 = run(sample(time));
+        while (Date.now() <= t1) {}
+        const t2 = run(sample(time));
         assert.strictEqual(t1, t2);
       });
       runNow(now);
