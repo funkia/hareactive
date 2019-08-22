@@ -307,7 +307,7 @@ export function loopNow<A extends ReactivesObject>(
 
 export type FlashRun = <A>(now: Now<A>) => A;
 
-class FlashNow<A> extends Now<A> {
+export class FlashNow<A> extends Now<A> {
   constructor(private fn: (run: FlashRun) => A) {
     super();
   }

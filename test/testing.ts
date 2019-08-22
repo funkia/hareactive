@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import * as H from "../src";
-import { Behavior, Stream } from "../src";
+import { Behavior, Stream, Now } from "../src";
 import {
   testFuture,
   assertFutureEqual,
@@ -13,7 +13,6 @@ import {
   assertBehaviorEqual
 } from "../src/testing";
 import { createRef, mutateRef } from "./helpers";
-import { performIO, Now } from "../src";
 import { fgo, withEffects } from "@funkia/jabz";
 
 describe("testing", () => {
@@ -284,7 +283,7 @@ describe("testing", () => {
     describe("perform", () => {
       it("can be tested", () => {
         const ref1 = createRef(1);
-        const comp = performIO(mutateRef(2, ref1));
+        const comp = H.performIO(mutateRef(2, ref1));
         const result = testNow(comp, [testFuture(0, "foo")]);
         assert(result.model().value, "foo");
       });
@@ -385,6 +384,33 @@ describe("testing", () => {
         assert(H.isStream(out.res));
         assertStreamEqual(
           out.res,
+          testStreamFromObject({ 0: "old1", 1: "old2", 2: "response" })
+        );
+        assert.deepEqual(requests, []);
+      });
+    });
+    describe("flash", () => {
+      it("can be tested", () => {
+        let requests: number[] = [];
+        const model = (click: Stream<number>) =>
+          H.flash((run) => {
+            const request = click.map(
+              withEffects((n: number) => {
+                requests.push(n);
+                return n + 2;
+              })
+            );
+            const res = run(H.performStreamOrdered(request));
+            return { res };
+          });
+        const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
+        const out = testNow(model(click), [
+          testStreamFromArray([[0, "old1"], [1, "old2"], [2, "response"]])
+        ]);
+        assert(H.isStream(out.res));
+        assertStreamEqual(
+          out.res,
+          // @ts-ignore
           testStreamFromObject({ 0: "old1", 1: "old2", 2: "response" })
         );
         assert.deepEqual(requests, []);
