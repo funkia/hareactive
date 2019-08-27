@@ -389,11 +389,11 @@ describe("testing", () => {
         assert.deepEqual(requests, []);
       });
     });
-    describe("flash", () => {
+    describe("instant", () => {
       it("can be tested", () => {
         let requests: number[] = [];
         const model = (click: Stream<number>) =>
-          H.flash((run) => {
+          H.instant((run) => {
             const request = click.map(
               withEffects((n: number) => {
                 requests.push(n);

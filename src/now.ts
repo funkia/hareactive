@@ -305,10 +305,10 @@ export function loopNow<A extends ReactivesObject>(
   return new LoopNow(fn, names);
 }
 
-export type FlashRun = <A>(now: Now<A>) => A;
+export type InstantRun = <A>(now: Now<A>) => A;
 
-export class FlashNow<A> extends Now<A> {
-  constructor(private fn: (run: FlashRun) => A) {
+export class InstantNow<A> extends Now<A> {
+  constructor(private fn: (run: InstantRun) => A) {
     super();
   }
   run(t: Time): A {
@@ -316,6 +316,6 @@ export class FlashNow<A> extends Now<A> {
   }
 }
 
-export function flash<A>(fn: (run: FlashRun) => A): Now<A> {
-  return new FlashNow(fn);
+export function instant<A>(fn: (run: InstantRun) => A): Now<A> {
+  return new InstantNow(fn);
 }

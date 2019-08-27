@@ -39,7 +39,7 @@ import {
   PerformStreamOrderedNow,
   Now,
   MapNow,
-  FlashNow
+  InstantNow
 } from "./now";
 import { time, DelayStream } from "./time";
 
@@ -368,7 +368,7 @@ FlatMapNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
   return this.f(value).model(m, t);
 };
 
-FlashNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
+InstantNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
   let m = mocks;
   const value = this.fn((now) => {
     const r = now.model(m, t);

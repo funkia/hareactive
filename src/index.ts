@@ -1,4 +1,4 @@
-import { Now, MapNowTuple, FlashRun, flash, sample } from "./now";
+import { Now, MapNowTuple, InstantRun, instant, sample } from "./now";
 import {
   Behavior,
   SinkBehavior,
@@ -72,45 +72,4 @@ export function combine<A>(
 ): Future<A> | Stream<A> {
   // FIXME: More performant implementation with benchmark
   return (values as any).reduce((a: any, b: any) => a.combine(b));
-}
-
-export type InstantStart = {
-  run: FlashRun;
-  sample: <A>(b: Behavior<A>) => A;
-  scan: <A, B>(f: (a: A, b: B) => B, initial: B, s: Stream<A>) => Stream<B>;
-  accum: <A, B>(f: (a: A, b: B) => B, initial: B, s: Stream<A>) => Behavior<B>;
-  accumCombine: <B>(f: AccumPair<B>[], initial: B) => Behavior<B>;
-  stepper: <B>(initial: B, steps: Stream<B>) => Behavior<B>;
-  toggle: (
-    initial: boolean,
-    turnOn: Stream<any>,
-    turnOff: Stream<any>
-  ) => Behavior<boolean>;
-  when: (b: Behavior<boolean>) => Future<{}>;
-  switcher: <A>(init: Behavior<A>, stream: Stream<Behavior<A>>) => Behavior<A>;
-  freezeAt: <A>(
-    behavior: Behavior<A>,
-    shouldFreeze: Future<any>
-  ) => Behavior<A>;
-  shift: <A>(s: Stream<Stream<A>>) => Stream<A>;
-  integrate: (curve: Behavior<number>) => Behavior<number>;
-};
-
-export function instant<A>(fn: (start: InstantStart) => A): Now<A> {
-  return flash((run) =>
-    fn({
-      run,
-      sample: (b) => run(sample(b)),
-      accum: (f, i, s) => run(accum(f, i, s)),
-      accumCombine: (f, i) => run(accumCombine(f, i)),
-      stepper: (i, s) => run(stepper(i, s)),
-      toggle: (i, on, off) => run(toggle(i, on, off)),
-      when: (b) => run(when(b)),
-      switcher: (i, s) => run(switcher(i, s)),
-      freezeAt: (b, s) => run(freezeAt(b, s)),
-      scan: (f, i, s) => run(scan(f, i, s)),
-      shift: (s) => run(shift(s)),
-      integrate: (b) => run(integrate(b))
-    })
-  );
 }

@@ -20,7 +20,7 @@ import {
   SinkStream,
   time,
   toPromise,
-  flash
+  instant
 } from "../src";
 import * as H from "../src";
 import { createRef, mutateRef } from "./helpers";
@@ -374,30 +374,15 @@ describe("Now", () => {
       runNow(now);
     });
   });
-  describe("flash", () => {
+  describe("instant", () => {
     it("time doesn't pass", () => {
-      const now = flash((run) => {
-        const t1 = run(sample(time));
+      const now = instant((start) => {
+        const t1 = start(sample(time));
         while (Date.now() <= t1) {}
-        const t2 = run(sample(time));
+        const t2 = start(sample(time));
         assert.strictEqual(t1, t2);
       });
       runNow(now);
-    });
-  });
-  describe("instant", () => {
-    it("simpel", () => {
-      const s = sinkStream<number>();
-      s.push(1);
-      s.push(2);
-      const now = H.instant((start) => {
-        const sum = start.accum((a, b) => a + b, 0, s);
-        return sum;
-      });
-      const res = runNow(now);
-      s.push(4);
-      s.push(5);
-      assert.strictEqual(res.at(), 9);
     });
   });
 });
