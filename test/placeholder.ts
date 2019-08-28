@@ -86,7 +86,6 @@ describe("placeholder", () => {
       const p = placeholder<number>();
       const mapResult = [];
       const pm = p.map((n) => (mapResult.push(n), n));
-      // const pm = p.map((n) => n);
       const result: Array<number> = [];
       let pull;
       observe(
@@ -220,6 +219,28 @@ describe("placeholder", () => {
       p.replaceWith(sink);
       sink.push(1);
       assert.deepEqual(cb.args, [[1]]);
+    });
+    it.skip("handles diamond dependency", () => {
+      //     p
+      //   /   \
+      //  b1   b2
+      //   \   /
+      //    b3
+      const p = H.placeholder<number>();
+      const b1 = p.map((n) => n * n);
+      const b2 = p.map((n) => n + 4);
+      const b3 = H.lift(
+        (n, m) => {
+          assert.isNumber(n);
+          assert.isNumber(m);
+          return n + m;
+        },
+        b1,
+        b2
+      );
+      subscribeSpy(b3);
+      p.replaceWith(H.Behavior.of(3));
+      assert.strictEqual(H.at(b3), 16);
     });
   });
   describe("stream", () => {
