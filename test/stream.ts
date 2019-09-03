@@ -102,7 +102,7 @@ describe("stream", () => {
     it("activates and deactivates", () => {
       const activate = spy();
       const deactivate = spy();
-      const producer = H.producerStream((push) => {
+      const producer = H.producerStream((_push) => {
         activate();
         return deactivate;
       });
@@ -316,7 +316,7 @@ describe("stream", () => {
       it("should delay every push", () => {
         let n = 0;
         const s = H.sinkStream<number>();
-        const delayedS = H.delay(50, s);
+        const delayedS = H.runNow(H.delay(50, s));
         delayedS.subscribe(() => (n = 2));
         s.subscribe(() => (n = 1));
         s.push(0);
@@ -331,7 +331,7 @@ describe("stream", () => {
       it("after an occurrence it should ignore", () => {
         let n = 0;
         const s = H.sinkStream<number>();
-        const throttleS = H.throttle(100, s);
+        const throttleS = H.runNow(H.throttle(100, s));
         throttleS.subscribe((v) => (n = v));
         assert.strictEqual(n, 0);
         s.push(1);
@@ -351,7 +351,7 @@ describe("stream", () => {
       it("holding the latest occurrence until an amount of time has passed", () => {
         let n = 0;
         const s = H.sinkStream<number>();
-        const debouncedS = H.debounce(100, s);
+        const debouncedS = H.runNow(H.debounce(100, s));
         debouncedS.subscribe((v) => (n = v));
         assert.strictEqual(n, 0);
         s.push(1);

@@ -10,7 +10,6 @@ import {
   stepperFrom,
   fromFunction,
   sinkBehavior,
-  ap,
   debounce,
   delay,
   isStream,
@@ -298,7 +297,7 @@ describe("placeholder", () => {
       it("delay work with placeholder", () => {
         let n = 0;
         const p = placeholder();
-        const delayedP = delay(50, p);
+        const delayedP = H.runNow(delay(50, p));
         delayedP.subscribe(() => (n = 2));
         p.subscribe(() => (n = 1));
         const s = sinkStream<number>();
@@ -314,7 +313,7 @@ describe("placeholder", () => {
       it("throttle", () => {
         let n = 0;
         const p = placeholder();
-        const throttleP = throttle(100, p);
+        const throttleP = H.runNow(throttle(100, p));
         throttleP.subscribe((v: number) => (n = v));
         assert.strictEqual(n, 0);
         const s = sinkStream<number>();
@@ -330,7 +329,7 @@ describe("placeholder", () => {
       it("should work with placeholder", () => {
         let n = 0;
         const p = placeholder();
-        const debouncedP = debounce(100, p);
+        const debouncedP = H.runNow(debounce(100, p));
         debouncedP.subscribe((v: number) => (n = v));
         const s = sinkStream<number>();
         p.replaceWith(s);

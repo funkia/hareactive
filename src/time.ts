@@ -2,7 +2,7 @@ import { Time, State } from "./common";
 import { cons } from "./datastructures";
 import { Stream } from "./stream";
 import { Behavior, fromFunction } from "./behavior";
-import { sample, Now } from "./now";
+import { sample, Now, perform } from "./now";
 
 /*
  * Time related behaviors and functions
@@ -19,12 +19,12 @@ export class DelayStream<A> extends Stream<A> {
   }
 }
 
-export function delay<A>(ms: number, stream: Stream<A>): Stream<A> {
-  return new DelayStream(stream, ms);
+export function delay<A>(ms: number, stream: Stream<A>): Now<Stream<A>> {
+  return perform(() => new DelayStream(stream, ms));
 }
 
 class ThrottleStream<A> extends Stream<A> {
-  constructor(parent: Stream<A>, private ms: number) {
+  constructor(parent: Stream<A>, readonly ms: number) {
     super();
     this.parents = cons(parent);
   }
@@ -40,12 +40,12 @@ class ThrottleStream<A> extends Stream<A> {
   }
 }
 
-export function throttle<A>(ms: number, stream: Stream<A>): Stream<A> {
-  return new ThrottleStream<A>(stream, ms);
+export function throttle<A>(ms: number, stream: Stream<A>): Now<Stream<A>> {
+  return perform(() => new ThrottleStream<A>(stream, ms));
 }
 
 class DebounceStream<A> extends Stream<A> {
-  constructor(parent: Stream<A>, private ms: number) {
+  constructor(parent: Stream<A>, readonly ms: number) {
     super();
     this.parents = cons(parent);
   }
@@ -58,8 +58,8 @@ class DebounceStream<A> extends Stream<A> {
   }
 }
 
-export function debounce<A>(ms: number, stream: Stream<A>): Stream<A> {
-  return new DebounceStream<A>(stream, ms);
+export function debounce<A>(ms: number, stream: Stream<A>): Now<Stream<A>> {
+  return perform(() => new DebounceStream<A>(stream, ms));
 }
 
 /**
