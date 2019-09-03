@@ -51,13 +51,13 @@ export class PushOnlyObserver<A> implements BListener, SListener<A> {
   pushB(t: number): void {
     this.callback((<Behavior<A>>this.source).last);
   }
-  pushS(t: number, value: A): void {
+  pushS(_t: number, value: A): void {
     this.callback(value);
   }
   deactivate(): void {
     this.source.removeListener(this.node);
   }
-  changeStateDown(state: State): void {}
+  changeStateDown(_state: State): void {}
 }
 
 export type NodeParentPair = {
@@ -144,10 +144,10 @@ export class CbObserver<A> implements BListener, SListener<A> {
       this.callback(this.source.last);
     }
   }
-  pushB(t: number): void {
+  pushB(_t: number): void {
     this.callback((<Behavior<A>>this.source).last);
   }
-  pushS(t: number, value: A): void {
+  pushS(_t: number, value: A): void {
     this.callback(value);
   }
   changeStateDown(state: State): void {

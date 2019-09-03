@@ -242,15 +242,6 @@ export function performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>> {
   return new PerformStreamOrderedNow(s);
 }
 
-class PlanNow<A> extends Now<Future<A>> {
-  constructor(private future: Future<Now<A>>) {
-    super();
-  }
-  run(time: Time): Future<A> {
-    return this.future.map((n) => n.run(time));
-  }
-}
-
 export function plan<A>(future: Future<Now<A>>): Now<Future<A>> {
   return performMap<Now<A>, A>(runNow, future);
 }
