@@ -54,6 +54,7 @@ describe("behavior", () => {
       assert.isFalse(Behavior.is(1));
     });
   });
+
   describe("producer", () => {
     it("activates and deactivates", () => {
       const activate = spy();
@@ -122,13 +123,13 @@ describe("behavior", () => {
     it("pulls from time varying functions", () => {
       let time = 0;
       const b = H.fromFunction(() => time);
-      assert.equal(H.at(b, 1), 0);
+      assert.equal(H.at(b), 0);
       time = 1;
-      assert.equal(H.at(b, 2), 1);
+      assert.equal(H.at(b), 1);
       time = 2;
-      assert.equal(H.at(b, 3), 2);
+      assert.equal(H.at(b), 2);
       time = 3;
-      assert.equal(H.at(b, 4), 3);
+      assert.equal(H.at(b), 3);
     });
     it("does not recompute when pulling with same timestamp", () => {
       let callCount = 0;
@@ -241,15 +242,15 @@ describe("behavior", () => {
         const applied = H.ap(fnB, numE);
         const cb = spy();
         applied.observe(cb, (pull) => {
-          pull(1);
+          pull();
           push(add(2), fnB);
-          pull(2);
+          pull();
           n = 4;
-          pull(3);
+          pull();
           push(double, fnB);
-          pull(4);
+          pull();
           n = 8;
-          pull(5);
+          pull();
           return () => {};
         });
         assert.deepEqual(cb.args, [[6], [3], [6], [8], [16]]);
@@ -282,6 +283,20 @@ describe("behavior", () => {
           Behavior.of(5)
         );
         assert.strictEqual(H.at(b), 18);
+      });
+      it("handles diamond dependency", () => {
+        //     p
+        //   /   \
+        //  b1   b2
+        //   \   /
+        //    b3
+        const p = sinkBehavior(3);
+        const b1 = p.map((n) => n * n);
+        const b2 = p.map((n) => n + 4);
+        const b3 = H.lift((n, m) => n + m, b1, b2);
+        const cb = subscribeSpy(b3);
+        p.newValue(4);
+        assert.deepEqual(cb.args, [[16], [24]]);
       });
     });
   });
@@ -740,6 +755,7 @@ describe("Behavior and Future", () => {
       const frozenBehavior = runNow(H.freezeAt(b, f));
       frozenBehavior.subscribe(cb);
       b.push("b");
+      assert.deepEqual(cb.args, [["a"], ["b"]]);
       f.resolve("c");
       b.push("d");
       assert.deepEqual(cb.args, [["a"], ["b"]]);

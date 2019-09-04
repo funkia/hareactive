@@ -219,7 +219,7 @@ describe("placeholder", () => {
       sink.push(1);
       assert.deepEqual(cb.args, [[1]]);
     });
-    it.skip("handles diamond dependency", () => {
+    it("handles diamond dependency", () => {
       //     p
       //   /   \
       //  b1   b2

@@ -1,4 +1,4 @@
-import { Reactive, State, SListener, BListener } from "./common";
+import { Reactive, State, SListener, BListener, Time } from "./common";
 import { Behavior, isBehavior, MapBehavior, pushToChildren } from "./behavior";
 import { Node, cons } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
@@ -17,12 +17,13 @@ export class Placeholder<A> extends Behavior<A> {
   source: Reactive<A, SListener<A> | SListener<A> | BListener>;
   private node: Node<this> = new Node(this);
   replaceWith(
-    parent: Reactive<A, SListener<A> | SListener<A> | BListener>
+    parent: Reactive<A, SListener<A> | SListener<A> | BListener>,
+    t?: number
   ): void {
     this.source = parent;
     this.parents = cons(parent);
     if (this.children.head !== undefined) {
-      const t = tick();
+      t = t !== undefined ? t : tick();
       this.activate(t);
       if (isBehavior(parent) && this.state === State.Push) {
         pushToChildren(t, this);
@@ -34,18 +35,14 @@ export class Placeholder<A> extends Behavior<A> {
       (<any>child).pushS(t, a);
     }
   }
-  pull(t: number): void {
+  pull(t: number) {
     if (this.source === undefined) {
       throw new SamplePlaceholderError(this);
     } else if (isBehavior(this.source)) {
+      this.source.pull(t);
       this.pulledAt = t;
-      if (this.source.pulledAt !== t) {
-        this.source.pull(t);
-      }
-      if (this.last !== this.source.last) {
-        this.changedAt = t;
-        this.last = this.source.last;
-      }
+      this.changedAt = t;
+      this.last = this.source.last;
     } else {
       throw new Error("Unsupported pulling on placeholder");
     }
@@ -57,6 +54,7 @@ export class Placeholder<A> extends Behavior<A> {
     if (this.source !== undefined) {
       this.source.addListener(this.node, t);
       if (isBehavior(this.source)) {
+        this.pull(t);
         this.last = this.source.last;
         this.changedAt = this.source.changedAt;
         this.pulledAt = this.source.pulledAt;
@@ -78,6 +76,10 @@ export class Placeholder<A> extends Behavior<A> {
   }
 }
 
+export function isPlaceholder(p): p is Placeholder<any> {
+  return typeof p === "object" && "replaceWith" in p;
+}
+
 class MapPlaceholder<A, B> extends MapBehavior<A, B> {
   pushS(t: number, a: A): void {
     // @ts-ignore
@@ -86,11 +88,18 @@ class MapPlaceholder<A, B> extends MapBehavior<A, B> {
 }
 
 class MapToPlaceholder<A, B> extends MapToStream<A, B> {
-  last: B;
-  update(): B {
+  changedAt;
+  constructor(parent, public last: B) {
+    super(parent, last);
+  }
+  update(_t): B {
     return (<any>this).b;
   }
-  pull(): void {}
+  pull(t) {
+    if (this.changedAt === undefined) {
+      this.changedAt = t;
+    }
+  }
 }
 
 function install(target: Function, source: Function): void {
