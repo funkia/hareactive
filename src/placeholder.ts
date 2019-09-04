@@ -54,7 +54,6 @@ export class Placeholder<A> extends Behavior<A> {
     if (this.source !== undefined) {
       this.source.addListener(this.node, t);
       if (isBehavior(this.source)) {
-        this.pull(t);
         this.last = this.source.last;
         this.changedAt = this.source.changedAt;
         this.pulledAt = this.source.pulledAt;

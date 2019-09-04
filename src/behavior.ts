@@ -69,13 +69,11 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   }
   abstract update(t: number): A;
   pushB(t: number): void {
-    if (this.changedAt === t) {
-      // This prevents a second push with same timestamp, to be further pushed
-      return;
-    }
-    this.pull(t);
-    if (this.changedAt === t && this.state === State.Push) {
-      pushToChildren(t, this);
+    if (this.pulledAt !== t) {
+      this.pull(t);
+      if (this.changedAt === t && this.state === State.Push) {
+        pushToChildren(t, this);
+      }
     }
   }
   pull(t: number): void {
@@ -83,11 +81,10 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       this.pulledAt = t;
       let shouldRefresh = this.changedAt === undefined;
       for (const parent of this.parents) {
-        if (!isBehavior(parent)) {
-          continue;
+        if (isBehavior(parent)) {
+          parent.pull(t);
+          shouldRefresh = shouldRefresh || this.changedAt < parent.changedAt;
         }
-        parent.pull(t);
-        shouldRefresh = shouldRefresh || this.changedAt < parent.changedAt;
       }
       if (shouldRefresh) {
         refresh(this, t);
