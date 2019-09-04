@@ -49,7 +49,7 @@ export class PushOnlyObserver<A> implements BListener, SListener<A> {
     }
   }
   pushB(t: number): void {
-    this.callback((this.source as any).last);
+    this.callback((<Behavior<A>>this.source).last);
   }
   pushS(t: number, value: A): void {
     this.callback(value);
@@ -145,7 +145,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
     }
   }
   pushB(t: number): void {
-    this.callback((this.source as any).last);
+    this.callback((<Behavior<A>>this.source).last);
   }
   pushS(t: number, value: A): void {
     this.callback(value);

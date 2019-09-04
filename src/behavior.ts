@@ -1,5 +1,5 @@
 import { cons, DoubleLinkedList, Node, fromArray, nil } from "./datastructures";
-import { combine } from "./index";
+import { combine, isPlaceholder } from "./index";
 import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
@@ -69,12 +69,9 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   }
   abstract update(t: number): A;
   pushB(t: number): void {
-    if (this.state === State.Push) {
-      const newValue = this.update(t);
-      this.pulledAt = t;
-      if (this.last !== newValue) {
-        this.changedAt = t;
-        this.last = newValue;
+    if (this.pulledAt !== t) {
+      this.pull(t);
+      if (this.changedAt === t && this.state === State.Push) {
         pushToChildren(t, this);
       }
     }
@@ -85,10 +82,8 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       let shouldRefresh = this.changedAt === undefined;
       for (const parent of this.parents) {
         if (isBehavior(parent)) {
-          if (parent.state !== State.Push && parent.pulledAt !== t) {
-            parent.pull(t);
-          }
-          shouldRefresh = shouldRefresh || parent.changedAt > this.changedAt;
+          parent.pull(t);
+          shouldRefresh = shouldRefresh || this.changedAt < parent.changedAt;
         }
       }
       if (shouldRefresh) {
@@ -128,39 +123,44 @@ export function pushToChildren(t: number, b: Behavior<any>): void {
   }
 }
 
-function refresh<A>(b: Behavior<A>, t: number): void {
+function refresh<A>(b: Behavior<A>, t: number) {
   const newValue = b.update(t);
-  if (newValue !== b.last) {
-    b.changedAt = t;
-    b.last = newValue;
+  if (newValue === b.last) {
+    return;
   }
+  b.changedAt = t;
+  b.last = newValue;
 }
 
 export function isBehavior(b: any): b is Behavior<any> {
-  return typeof b === "object" && "at" in b;
+  return (
+    (typeof b === "object" && "at" in b && !isPlaceholder(b)) ||
+    (isPlaceholder(b) && (b.source === undefined || isBehavior(b.source)))
+  );
 }
 
 export abstract class ProducerBehavior<A> extends Behavior<A> {
   newValue(a: A): void {
-    const changed = a !== this.last;
-    if (changed) {
-      const t = tick();
-      this.last = a;
-      this.changedAt = t;
-      if (this.state === State.Push) {
-        this.pulledAt = t;
-        pushToChildren(t, this);
-      }
+    if (a === this.last) {
+      return;
+    }
+    const t = tick();
+    this.last = a;
+    this.changedAt = t;
+    if (this.state === State.Push) {
+      this.pulledAt = t;
+      pushToChildren(t, this);
     }
   }
-  pull(t: number): void {
-    this.last = this.update(t);
+  pull(t: number) {
+    refresh(this, t);
   }
-  activate(): void {
+  activate(t: Time): void {
     if (this.state === State.Inactive) {
       this.activateProducer();
     }
     this.state = State.Push;
+    this.changedAt = t;
   }
   deactivate(): void {
     this.state = State.Inactive;
@@ -284,17 +284,6 @@ class FlatMapBehavior<A, B> extends Behavior<B> {
     super();
     this.parents = cons(this.outer);
   }
-  pushB(t: number): void {
-    const newValue = this.update(t);
-    this.pulledAt = t;
-    if (this.last !== newValue) {
-      this.changedAt = t;
-      this.last = newValue;
-      if (this.state === State.Push) {
-        pushToChildren(t, this);
-      }
-    }
-  }
   update(t: number): B {
     const outerChanged = this.outer.changedAt > this.changedAt;
     if (outerChanged || this.changedAt === undefined) {
@@ -337,37 +326,33 @@ export function when(b: Behavior<boolean>): Now<Future<{}>> {
 }
 
 class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
-  private afterFuture: boolean;
   private node: Node<this> = new Node(this);
-  constructor(private parent: Behavior<A>, future: Future<any>) {
+  constructor(private parent: Behavior<A>, private future: Future<any>) {
     super();
     if (future.state === State.Done) {
       // Future has occurred at some point in the past
-      this.afterFuture = true;
       this.state = parent.state;
       this.parents = cons(parent);
       this.last = Future.of(at(parent));
     } else {
-      this.afterFuture = false;
       this.state = State.Push;
+      this.parents = nil;
       this.last = F.sinkFuture<A>();
       future.addListener(this.node, tick());
     }
   }
   pushS(t: number, val: A): void {
-    if (this.afterFuture === false) {
-      // The push is coming from the Future, it has just occurred.
-      this.afterFuture = true;
-      this.last.resolve(at(this.parent));
-      this.parent.addListener(this.node, t);
-    } else {
-      // We are receiving an update from `parent` after `future` has
-      // occurred.
-      this.last = Future.of(val);
-    }
+    this.last.resolve(this.parent.at(t), t);
+    this.parents = cons(this.parent);
+    this.changeStateDown(this.state);
+    this.parent.addListener(this.node, t);
   }
-  update(_t: Time): Future<A> {
-    return this.last;
+  update(t: Time): Future<A> {
+    if (this.future.state === State.Done) {
+      return Future.of(this.parent.at(t));
+    } else {
+      return this.last;
+    }
   }
 }
 
@@ -402,12 +387,14 @@ export class FunctionBehavior<A> extends ActiveBehavior<A> {
   constructor(private f: (t: Time) => A) {
     super();
     this.state = State.Pull;
+    this.parents = nil;
   }
-  pull(t: Time): void {
-    if (this.pulledAt !== t) {
-      refresh(this, t);
-      this.pulledAt = t;
+  pull(t: Time) {
+    if (this.pulledAt === t) {
+      return;
     }
+    this.pulledAt = t;
+    refresh(this, t);
   }
   update(t: Time): A {
     return this.f(t);
@@ -435,7 +422,7 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     this.last = b.last;
     next.addListener(this.nNode, t);
   }
-  update(_t: number): A {
+  update(t: Time): A {
     return this.b.last;
   }
   pushS(t: number, value: Behavior<A>): void {
@@ -446,11 +433,11 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     this.b = newB;
     this.parents = cons(newB);
     newB.addListener(this.bNode, t);
-    const newState = newB.state;
-    if (newState !== this.state) {
-      this.changeStateDown(newState);
+    this.changeStateDown(newB.state);
+    refresh(this, t);
+    if (this.changedAt === t && this.state === State.Push) {
+      pushToChildren(t, this);
     }
-    this.pushB(t);
   }
 }
 
@@ -532,7 +519,7 @@ class ActiveAccumBehavior<A, B> extends ActiveBehavior<B>
       pushToChildren(t, this);
     }
   }
-  pull(_t: number): void {}
+  pull(_t: number) {}
   update(_t: number): B {
     throw new Error("Update should never be called.");
   }
@@ -553,7 +540,7 @@ export class AccumBehavior<A, B> extends ActiveBehavior<Behavior<B>> {
   update(t: number): Behavior<B> {
     return new ActiveAccumBehavior(this.f, this.initial, this.source, t);
   }
-  pull(t: Time): void {
+  pull(t: Time) {
     this.last = this.update(t);
     this.changedAt = t;
     this.pulledAt = t;
@@ -685,7 +672,7 @@ class MomentBehavior<A> extends Behavior<A> {
       }
     }
   }
-  pull(t: number): void {
+  pull(t: number) {
     this.pulledAt = t;
     refresh(this, t);
   }
