@@ -81,7 +81,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
   chain<B>(f: (a: A) => Future<B>): Future<B> {
     return new FlatMapFuture(f, this);
   }
-  flatten<B>(this: Future<Future<B>>): Future<B> {
+  flat<B>(this: Future<Future<B>>): Future<B> {
     return new FlatMapFuture((f) => f, this);
   }
 }

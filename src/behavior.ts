@@ -57,7 +57,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   chain<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new FlatMapBehavior(this, fn);
   }
-  flatten<B>(this: Behavior<Behavior<B>>): Behavior<B> {
+  flat<B>(this: Behavior<Behavior<B>>): Behavior<B> {
     return new FlatMapBehavior(this, (a) => a);
   }
   at(t?: number): A {

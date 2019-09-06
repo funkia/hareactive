@@ -73,7 +73,7 @@ describe("Now", () => {
       assert.strictEqual(ref2.ref, "World");
     });
     it("can flatten pure nows", () => {
-      assert.strictEqual(runNow(Now.of(Now.of(12)).flatten()), 12);
+      assert.strictEqual(runNow(Now.of(Now.of(12)).flat()), 12);
     });
     it("throws in go if incorrect monad is yielded", (done) => {
       const now = go(

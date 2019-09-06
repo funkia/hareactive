@@ -16,7 +16,7 @@ describe("animation", () => {
         duration: 100
       };
 
-      const t = transitionBehavior(config, 0, target, time).flatten();
+      const t = transitionBehavior(config, 0, target, time).flat();
       t.subscribe(() => "");
       assert.strictEqual(at(t), 0);
       time.push(10);

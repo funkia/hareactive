@@ -54,11 +54,11 @@ export function lift<R>(f: (...args: any) => R, ...args: any): any {
   return args[0].lift(f, ...args);
 }
 
-export function flatten<A>(b: Behavior<Behavior<A>>): Behavior<A>;
-export function flatten<A>(f: Future<Future<A>>): Future<A>;
-export function flatten<A>(n: Now<Now<A>>): Now<A>;
-export function flatten(o: { flatten: () => any }): any {
-  return o.flatten();
+export function flat<A>(b: Behavior<Behavior<A>>): Behavior<A>;
+export function flat<A>(f: Future<Future<A>>): Future<A>;
+export function flat<A>(n: Now<Now<A>>): Now<A>;
+export function flat(o: { flat: () => any }): any {
+  return o.flat();
 }
 
 export function push<A>(a: A, sink: SinkBehavior<A> | SinkStream<A>): void {

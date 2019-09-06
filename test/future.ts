@@ -186,11 +186,11 @@ describe("Future", () => {
       assert.deepEqual(result, [1, 2]);
     });
   });
-  describe("flatten", () => {
+  describe("flat", () => {
     it("resolves when inner occurs last", () => {
       const outer = sinkFuture<Future<number>>();
       const inner = sinkFuture<number>();
-      const flattened = H.flatten(outer);
+      const flattened = H.flat(outer);
       const cb = spy();
       flattened.subscribe(cb);
       outer.resolve(inner);

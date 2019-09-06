@@ -38,7 +38,7 @@ export abstract class Now<A> {
   chain<B>(f: (a: A) => Now<B>): Now<B> {
     return new FlatMapNow(this, f);
   }
-  flatten<B>(this: Now<Now<B>>): Now<B> {
+  flat<B>(this: Now<Now<B>>): Now<B> {
     return new FlatMapNow(this, (n) => n);
   }
   ap<B>(a: Now<(a: A) => B>): Now<B> {

@@ -303,7 +303,7 @@ this. The table below gives an overview.
 | Outer    | Inner    | Function                   |
 | -------- | -------- | -------------------------- |
 | Behavior | anything | `sample` (when inside Now) |
-| Behavior | Behavior | `flatten`                  |
+| Behavior | Behavior | `flat`                     |
 | Behavior | Stream   | `shiftCurrent`             |
 | Stream   | Behavior | `switcher`, `selfie`       |
 | Stream   | Stream   | `shift`                    |

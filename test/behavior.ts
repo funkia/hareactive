@@ -411,10 +411,10 @@ describe("behavior", () => {
       assert.deepEqual(cb.args, [[2], [14]]);
     });
   });
-  describe("flatten", () => {
+  describe("flat", () => {
     it("has proper type", () => {
       const b = Behavior.of(Behavior.of("foo"));
-      H.flatten(b).map((s) => s + "bar");
+      H.flat(b).map((s) => s + "bar");
     });
   });
   describe("integrateFrom", () => {
@@ -972,7 +972,7 @@ describe("Behavior and Stream", () => {
       let variable = -1;
       const pullingB = H.fromFunction(() => variable);
       const outer = sinkBehavior<Behavior<number>>(pushingB);
-      const flattened = H.flatten(outer);
+      const flattened = H.flat(outer);
       const pushSpy = spy();
       let pull: () => void;
       const handlePulling = (p) => {
