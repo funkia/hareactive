@@ -3,7 +3,12 @@ import { combine, isPlaceholder } from "./index";
 import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
 import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
-import { Stream } from "./stream";
+import {
+  Stream,
+  FlatFutureOrdered,
+  FlatFutureLatest,
+  FlatFuture
+} from "./stream";
 import { tick, getTime } from "./clock";
 import { sample, Now } from "./now";
 
@@ -746,4 +751,30 @@ export function format(
   ...behaviors: Array<string | number | Behavior<string | number>>
 ): Behavior<string> {
   return new FormatBehavior(strings, behaviors);
+}
+
+export const flatFutureFrom = <A>(
+  stream: Stream<Future<A>>
+): Behavior<Stream<A>> => fromFunction(() => new FlatFuture(stream));
+
+export function flatFuture<A>(stream: Stream<Future<A>>): Now<Stream<A>> {
+  return sample(flatFutureFrom(stream));
+}
+
+export const flatFutureOrderedFrom = <A>(
+  stream: Stream<Future<A>>
+): Behavior<Stream<A>> => fromFunction(() => new FlatFutureOrdered(stream));
+
+export function flatFutureOrdered<A>(
+  stream: Stream<Future<A>>
+): Now<Stream<A>> {
+  return sample(flatFutureOrderedFrom(stream));
+}
+
+export const flatFutureLatestFrom = <A>(
+  stream: Stream<Future<A>>
+): Behavior<Stream<A>> => fromFunction(() => new FlatFutureLatest(stream));
+
+export function flatFutureLatest<A>(stream: Stream<Future<A>>): Now<Stream<A>> {
+  return sample(flatFutureLatestFrom(stream));
 }

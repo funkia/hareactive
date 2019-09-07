@@ -1,6 +1,14 @@
 import { assert } from "chai";
 import { spy, useFakeTimers } from "sinon";
-import { map, push, Behavior, fromFunction, sinkBehavior } from "../src";
+import {
+  map,
+  push,
+  Behavior,
+  fromFunction,
+  sinkBehavior,
+  sinkStream,
+  Future
+} from "../src";
 import * as H from "../src";
 
 import { subscribeSpy } from "./helpers";
@@ -498,6 +506,53 @@ describe("stream", () => {
       s.push("world");
       console.log = origLog;
       assert.deepEqual(strings, [["s", "hello"], ["s", "world"]]);
+    });
+  });
+  describe("flatten futures", () => {
+    it("gives values in the order they resolve", () => {
+      const fut1 = H.sinkFuture<number>();
+      const fut2 = H.sinkFuture<number>();
+      const fut3 = H.sinkFuture<number>();
+      const s = H.sinkStream<Future<number>>();
+      const s2 = H.runNow(H.flatFuture(s));
+      const sub = subscribeSpy(s2);
+      s.push(fut1);
+      s.push(fut2);
+      s.push(fut3);
+      fut2.resolve(1);
+      fut1.resolve(2);
+      fut3.resolve(3);
+      assert.deepEqual(sub.args, [[1], [2], [3]]);
+    });
+    it("can preserve order", () => {
+      const fut1 = H.sinkFuture<number>();
+      const fut2 = H.sinkFuture<number>();
+      const fut3 = H.sinkFuture<number>();
+      const s = H.sinkStream<Future<number>>();
+      const s2 = H.runNow(H.flatFutureOrdered(s));
+      const sub = subscribeSpy(s2);
+      s.push(fut1);
+      s.push(fut2);
+      s.push(fut3);
+      fut2.resolve(1);
+      fut1.resolve(2);
+      fut3.resolve(3);
+      assert.deepEqual(sub.args, [[2], [1], [3]]);
+    });
+    it("discards outdated responses", () => {
+      const fut1 = H.sinkFuture<number>();
+      const fut2 = H.sinkFuture<number>();
+      const fut3 = H.sinkFuture<number>();
+      const s = H.sinkStream<Future<number>>();
+      const s2 = H.runNow(H.flatFutureLatest(s));
+      const sub = subscribeSpy(s2);
+      s.push(fut1);
+      s.push(fut2);
+      s.push(fut3);
+      fut2.resolve(1);
+      fut1.resolve(2);
+      fut3.resolve(3);
+      assert.deepEqual(sub.args, [[1], [3]]);
     });
   });
 });

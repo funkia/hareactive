@@ -8,7 +8,10 @@ import {
   ScanStream,
   CombineStream,
   SnapshotStream,
-  isStream
+  isStream,
+  FlatFuture,
+  FlatFutureOrdered,
+  FlatFutureLatest
 } from "./stream";
 import {
   Behavior,
@@ -35,8 +38,6 @@ import {
   FlatMapNow,
   PerformNow,
   PerformMapNow,
-  PerformStreamLatestNow,
-  PerformStreamOrderedNow,
   Now,
   MapNow,
   InstantNow
@@ -218,6 +219,40 @@ DelayStream.prototype.model = function<A>(this: DelayStream<A>) {
   return s.map(({ time, value }) => ({ time: time + this.ms, value }));
 };
 
+const flatFuture = <A>(o: Occurrence<Future<A>>) => {
+  const { time, value } = o.value.model();
+  return time === "infinity" ? [] : [{ time: Math.max(o.time, time), value }];
+};
+
+FlatFuture.prototype.model = function<A>(this: FlatFuture<A>) {
+  return (this.parents.value as Stream<Future<A>>)
+    .model()
+    .flatMap(flatFuture)
+    .sort((o, p) => o.time - p.time); // FIXME: Should use stable sort here
+};
+
+FlatFutureOrdered.prototype.model = function<A>(this: FlatFutureOrdered<A>) {
+  return (this.parents.value as Stream<Future<A>>)
+    .model()
+    .flatMap(flatFuture)
+    .reduce((acc, o) => {
+      const last = acc.length === 0 ? -Infinity : acc[acc.length - 1].time;
+      return acc.concat([{ time: Math.max(last, o.time), value: o.value }]);
+    }, []);
+};
+
+FlatFutureLatest.prototype.model = function<A>(this: FlatFutureLatest<A>) {
+  return (this.parents.value as Stream<Future<A>>)
+    .model()
+    .flatMap(flatFuture)
+    .reduceRight<Occurrence<A>[]>((acc, o) => {
+      const last = acc.length === 0 ? Infinity : acc[0].time;
+      return last < o.time
+        ? acc
+        : [{ time: o.time, value: o.value }].concat(acc);
+    }, []);
+};
+
 class TestStream<A> extends Stream<A> {
   constructor(private streamModel: StreamModel<A>) {
     super();
@@ -397,22 +432,6 @@ PerformMapNow.prototype.model = function<A, B>(
   [value, ...mocks]: any[],
   _t: Time
 ): { value: Stream<B> | Future<B>; mocks: any } {
-  return { value, mocks };
-};
-
-PerformStreamLatestNow.prototype.model = function<A>(
-  this: PerformStreamLatestNow<A>,
-  [value, ...mocks]: any[],
-  _t: Time
-): NowModel<A> {
-  return { value, mocks };
-};
-
-PerformStreamOrderedNow.prototype.model = function<A>(
-  this: PerformStreamOrderedNow<A>,
-  [value, ...mocks]: any[],
-  _t: Time
-): NowModel<A> {
   return { value, mocks };
 };
 

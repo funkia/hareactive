@@ -11,8 +11,6 @@ import {
   performIO,
   Now,
   performStream,
-  performStreamLatest,
-  performStreamOrdered,
   plan,
   runNow,
   sample,
@@ -21,7 +19,8 @@ import {
   SinkStream,
   time,
   toPromise,
-  instant
+  instant,
+  flatFuture
 } from "../src";
 import * as H from "../src";
 import { createRef, mutateRef } from "./helpers";
@@ -93,7 +92,7 @@ describe("Now", () => {
     });
   });
   describe("async", () => {
-    it("works with runNow", () => {
+    it("works with runNow", async () => {
       let resolve: (n: number) => void;
       const future = runNow(
         performIO(
@@ -103,9 +102,8 @@ describe("Now", () => {
       setTimeout(() => {
         resolve(12);
       });
-      return toPromise(future).then((result: number) => {
-        assert.deepEqual(result, 12);
-      });
+      const result = await toPromise(future);
+      assert.deepEqual(result, 12);
     });
   });
   describe("sample", () => {
@@ -198,7 +196,9 @@ describe("Now", () => {
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
-      runNow(performStream(mappedS)).subscribe((n) => results.push(n));
+      runNow(performStream(mappedS).flatMap(flatFuture)).subscribe((n) =>
+        results.push(n)
+      );
       s.push(1);
       setTimeout(() => {
         s.push(2);
@@ -231,105 +231,6 @@ describe("Now", () => {
       fut2.subscribe(cb);
       fut.resolve(3);
       assert.deepEqual(cb.args, [[9]]);
-    });
-  });
-  describe("performStreamLatest", () => {
-    it("work with one occurrence", (done: Function) => {
-      let results: any[] = [];
-      const impure = withEffectsP(
-        (n: number) => new Promise((resolve, _reject) => resolve(n))
-      );
-      const s = sinkStream();
-      const mappedS = s.map(impure);
-      runNow(performStreamLatest(mappedS)).subscribe((n) => results.push(n));
-      s.push(60);
-      setTimeout(() => {
-        assert.deepEqual(results, [60]);
-        done();
-      });
-    });
-    it("runs io actions and ignores outdated results", (done: Function) => {
-      const resolves: ((n: any) => void)[] = [];
-      let results: any[] = [];
-      const impure = withEffectsP((n: number) => {
-        return new Promise((resolve, _reject) => {
-          resolves[n] = resolve;
-        });
-      });
-      const s = sinkStream();
-      const mappedS = s.map(impure);
-      runNow(performStreamLatest(mappedS)).subscribe((n) => results.push(n));
-      s.push(0);
-      s.push(1);
-      s.push(2);
-      resolves[1](1);
-      resolves[2](2);
-      resolves[0](0);
-      setTimeout(() => {
-        assert.deepEqual(results, [1, 2]);
-        done();
-      });
-    });
-  });
-  describe("performStreamOrdered", () => {
-    it("work with one occurrence", (done: Function) => {
-      let results: any[] = [];
-      const impure = withEffectsP(
-        (n: number) => new Promise((resolve, _reject) => resolve(n))
-      );
-      const s = sinkStream();
-      const mappedS = s.map(impure);
-      runNow(performStreamOrdered(mappedS)).subscribe((n) => results.push(n));
-      s.push(60);
-      setTimeout(() => {
-        assert.deepEqual(results, [60]);
-        done();
-      });
-    });
-    it("runs io actions and makes sure to keep the results in the same order", (done: Function) => {
-      let results: any[] = [];
-      const resolves: ((n: any) => void)[] = [];
-      const impure = withEffectsP((n: number) => {
-        return new Promise((resolve, _reject) => {
-          resolves[n] = resolve;
-        });
-      });
-      const s = sinkStream();
-      const mappedS = s.map(impure);
-      runNow(performStreamOrdered(mappedS)).subscribe((n) => results.push(n));
-      s.push(0);
-      s.push(1);
-      s.push(2);
-      s.push(3);
-      s.push(4);
-      s.push(5);
-      resolves[3](3);
-      resolves[1](1);
-      resolves[0]("zero");
-      resolves[4](undefined);
-      resolves[2](2);
-      resolves[5](5);
-      setTimeout(() => {
-        assert.deepEqual(results, ["zero", 1, 2, 3, undefined, 5]);
-        done();
-      });
-    });
-
-    it("should support `undefined` as result", (done: any) => {
-      let results: any[] = [];
-      const impure = withEffectsP(
-        (n: number) => new Promise((resolve, _reject) => resolve(n))
-      );
-      const s = sinkStream();
-      const mappedS = s.map(impure);
-      runNow(performStreamOrdered(mappedS)).subscribe((n) => results.push(n));
-      s.push(60);
-      s.push(undefined);
-      s.push(20);
-      setTimeout(() => {
-        assert.deepEqual(results, [60, undefined, 20]);
-        done();
-      });
     });
   });
   describe("loopNow", () => {

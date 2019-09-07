@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import * as H from "../src";
-import { Behavior, Stream, Now } from "../src";
+import { Behavior, Stream, Now, sinkBehavior } from "../src";
 import {
   testFuture,
   assertFutureEqual,
@@ -208,6 +208,63 @@ describe("testing", () => {
         assertStreamEqual(res, { 4: 1, 5: 1, 7: 2, 9: 3, 10: 1 });
       });
     });
+    describe("flatFuture", () => {
+      it("can be tested", () => {
+        const s = testStreamFromObject({
+          0: testFuture(1, "a"),
+          2: testFuture(5, "b"),
+          4: testFuture(2, "c"),
+          6: testFuture(7, "d")
+        });
+        const res = testNow(H.flatFuture(s), []);
+        assert(H.isStream(res));
+        assertStreamEqual(
+          res,
+          testStreamFromArray([[1, "a"], [4, "c"], [5, "b"], [7, "d"]])
+        );
+      });
+    });
+    describe("flatFutureLatest", () => {
+      it("can be tested", () => {
+        const s = testStreamFromObject({
+          0: testFuture(1, "a"),
+          2: testFuture(6, "b"), // should be dropped
+          4: testFuture(5, "c"),
+          6: testFuture(12, "d"), // should be dropped
+          8: testFuture(12, "e"), // should be dropped
+          10: testFuture(3, "f")
+        });
+        const res = testNow(H.flatFutureLatest(s), []);
+        assert(H.isStream(res));
+        assertStreamEqual(
+          res,
+          testStreamFromArray([[1, "a"], [5, "c"], [10, "f"]])
+        );
+      });
+    });
+    describe("flatFutureOrdered", () => {
+      it("can be tested", () => {
+        const s = testStreamFromObject({
+          0: testFuture(3, "a"),
+          1: testFuture(2, "b"),
+          2: testFuture(4, "c"),
+          3: testFuture(0, "d"),
+          4: testFuture(5, "e")
+        });
+        const res = testNow(H.flatFutureOrdered(s), []);
+        assert(H.isStream(res));
+        assertStreamEqual(
+          res,
+          testStreamFromArray([
+            [3, "a"],
+            [3, "b"],
+            [4, "c"],
+            [4, "d"],
+            [5, "e"]
+          ])
+        );
+      });
+    });
   });
   describe("behavior", () => {
     describe("assertBehaviorEqual", () => {
@@ -237,7 +294,7 @@ describe("testing", () => {
     });
     describe("mapTo", () => {
       it("creates constant function", () => {
-        const b = testBehavior((t) => {
+        const b = testBehavior((_) => {
           throw new Error("Don't call me");
         });
         const mapped = b.mapTo(7);
@@ -320,68 +377,18 @@ describe("testing", () => {
               return n + 2;
             })
           );
-          const response: Stream<string> = yield H.performStream(request);
-          return { res: response };
-        });
-        const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
-        const out: { res: Stream<string> } = testNow(model({ click }), [
-          testStreamFromArray([[0, "old1"], [1, "old2"], [2, "response"]])
-        ]);
-        assert(H.isStream(out.res));
-        assertStreamEqual(
-          out.res,
-          testStreamFromObject({ 0: "old1", 1: "old2", 2: "response" })
-        );
-        assert.deepEqual(requests, []);
-      });
-    });
-    describe("performStreamLatest", () => {
-      it("can be tested", () => {
-        let requests: number[] = [];
-        const model = fgo(function*({ click }: { click: Stream<number> }) {
-          const request = click.map(
-            withEffects((n: number) => {
-              requests.push(n);
-              return n + 2;
-            })
-          );
-          const response: Stream<any> = yield H.performStreamLatest(request);
-          const res = H.stepperFrom("", response.map((e) => e.toString()));
-          return { res };
-        });
-        const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
-        const out: { res: Behavior<Behavior<string>> } = testNow(
-          model({ click }),
-          [testStreamFromObject({ 0: "old", 1: "old", 2: "response" })]
-        );
-        assert(H.isBehavior(out.res));
-        assert.equal(
-          out.res
-            .model()(0)
-            .model()(4),
-          "response"
-        );
-        assert.deepEqual(requests, []);
-      });
-    });
-    describe("performStreamOrdered", () => {
-      it("can be tested", () => {
-        let requests: number[] = [];
-        const model = fgo(function*({ click }) {
-          const request = click.mapTo(
-            withEffects((n: number) => {
-              requests.push(n);
-              return n + 2;
-            })
-          );
-          const response: Stream<string> = yield H.performStreamOrdered(
+          const response: Stream<string> = yield H.performStream(
             request
-          );
+          ).flatMap(H.flatFutureOrdered);
           return { res: response };
         });
         const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
         const out: { res: Stream<string> } = testNow(model({ click }), [
-          testStreamFromArray([[0, "old1"], [1, "old2"], [2, "response"]])
+          testStreamFromArray([
+            [0, testFuture(0, "old1")],
+            [1, testFuture(1, "old2")],
+            [2, testFuture(2, "response")]
+          ])
         ]);
         assert(H.isStream(out.res));
         assertStreamEqual(
@@ -402,12 +409,18 @@ describe("testing", () => {
                 return n + 2;
               })
             );
-            const res = run(H.performStreamOrdered(request));
+            const res = run(
+              H.performStream(request).flatMap(H.flatFutureOrdered)
+            );
             return { res };
           });
         const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
         const out = testNow(model(click), [
-          testStreamFromArray([[0, "old1"], [1, "old2"], [2, "response"]])
+          testStreamFromArray([
+            [0, testFuture(0, "old1")],
+            [1, testFuture(1, "old2")],
+            [2, testFuture(2, "response")]
+          ])
         ]);
         assert(H.isStream(out.res));
         assertStreamEqual(
