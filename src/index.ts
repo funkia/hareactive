@@ -1,20 +1,7 @@
 import { Now, MapNowTuple, InstantRun, instant, sample } from "./now";
-import {
-  Behavior,
-  SinkBehavior,
-  MapBehaviorTuple,
-  AccumPair,
-  accum,
-  accumCombine,
-  stepper,
-  when,
-  toggle,
-  switcher,
-  freezeAt
-} from "./behavior";
-import { Stream, SinkStream, scan, shift } from "./stream";
+import { Behavior, SinkBehavior, MapBehaviorTuple } from "./behavior";
+import { Stream, SinkStream } from "./stream";
 import { Future, MapFutureTuple } from "./future";
-import { integrate } from "./time";
 
 export * from "./common";
 export * from "./now";
@@ -24,6 +11,7 @@ export * from "./future";
 export * from "./time";
 export * from "./placeholder";
 export * from "./animation";
+export * from "./clock";
 
 /**
  * Map a function over a behavior or stream. This means that if at some point in
@@ -65,7 +53,7 @@ export function push<A>(a: A, sink: SinkBehavior<A> | SinkStream<A>): void {
   sink.push(a);
 }
 
-export function combine<A>(...streams: Future<A>[]): Future<A>;
+export function combine<A>(...futures: Future<A>[]): Future<A>;
 export function combine<A>(...streams: Stream<A>[]): Stream<A>;
 export function combine<A>(
   ...values: Future<A>[] | Stream<A>[]

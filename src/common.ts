@@ -98,8 +98,12 @@ export abstract class Reactive<A, C extends Child> implements Child {
   subscribe(callback: (a: A) => void): PushOnlyObserver<A> {
     return new PushOnlyObserver(callback, this);
   }
-  observe(push: (a: A) => void, handlePulling: PullHandler): CbObserver<A> {
-    return new CbObserver(push, handlePulling, this);
+  observe(
+    push: (a: A) => void,
+    handlePulling: PullHandler,
+    t: Time = tick()
+  ): CbObserver<A> {
+    return new CbObserver(push, handlePulling, t, this);
   }
   activate(t: number): void {
     let newState = State.Done;
@@ -127,9 +131,10 @@ export class CbObserver<A> implements BListener, SListener<A> {
   private endPulling: () => void;
   node: Node<CbObserver<A>> = new Node(this);
   constructor(
-    private callback: (a: A) => void,
-    private handlePulling: PullHandler,
-    private source: Parent<Child>
+    readonly callback: (a: A) => void,
+    readonly handlePulling: PullHandler,
+    private time: Time,
+    readonly source: Parent<Child>
   ) {
     source.addListener(this.node, tick());
     if (source.state === State.Pull) {
@@ -137,8 +142,11 @@ export class CbObserver<A> implements BListener, SListener<A> {
     } else if (isBehavior(source) && source.state === State.Push) {
       callback(source.last);
     }
+    this.time = undefined;
   }
-  pull(t: number = tick()): void {
+  pull(time: number): void {
+    const t =
+      time !== undefined ? time : this.time !== undefined ? this.time : tick();
     if (isBehavior(this.source) && this.source.state === State.Pull) {
       this.source.pull(t);
       this.callback(this.source.last);

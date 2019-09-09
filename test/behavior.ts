@@ -119,6 +119,22 @@ describe("behavior", () => {
       assert.deepEqual(spy.args, [[1], [2], [3]]);
     });
   });
+  describe("observe", () => {
+    it("samples in same timestamp", () => {
+      const f = jest.fn(() => 0);
+      const b = fromFunction(f);
+      let result = -1;
+      b.observe(
+        (n) => result,
+        (pull) => {
+          pull();
+          return () => {};
+        },
+        3
+      );
+      expect(f.mock.calls).toEqual([[3]]);
+    });
+  });
   describe("fromFunction", () => {
     it("pulls from time varying functions", () => {
       let time = 0;
@@ -241,18 +257,20 @@ describe("behavior", () => {
         const numE = H.fromFunction(() => n);
         const applied = H.ap(fnB, numE);
         const cb = spy();
-        applied.observe(cb, (pull) => {
-          pull();
-          push(add(2), fnB);
-          pull();
-          n = 4;
-          pull();
-          push(double, fnB);
-          pull();
-          n = 8;
-          pull();
+        let pull: () => void;
+        applied.observe(cb, (pull_) => {
+          pull = pull_;
           return () => {};
         });
+        pull();
+        push(add(2), fnB);
+        pull();
+        n = 4;
+        pull();
+        push(double, fnB);
+        pull();
+        n = 8;
+        pull();
         assert.deepEqual(cb.args, [[6], [3], [6], [8], [16]]);
       });
     });
