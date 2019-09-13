@@ -46,30 +46,30 @@
   },
   "homepage": "https://github.com/paldepind/hareactive#readme",
   "dependencies": {
-    "@funkia/io": "0.0.4",
+    "@funkia/io": "0.0.5",
     "tslib": "^1.10.0"
   },
   "devDependencies": {
     "@funkia/jabz": "0.0.24",
     "@types/benchmark": "^1.0.31",
-    "@types/chai": "^4.1.7",
-    "@types/jest": "^24.0.15",
-    "@types/node": "^12.6.8",
+    "@types/chai": "^4.2.2",
+    "@types/jest": "^24.0.18",
+    "@types/node": "^12.7.5",
     "@types/sinon": "^7.0.13",
     "benchmark": "^2.1.4",
     "chai": "^4.2.0",
-    "cherry-pick": "^0.4.0",
+    "cherry-pick": "^0.5.0",
     "codecov": "^3.5.0",
     "fake-raf": "^1.0.1",
-    "jest": "^24.8.0",
+    "jest": "^24.9.0",
     "np": "^5.0.3",
     "nyc": "^14.1.1",
     "prettier": "^1.18.2",
-    "sinon": "^7.3.2",
-    "source-map-support": "^0.5.12",
-    "ts-jest": "^24.0.2",
+    "sinon": "^7.4.2",
+    "source-map-support": "^0.5.13",
+    "ts-jest": "^24.1.0",
     "ts-node": "^8.3.0",
-    "typescript": "^3.5.3"
+    "typescript": "^3.6.3"
   },
   "nyc": {
     "extension": [

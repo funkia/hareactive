@@ -1,6 +1,6 @@
 import * as sinon from "sinon";
 import { spy } from "sinon";
-import { IO, withEffects } from "@funkia/jabz";
+import { IO, withEffects } from "@funkia/io";
 
 import { ProducerStream, SinkBehavior } from "../src/index";
 import { State, Reactive } from "../src/common";

@@ -1,6 +1,7 @@
 import { assert } from "chai";
 import { spy } from "sinon";
-import { callP, withEffects, withEffectsP, go } from "@funkia/jabz";
+import { go } from "@funkia/jabz";
+import { callP, withEffects, withEffectsP } from "@funkia/io";
 
 import {
   Behavior,
@@ -96,7 +97,7 @@ describe("Now", () => {
       let resolve: (n: number) => void;
       const future = runNow(
         performIO(
-          callP((n: number) => new Promise((res) => (resolve = res)), 0)
+          callP((_: number) => new Promise((res) => (resolve = res)), 0)
         )
       );
       setTimeout(() => {
@@ -119,7 +120,7 @@ describe("Now", () => {
     it("executes plan asynchronously", async () => {
       let resolve: (n: number) => void;
       let done = false;
-      const fn = withEffectsP((n: number) => {
+      const fn = withEffectsP((_: number) => {
         return new Promise((res) => {
           resolve = res;
         });
@@ -151,14 +152,14 @@ describe("Now", () => {
   });
   it("handles recursively defined behavior", () => {
     let resolve: (n: number) => void;
-    const getNextNr = withEffectsP((n: number) => {
+    const getNextNr = withEffectsP<number, [number]>((_: number) => {
       return new Promise((res) => {
         resolve = res;
       });
     });
     function loop(n: number): Now<Behavior<number>> {
       return go(function*() {
-        const nextNumber = yield performIO(getNextNr(1));
+        const nextNumber: Future<number> = yield performIO(getNextNr(1));
         const future = yield plan(nextNumber.map(loop));
         return switchTo(Behavior.of(n), future);
       });
@@ -236,7 +237,7 @@ describe("Now", () => {
     it("work with one occurrence", (done: Function) => {
       let results: any[] = [];
       const impure = withEffectsP(
-        (n: number) => new Promise((resolve, reject) => resolve(n))
+        (n: number) => new Promise((resolve, _reject) => resolve(n))
       );
       const s = sinkStream();
       const mappedS = s.map(impure);
@@ -251,7 +252,7 @@ describe("Now", () => {
       const resolves: ((n: any) => void)[] = [];
       let results: any[] = [];
       const impure = withEffectsP((n: number) => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
           resolves[n] = resolve;
         });
       });
@@ -274,7 +275,7 @@ describe("Now", () => {
     it("work with one occurrence", (done: Function) => {
       let results: any[] = [];
       const impure = withEffectsP(
-        (n: number) => new Promise((resolve, reject) => resolve(n))
+        (n: number) => new Promise((resolve, _reject) => resolve(n))
       );
       const s = sinkStream();
       const mappedS = s.map(impure);
@@ -289,7 +290,7 @@ describe("Now", () => {
       let results: any[] = [];
       const resolves: ((n: any) => void)[] = [];
       const impure = withEffectsP((n: number) => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
           resolves[n] = resolve;
         });
       });
@@ -317,7 +318,7 @@ describe("Now", () => {
     it("should support `undefined` as result", (done: any) => {
       let results: any[] = [];
       const impure = withEffectsP(
-        (n: number) => new Promise((resolve, reject) => resolve(n))
+        (n: number) => new Promise((resolve, _reject) => resolve(n))
       );
       const s = sinkStream();
       const mappedS = s.map(impure);
@@ -366,7 +367,7 @@ describe("Now", () => {
   describe("time instant abstraction", () => {
     it("time doesn't pass in a Now", () => {
       const now = go(function*() {
-        const t1 = yield sample(time);
+        const t1: number = yield sample(time);
         while (Date.now() <= t1) {}
         const t2 = yield sample(time);
         assert.strictEqual(t1, t2);

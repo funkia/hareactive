@@ -420,7 +420,7 @@ describe("behavior", () => {
     it("works with go-notation", () => {
       const a = H.sinkBehavior(1);
       const b = go(function*(): IterableIterator<any> {
-        const val = yield a;
+        const val: number = yield a;
         return val * 2;
       });
       const cb = spy();

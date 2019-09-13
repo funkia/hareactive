@@ -13,7 +13,8 @@ import {
   assertBehaviorEqual
 } from "../src/testing";
 import { createRef, mutateRef } from "./helpers";
-import { fgo, withEffects } from "@funkia/jabz";
+import { fgo } from "@funkia/jabz";
+import { withEffects } from "@funkia/io";
 
 describe("testing", () => {
   describe("future", () => {
@@ -179,7 +180,7 @@ describe("testing", () => {
     });
     it("works", () => {
       function foobar(s1: Stream<number>, s2: Stream<number>) {
-        const isEven = (n) => n % 2 === 0;
+        const isEven = (n: number) => n % 2 === 0;
         const a = s1.filter(isEven).map((n) => n * n);
         const b = s2.filter((n) => !isEven(n)).map(Math.sqrt);
         return a.combine(b);
@@ -337,14 +338,14 @@ describe("testing", () => {
     describe("performStreamLatest", () => {
       it("can be tested", () => {
         let requests: number[] = [];
-        const model = fgo(function*({ click }) {
-          const request = click.mapTo(
+        const model = fgo(function*({ click }: { click: Stream<number> }) {
+          const request = click.map(
             withEffects((n: number) => {
               requests.push(n);
               return n + 2;
             })
           );
-          const response = yield H.performStreamLatest(request);
+          const response: Stream<any> = yield H.performStreamLatest(request);
           const res = H.stepperFrom("", response.map((e) => e.toString()));
           return { res };
         });
