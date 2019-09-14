@@ -1,4 +1,4 @@
-import { observe } from "./common";
+import { observe, Time } from "./common";
 import { Stream, ProducerStream } from "./stream";
 import { Behavior, ProducerBehavior, toggle } from "./behavior";
 import { Now } from "./now";
@@ -185,7 +185,8 @@ export function keyPressed(code: string): Now<Behavior<boolean>> {
  */
 export function render<A>(
   renderer: (a: A) => void,
-  behavior: Behavior<A>
+  behavior: Behavior<A>,
+  time?: Time
 ): void {
-  observe(renderer, pullOnFrame, behavior);
+  observe(renderer, pullOnFrame, behavior, time);
 }

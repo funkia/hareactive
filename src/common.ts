@@ -131,7 +131,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
   private endPulling: () => void;
   node: Node<CbObserver<A>> = new Node(this);
   constructor(
-    readonly callback: (a: A) => void,
+    private callback: (a: A) => void,
     readonly handlePulling: PullHandler,
     private time: Time,
     readonly source: Parent<Child>
@@ -144,7 +144,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
     }
     this.time = undefined;
   }
-  pull(time: number): void {
+  pull(time?: number): void {
     const t =
       time !== undefined ? time : this.time !== undefined ? this.time : tick();
     if (isBehavior(this.source) && this.source.state === State.Pull) {
@@ -181,7 +181,8 @@ export class CbObserver<A> implements BListener, SListener<A> {
 export function observe<A>(
   push: (a: A) => void,
   handlePulling: PullHandler,
-  behavior: Behavior<A>
+  behavior: Behavior<A>,
+  time?: Time
 ): CbObserver<A> {
-  return behavior.observe(push, handlePulling);
+  return behavior.observe(push, handlePulling, time);
 }
