@@ -481,6 +481,21 @@ describe("behavior", () => {
       acceleration.push(2);
       assert.strictEqual(at(integration), 4000);
     });
+    it("stays in pull state if parent changes to push", () => {
+      const fut = H.sinkFuture<H.Behavior<number>>();
+      const b1 = H.switchTo(fromFunction(() => 4), fut);
+      const integration = H.runNow(H.integrate(b1));
+      observe(
+        () => {},
+        () => {
+          return () => {
+            throw new Error("Should not be called.");
+          };
+        },
+        integration
+      );
+      fut.resolve(H.sinkBehavior(5));
+    });
     it("supports circular dependencies", () => {
       const { speed } = H.runNow(
         H.loopNow((input: { speed: Behavior<number> }) =>

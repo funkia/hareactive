@@ -97,6 +97,9 @@ class IntegrateBehavior extends Behavior<number> {
     this.lastPullTime = currentPullTime;
     return value;
   }
+  changeStateDown(_: State): void {
+    // No-op as an `IntegrateBehavior` is always in `Pull` state
+  }
 }
 
 /**
