@@ -241,6 +241,26 @@ describe("placeholder", () => {
       p.replaceWith(H.Behavior.of(3));
       assert.strictEqual(H.at(b3), 16);
     });
+    it("handles behavior depending on two placeholder", () => {
+      //   p1  p2
+      //   \   /
+      //    b3
+      const p1 = H.placeholder<number>();
+      const p2 = H.placeholder<number>();
+      const b3 = H.lift(
+        (n, m) => {
+          assert.isNumber(n);
+          assert.isNumber(m);
+          return n + m;
+        },
+        p1 as Behavior<number>,
+        p2
+      );
+      subscribeSpy(b3);
+      p1.replaceWith(H.Behavior.of(3));
+      p2.replaceWith(H.Behavior.of(2));
+      assert.strictEqual(H.at(b3), 5); //12);
+    });
   });
   describe("stream", () => {
     it("is stream", () => {

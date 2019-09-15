@@ -69,7 +69,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   }
   abstract update(t: number): A;
   pushB(t: number): void {
-    if (this.pulledAt !== t) {
+    if (this.state !== State.Inactive && this.pulledAt !== t) {
       this.pull(t);
       if (this.changedAt === t && this.state === State.Push) {
         pushToChildren(t, this);
