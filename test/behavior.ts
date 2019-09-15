@@ -316,6 +316,31 @@ describe("behavior", () => {
         p.newValue(4);
         assert.deepEqual(cb.args, [[16], [24]]);
       });
+      it("only switched to push if all parents are push", () => {
+        // In this test the lifted behavior `b3` starts out in the pull state
+        // since both of its parents are in pull. Then one of the parents
+        // switches to push. But, since one parent is still in pull the lifted
+        // behavior should remain in pull.
+        let n = 1;
+        const b1 = H.fromFunction(() => n);
+        const fut = H.sinkFuture<H.Behavior<number>>();
+        const b2 = H.switchTo(fromFunction(() => 2), fut);
+        const b3 = H.lift((n, m) => n + m, b1, b2);
+        observe(
+          () => {},
+          () => {
+            return () => {
+              throw new Error("Should not be called.");
+            };
+          },
+          b3
+        );
+        expect(H.at(b3)).toEqual(3);
+        fut.resolve(H.sinkBehavior(5));
+        expect(H.at(b3)).toEqual(6);
+        n = 2;
+        expect(H.at(b3)).toEqual(7);
+      });
     });
   });
   describe("flatMap", () => {

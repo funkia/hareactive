@@ -274,6 +274,18 @@ export class LiftBehavior<A extends any[], R> extends Behavior<R> {
   update(_t: number): R {
     return this.f(...(this.bs.map((b) => b.last) as any));
   }
+  changeStateDown(_: State): void {
+    let state = State.Done;
+    for (const p of this.parents) {
+      state = Math.max(state, p.state);
+    }
+    if (this.state !== state) {
+      this.state = state;
+      for (const child of this.children) {
+        child.changeStateDown(state);
+      }
+    }
+  }
 }
 
 class FlatMapBehavior<A, B> extends Behavior<B> {
