@@ -835,6 +835,24 @@ describe("Behavior and Stream", () => {
       assert.deepEqual(result, [1, 2, 3]);
       assert.deepEqual(at(runNow(outerSwitcher)), 1);
     });
+    it("stays in pull when stream switches to push", () => {
+      const stream = H.placeholder<Behavior<number>>();
+      let val = 2;
+      const initB = H.fromFunction(() => val);
+      const switchingB = runNow(H.switcher(initB, stream));
+      observe(
+        () => {},
+        () => {
+          return () => {
+            throw new Error("Should not be called.");
+          };
+        },
+        switchingB
+      );
+      stream.replaceWith(H.sinkStream());
+      val = 4;
+      expect(H.at(switchingB)).toBe(4);
+    });
   });
   describe("stepper", () => {
     it("steps to the last event value", () => {

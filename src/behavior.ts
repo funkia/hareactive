@@ -451,6 +451,9 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
       pushToChildren(t, this);
     }
   }
+  changeStateDown(_: State): void {
+    super.changeStateDown(this.b.state);
+  }
 }
 
 /**
