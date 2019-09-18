@@ -9,9 +9,9 @@ import {
   CombineStream,
   SnapshotStream,
   isStream,
-  FlatFuture,
-  FlatFutureOrdered,
-  FlatFutureLatest
+  FlatFutures,
+  FlatFuturesOrdered,
+  FlatFuturesLatest
 } from "./stream";
 import {
   Behavior,
@@ -224,14 +224,14 @@ const flatFuture = <A>(o: Occurrence<Future<A>>) => {
   return time === "infinity" ? [] : [{ time: Math.max(o.time, time), value }];
 };
 
-FlatFuture.prototype.model = function<A>(this: FlatFuture<A>) {
+FlatFutures.prototype.model = function<A>(this: FlatFutures<A>) {
   return (this.parents.value as Stream<Future<A>>)
     .model()
     .flatMap(flatFuture)
     .sort((o, p) => o.time - p.time); // FIXME: Should use stable sort here
 };
 
-FlatFutureOrdered.prototype.model = function<A>(this: FlatFutureOrdered<A>) {
+FlatFuturesOrdered.prototype.model = function<A>(this: FlatFuturesOrdered<A>) {
   return (this.parents.value as Stream<Future<A>>)
     .model()
     .flatMap(flatFuture)
@@ -241,7 +241,7 @@ FlatFutureOrdered.prototype.model = function<A>(this: FlatFutureOrdered<A>) {
     }, []);
 };
 
-FlatFutureLatest.prototype.model = function<A>(this: FlatFutureLatest<A>) {
+FlatFuturesLatest.prototype.model = function<A>(this: FlatFuturesLatest<A>) {
   return (this.parents.value as Stream<Future<A>>)
     .model()
     .flatMap(flatFuture)

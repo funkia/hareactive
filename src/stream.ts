@@ -479,7 +479,7 @@ export function mapCbStream<A, B>(
   return new PerformCbStream(cb, stream);
 }
 
-export class FlatFuture<A> extends Stream<A> {
+export class FlatFutures<A> extends Stream<A> {
   constructor(stream: Stream<Future<A>>) {
     super();
     this.parents = cons(stream);
@@ -489,7 +489,7 @@ export class FlatFuture<A> extends Stream<A> {
   }
 }
 
-export class FlatFutureOrdered<A> extends Stream<A> {
+export class FlatFuturesOrdered<A> extends Stream<A> {
   constructor(stream: Stream<Future<A>>) {
     super();
     this.parents = cons(stream);
@@ -518,7 +518,7 @@ export class FlatFutureOrdered<A> extends Stream<A> {
   }
 }
 
-export class FlatFutureLatest<A> extends Stream<A>
+export class FlatFuturesLatest<A> extends Stream<A>
   implements SListener<Future<A>> {
   constructor(stream: Stream<Future<A>>) {
     super();

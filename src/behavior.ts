@@ -5,9 +5,9 @@ import { Future, BehaviorFuture } from "./future";
 import * as F from "./future";
 import {
   Stream,
-  FlatFutureOrdered,
-  FlatFutureLatest,
-  FlatFuture
+  FlatFuturesOrdered,
+  FlatFuturesLatest,
+  FlatFutures
 } from "./stream";
 import { tick, getTime } from "./clock";
 import { sample, Now } from "./now";
@@ -753,28 +753,30 @@ export function format(
   return new FormatBehavior(strings, behaviors);
 }
 
-export const flatFutureFrom = <A>(
+export const flatFuturesFrom = <A>(
   stream: Stream<Future<A>>
-): Behavior<Stream<A>> => fromFunction(() => new FlatFuture(stream));
+): Behavior<Stream<A>> => fromFunction(() => new FlatFutures(stream));
 
-export function flatFuture<A>(stream: Stream<Future<A>>): Now<Stream<A>> {
-  return sample(flatFutureFrom(stream));
+export function flatFutures<A>(stream: Stream<Future<A>>): Now<Stream<A>> {
+  return sample(flatFuturesFrom(stream));
 }
 
-export const flatFutureOrderedFrom = <A>(
+export const flatFuturesOrderedFrom = <A>(
   stream: Stream<Future<A>>
-): Behavior<Stream<A>> => fromFunction(() => new FlatFutureOrdered(stream));
+): Behavior<Stream<A>> => fromFunction(() => new FlatFuturesOrdered(stream));
 
-export function flatFutureOrdered<A>(
+export function flatFuturesOrdered<A>(
   stream: Stream<Future<A>>
 ): Now<Stream<A>> {
-  return sample(flatFutureOrderedFrom(stream));
+  return sample(flatFuturesOrderedFrom(stream));
 }
 
-export const flatFutureLatestFrom = <A>(
+export const flatFuturesLatestFrom = <A>(
   stream: Stream<Future<A>>
-): Behavior<Stream<A>> => fromFunction(() => new FlatFutureLatest(stream));
+): Behavior<Stream<A>> => fromFunction(() => new FlatFuturesLatest(stream));
 
-export function flatFutureLatest<A>(stream: Stream<Future<A>>): Now<Stream<A>> {
-  return sample(flatFutureLatestFrom(stream));
+export function flatFuturesLatest<A>(
+  stream: Stream<Future<A>>
+): Now<Stream<A>> {
+  return sample(flatFuturesLatestFrom(stream));
 }

@@ -19,8 +19,7 @@ import {
   SinkStream,
   time,
   toPromise,
-  instant,
-  flatFuture
+  instant
 } from "../src";
 import * as H from "../src";
 import { createRef, mutateRef } from "./helpers";
@@ -196,7 +195,7 @@ describe("Now", () => {
       });
       const s = sinkStream();
       const mappedS = s.map(impure);
-      runNow(performStream(mappedS).flatMap(flatFuture)).subscribe((n) =>
+      runNow(performStream(mappedS).flatMap(H.flatFutures)).subscribe((n) =>
         results.push(n)
       );
       s.push(1);

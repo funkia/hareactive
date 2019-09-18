@@ -6,7 +6,6 @@ import {
   Behavior,
   fromFunction,
   sinkBehavior,
-  sinkStream,
   Future
 } from "../src";
 import * as H from "../src";
@@ -514,7 +513,7 @@ describe("stream", () => {
       const fut2 = H.sinkFuture<number>();
       const fut3 = H.sinkFuture<number>();
       const s = H.sinkStream<Future<number>>();
-      const s2 = H.runNow(H.flatFuture(s));
+      const s2 = H.runNow(H.flatFutures(s));
       const sub = subscribeSpy(s2);
       s.push(fut1);
       s.push(fut2);
@@ -529,7 +528,7 @@ describe("stream", () => {
       const fut2 = H.sinkFuture<number>();
       const fut3 = H.sinkFuture<number>();
       const s = H.sinkStream<Future<number>>();
-      const s2 = H.runNow(H.flatFutureOrdered(s));
+      const s2 = H.runNow(H.flatFuturesOrdered(s));
       const sub = subscribeSpy(s2);
       s.push(fut1);
       s.push(fut2);
@@ -544,7 +543,7 @@ describe("stream", () => {
       const fut2 = H.sinkFuture<number>();
       const fut3 = H.sinkFuture<number>();
       const s = H.sinkStream<Future<number>>();
-      const s2 = H.runNow(H.flatFutureLatest(s));
+      const s2 = H.runNow(H.flatFuturesLatest(s));
       const sub = subscribeSpy(s2);
       s.push(fut1);
       s.push(fut2);

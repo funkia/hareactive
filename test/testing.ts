@@ -208,7 +208,7 @@ describe("testing", () => {
         assertStreamEqual(res, { 4: 1, 5: 1, 7: 2, 9: 3, 10: 1 });
       });
     });
-    describe("flatFuture", () => {
+    describe("flatFutures", () => {
       it("can be tested", () => {
         const s = testStreamFromObject({
           0: testFuture(1, "a"),
@@ -216,7 +216,7 @@ describe("testing", () => {
           4: testFuture(2, "c"),
           6: testFuture(7, "d")
         });
-        const res = testNow(H.flatFuture(s), []);
+        const res = testNow(H.flatFutures(s), []);
         assert(H.isStream(res));
         assertStreamEqual(
           res,
@@ -224,7 +224,7 @@ describe("testing", () => {
         );
       });
     });
-    describe("flatFutureLatest", () => {
+    describe("flatFuturesLatest", () => {
       it("can be tested", () => {
         const s = testStreamFromObject({
           0: testFuture(1, "a"),
@@ -234,7 +234,7 @@ describe("testing", () => {
           8: testFuture(12, "e"), // should be dropped
           10: testFuture(3, "f")
         });
-        const res = testNow(H.flatFutureLatest(s), []);
+        const res = testNow(H.flatFuturesLatest(s), []);
         assert(H.isStream(res));
         assertStreamEqual(
           res,
@@ -242,7 +242,7 @@ describe("testing", () => {
         );
       });
     });
-    describe("flatFutureOrdered", () => {
+    describe("flatFuturesOrdered", () => {
       it("can be tested", () => {
         const s = testStreamFromObject({
           0: testFuture(3, "a"),
@@ -251,7 +251,7 @@ describe("testing", () => {
           3: testFuture(0, "d"),
           4: testFuture(5, "e")
         });
-        const res = testNow(H.flatFutureOrdered(s), []);
+        const res = testNow(H.flatFuturesOrdered(s), []);
         assert(H.isStream(res));
         assertStreamEqual(
           res,
@@ -379,7 +379,7 @@ describe("testing", () => {
           );
           const response: Stream<string> = yield H.performStream(
             request
-          ).flatMap(H.flatFutureOrdered);
+          ).flatMap(H.flatFuturesOrdered);
           return { res: response };
         });
         const click = testStreamFromObject({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 });
@@ -410,7 +410,7 @@ describe("testing", () => {
               })
             );
             const res = run(
-              H.performStream(request).flatMap(H.flatFutureOrdered)
+              H.performStream(request).flatMap(H.flatFuturesOrdered)
             );
             return { res };
           });
