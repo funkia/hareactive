@@ -10,7 +10,8 @@ import {
   accum
 } from "./behavior";
 import { tick } from "./clock";
-import { Now, sample } from "./now";
+import { Now, sample, perform } from "./now";
+import { Future } from ".";
 
 /**
  * A stream is a list of occurrences over time. Each occurrence
@@ -476,4 +477,71 @@ export function mapCbStream<A, B>(
   stream: Stream<A>
 ): Stream<B> {
   return new PerformCbStream(cb, stream);
+}
+
+export class FlatFutures<A> extends Stream<A> {
+  constructor(stream: Stream<Future<A>>) {
+    super();
+    this.parents = cons(stream);
+  }
+  pushS(_t: number, fut: Future<A>): void {
+    fut.subscribe((a) => this.pushSToChildren(tick(), a));
+  }
+}
+
+export class FlatFuturesOrdered<A> extends Stream<A> {
+  constructor(stream: Stream<Future<A>>) {
+    super();
+    this.parents = cons(stream);
+  }
+  nextId: number = 0;
+  next: number = 0;
+  buffer: { value: A }[] = []; // Object-wrapper to support a result as undefined
+  pushS(_t: number, fut: Future<A>): void {
+    const id = this.nextId++;
+    fut.subscribe((a: A) => {
+      if (id === this.next) {
+        this.buffer[0] = { value: a };
+        this.pushFromBuffer();
+      } else {
+        this.buffer[id - this.next] = { value: a };
+      }
+    });
+  }
+  pushFromBuffer(): void {
+    while (this.buffer[0] !== undefined) {
+      const t = tick();
+      const { value } = this.buffer.shift();
+      this.pushSToChildren(t, value);
+      this.next++;
+    }
+  }
+}
+
+export class FlatFuturesLatest<A> extends Stream<A>
+  implements SListener<Future<A>> {
+  constructor(stream: Stream<Future<A>>) {
+    super();
+    this.parents = cons(stream);
+  }
+  next: number = 0;
+  newest: number = 0;
+  running: number = 0;
+  pushS(_t: number, fut: Future<A>): void {
+    const time = ++this.next;
+    this.running++;
+    fut.subscribe((a: A) => {
+      this.running--;
+      if (time > this.newest) {
+        const t = tick();
+        if (this.running === 0) {
+          this.next = 0;
+          this.newest = 0;
+        } else {
+          this.newest = time;
+        }
+        this.pushSToChildren(t, a);
+      }
+    });
+  }
 }

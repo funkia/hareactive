@@ -1,10 +1,9 @@
 import { IO, runIO } from "@funkia/io";
 import { placeholder } from "./placeholder";
-import { Time, SListener } from "./common";
-import { Future, fromPromise, mapCbFuture } from "./future";
-import { Node } from "./datastructures";
+import { Time } from "./common";
+import { Future, fromPromise, mapCbFuture, sinkFuture } from "./future";
 import { Behavior } from "./behavior";
-import { ActiveStream, Stream, mapCbStream, isStream } from "./stream";
+import { Stream, mapCbStream, isStream } from "./stream";
 import { tick } from "./clock";
 
 export type MapNowTuple<A> = { [K in keyof A]: Now<A[K]> };
@@ -104,11 +103,11 @@ export function sample<A>(b: Behavior<A>): Now<A> {
 }
 
 export class PerformNow<A> extends Now<A> {
-  constructor(private cb: () => A) {
+  constructor(private _run: () => A) {
     super();
   }
   run(): A {
-    return this.cb();
+    return this._run();
   }
 }
 
@@ -124,9 +123,9 @@ export function performIO<A>(comp: IO<A>): Now<Future<A>> {
   return perform(() => fromPromise(runIO(comp)));
 }
 
-export function performStream<A>(s: Stream<IO<A>>): Now<Stream<A>> {
+export function performStream<A>(s: Stream<IO<A>>): Now<Stream<Future<A>>> {
   return perform(() =>
-    mapCbStream<IO<A>, A>((io, cb) => runIO(io).then(cb), s)
+    mapCbStream<IO<A>, Future<A>>((io, cb) => cb(fromPromise(runIO(io))), s)
   );
 }
 
@@ -155,91 +154,6 @@ export function performMap<A, B>(
       ? mapCbStream((value, done) => done(cb(value)), s)
       : mapCbFuture((value, done) => done(cb(value)), s)
   );
-}
-
-class PerformIOLatestStream<A> extends ActiveStream<A>
-  implements SListener<IO<A>> {
-  private node: Node<this> = new Node(this);
-  constructor(s: Stream<IO<A>>) {
-    super();
-    s.addListener(this.node, tick());
-  }
-  next: number = 0;
-  newest: number = 0;
-  running: number = 0;
-  pushS(_t: number, io: IO<A>): void {
-    const time = ++this.next;
-    this.running++;
-    runIO(io).then((a: A) => {
-      this.running--;
-      if (time > this.newest) {
-        const t = tick();
-        if (this.running === 0) {
-          this.next = 0;
-          this.newest = 0;
-        } else {
-          this.newest = time;
-        }
-        this.pushSToChildren(t, a);
-      }
-    });
-  }
-}
-
-export class PerformStreamLatestNow<A> extends Now<Stream<A>> {
-  constructor(private s: Stream<IO<A>>) {
-    super();
-  }
-  run(): Stream<A> {
-    return new PerformIOLatestStream(this.s);
-  }
-}
-
-export function performStreamLatest<A>(s: Stream<IO<A>>): Now<Stream<A>> {
-  return perform(() => new PerformIOLatestStream(s));
-}
-
-class PerformIOStreamOrdered<A> extends ActiveStream<A> {
-  private node: Node<this> = new Node(this);
-  constructor(s: Stream<IO<A>>) {
-    super();
-    s.addListener(this.node, tick());
-  }
-  nextId: number = 0;
-  next: number = 0;
-  buffer: { value: A }[] = []; // Object-wrapper to support a result as undefined
-  pushS(_t: number, io: IO<A>): void {
-    const id = this.nextId++;
-    runIO(io).then((a: A) => {
-      if (id === this.next) {
-        this.buffer[0] = { value: a };
-        this.pushFromBuffer();
-      } else {
-        this.buffer[id - this.next] = { value: a };
-      }
-    });
-  }
-  pushFromBuffer(): void {
-    while (this.buffer[0] !== undefined) {
-      const t = tick();
-      const { value } = this.buffer.shift();
-      this.pushSToChildren(t, value);
-      this.next++;
-    }
-  }
-}
-
-export class PerformStreamOrderedNow<A> extends Now<Stream<A>> {
-  constructor(private s: Stream<IO<A>>) {
-    super();
-  }
-  run(): Stream<A> {
-    return new PerformIOStreamOrdered(this.s);
-  }
-}
-
-export function performStreamOrdered<A>(s: Stream<IO<A>>): Now<Stream<A>> {
-  return new PerformStreamOrderedNow(s);
 }
 
 export function plan<A>(future: Future<Now<A>>): Now<Future<A>> {
