@@ -1,6 +1,6 @@
 {
   "name": "@funkia/hareactive",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "Purely functional reactive library.",
   "main": "dist/index.js",
   "module": "dist/es/index.js",
