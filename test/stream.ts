@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { spy, useFakeTimers } from "sinon";
+import { spy } from "sinon";
 import {
   map,
   push,
@@ -309,70 +309,6 @@ describe("stream", () => {
       flag = true;
       push(6, origin);
       assert.deepEqual(callback.args, [[0], [1], [4], [6]]);
-    });
-  });
-  describe("timing operators", () => {
-    let clock: any;
-    beforeEach(() => {
-      clock = useFakeTimers();
-    });
-    afterEach(() => {
-      clock.restore();
-    });
-    describe("delay", () => {
-      it("should delay every push", () => {
-        let n = 0;
-        const s = H.sinkStream<number>();
-        const delayedS = H.runNow(H.delay(50, s));
-        delayedS.subscribe(() => (n = 2));
-        s.subscribe(() => (n = 1));
-        s.push(0);
-        assert.strictEqual(n, 1);
-        clock.tick(49);
-        assert.strictEqual(n, 1);
-        clock.tick(1);
-        assert.strictEqual(n, 2);
-      });
-    });
-    describe("throttle", () => {
-      it("after an occurrence it should ignore", () => {
-        let n = 0;
-        const s = H.sinkStream<number>();
-        const throttleS = H.runNow(H.throttle(100, s));
-        throttleS.subscribe((v) => (n = v));
-        assert.strictEqual(n, 0);
-        s.push(1);
-        assert.strictEqual(n, 1);
-        clock.tick(80);
-        s.push(2);
-        assert.strictEqual(n, 1);
-        clock.tick(19);
-        s.push(3);
-        assert.strictEqual(n, 1);
-        clock.tick(1);
-        s.push(4);
-        assert.strictEqual(n, 4);
-      });
-    });
-    describe("debounce", () => {
-      it("holding the latest occurrence until an amount of time has passed", () => {
-        let n = 0;
-        const s = H.sinkStream<number>();
-        const debouncedS = H.runNow(H.debounce(100, s));
-        debouncedS.subscribe((v) => (n = v));
-        assert.strictEqual(n, 0);
-        s.push(1);
-        clock.tick(80);
-        assert.strictEqual(n, 0);
-        clock.tick(30);
-        assert.strictEqual(n, 1);
-        s.push(2);
-        assert.strictEqual(n, 1);
-        clock.tick(99);
-        assert.strictEqual(n, 1);
-        clock.tick(2);
-        assert.strictEqual(n, 2);
-      });
     });
   });
   describe("snapshot", () => {

@@ -9,7 +9,6 @@ import {
   producerBehavior,
   push,
   sinkBehavior,
-  integrateFrom,
   moment,
   format,
   switchTo,
@@ -460,73 +459,6 @@ describe("behavior", () => {
       H.flat(b).map((s) => s + "bar");
     });
   });
-  describe("integrateFrom", () => {
-    let clock: SinonFakeTimers;
-    beforeEach(() => {
-      clock = useFakeTimers();
-    });
-    afterEach(() => {
-      clock.restore();
-    });
-    it("can integrate", () => {
-      const acceleration = sinkBehavior(1);
-      const bIntergrate = integrateFrom(acceleration);
-      const integration = at(bIntergrate);
-      assert.strictEqual(at(integration), 0);
-      clock.tick(2000);
-      assert.strictEqual(at(integration), 2000);
-      clock.tick(1000);
-      assert.strictEqual(at(integration), 3000);
-      clock.tick(500);
-      acceleration.push(2);
-      assert.strictEqual(at(integration), 4000);
-    });
-    it("stays in pull state if parent changes to push", () => {
-      const fut = H.sinkFuture<H.Behavior<number>>();
-      const b1 = H.switchTo(fromFunction(() => 4), fut);
-      const integration = H.runNow(H.integrate(b1));
-      observe(
-        () => {},
-        () => {
-          return () => {
-            throw new Error("Should not be called.");
-          };
-        },
-        integration
-      );
-      fut.resolve(H.sinkBehavior(5));
-    });
-    it("supports circular dependencies", () => {
-      const { speed } = H.runNow(
-        H.loopNow((input: { speed: Behavior<number> }) =>
-          H.sample(
-            H.moment((at) => {
-              const velocity = input.speed.map((s) => (s < 4000 ? 1 : 0));
-              const speed = at(H.integrateFrom(velocity));
-              return { speed };
-            })
-          )
-        )
-      );
-      speed.observe(() => {}, () => () => {});
-      assert.strictEqual(at(speed), 0);
-      clock.tick(3000);
-      assert.strictEqual(at(speed), 3000);
-      clock.tick(1000);
-      assert.strictEqual(at(speed), 4000);
-      clock.tick(1000);
-      assert.strictEqual(at(speed), 4000);
-      clock.tick(1000);
-      assert.strictEqual(at(speed), 4000);
-    });
-    it("does not sample parent for no delta", () => {
-      const b = H.fromFunction(() => {
-        throw new Error("Must not be called");
-      });
-      const result = H.runNow(H.integrate(b).chain((bi) => H.sample(bi)));
-      assert.strictEqual(result, 0);
-    });
-  });
   describe("format", () => {
     it("interpolates string", () => {
       const bs1 = sinkBehavior("foo");
@@ -971,56 +903,6 @@ describe("Behavior and Stream", () => {
     //   const s3 = H.shiftCurrent(s2);
     //   H.subscribe((s) => console.log(s), s3);
     // });
-  });
-  describe("continuous time", () => {
-    describe("measureTime", () => {
-      it("gives time from sample point", () => {
-        const [setTime, restore] = mockNow();
-        setTime(3);
-        const time = runNow(H.measureTime);
-        let pull;
-        const results = [];
-        observe(
-          (n: number) => {
-            results.push(n);
-          },
-          (p) => {
-            pull = p;
-            return () => {};
-          },
-          time
-        );
-        pull();
-        setTime(4);
-        pull();
-        setTime(7);
-        pull();
-        assert.deepEqual(results, [0, 1, 4]);
-        restore();
-      });
-    });
-    describe("time", () => {
-      it("gives time since UNIX epoch", () => {
-        let beginPull = false;
-        let endPull = false;
-        let pushed: number[] = [];
-        observe(
-          (n: number) => pushed.push(n),
-          (pull) => {
-            beginPull = true;
-            return () => {
-              endPull = true;
-            };
-          },
-          H.time
-        );
-        assert.strictEqual(beginPull, true);
-        const t = at(H.time);
-        const now = Date.now();
-        assert(now - 2 <= t && t <= now);
-        assert.strictEqual(endPull, false);
-      });
-    });
   });
   describe("toggle", () => {
     it("has correct initial value", () => {
