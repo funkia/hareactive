@@ -4,6 +4,7 @@ import { cons, fromArray, Node } from "./datastructures";
 import { Behavior, FunctionBehavior } from "./behavior";
 import { tick } from "./clock";
 import { Stream } from "./stream";
+import { sample, Now } from "./now";
 
 export type MapFutureTuple<A> = { [K in keyof A]: Future<A[K]> };
 
@@ -136,6 +137,9 @@ export class NeverFuture extends Future<any> {
     super();
     this.state = State.Done;
   }
+  addListener(node: Node<SListener<any>>, t: number): State {
+    return State.Done;
+  }
   /* istanbul ignore next */
   pushS(_: any): void {
     throw new Error("A NeverFuture should never be pushed to.");
@@ -252,6 +256,10 @@ export class NextOccurrenceFuture<A> extends Future<A> implements SListener<A> {
 
 export function nextOccurrenceFrom<A>(stream: Stream<A>): Behavior<Future<A>> {
   return new FunctionBehavior((t: Time) => new NextOccurrenceFuture(stream, t));
+}
+
+export function nextOccurrence<A>(stream: Stream<A>): Now<Future<A>> {
+  return sample(nextOccurrenceFrom(stream));
 }
 
 class MapCbFuture<A, B> extends ActiveFuture<B> {

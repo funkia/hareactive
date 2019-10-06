@@ -96,9 +96,11 @@ describe("Future", () => {
   });
   describe("Monoid", () => {
     it("has no occurrence", () => {
-      let result: number;
-      H.never.map((a) => (result = a));
-      assert.strictEqual(result, undefined);
+      let result = 2;
+      H.never.subscribe((a) => {
+        result = a;
+      });
+      assert.strictEqual(result, 2);
     });
   });
   describe("Functor", () => {
