@@ -163,11 +163,11 @@ describe("placeholder", () => {
     });
     it("chain works on placeholder", () => {
       const b = placeholder();
-      const chained = b.chain((n: any) => Behavior.of(n));
+      b.chain((n: any) => Behavior.of(n));
       b.replaceWith(Behavior.of(3));
     });
     it("is possible to snapshot a placeholder that has been replaced", () => {
-      const { activate, push, producer } = createTestProducerBehavior(0);
+      const { push, producer } = createTestProducerBehavior(0);
       const pB = placeholder();
       const s = sinkStream<string>();
       const shot = snapshot(pB, s);

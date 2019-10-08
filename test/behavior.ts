@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { spy, useFakeTimers, SinonFakeTimers } from "sinon";
+import { spy, useFakeTimers } from "sinon";
 import { go, map, mapTo } from "@funkia/jabz";
 import {
   at,
@@ -22,7 +22,7 @@ import {
 
 import * as H from "../src";
 
-import { subscribeSpy, mockNow } from "./helpers";
+import { subscribeSpy } from "./helpers";
 import { placeholder } from "../src/placeholder";
 
 function double(n: number): number {
@@ -33,7 +33,7 @@ function sum(n: number, m: number): number {
   return n + m;
 }
 
-const add = (a: number) => (b: number) => a + b;
+const add = (a: number) => (b: number): number => a + b;
 
 describe("behavior", () => {
   describe("isBehavior", () => {
@@ -81,7 +81,7 @@ describe("behavior", () => {
       const activate = spy();
       const deactivate = spy();
       const producer = producerBehavior(
-        (push) => {
+        (_push) => {
           activate();
           return deactivate;
         },
@@ -97,7 +97,7 @@ describe("behavior", () => {
       let push = undefined;
       const setVar = (n) => {
         variable = n;
-        if (push) {
+        if (push !== undefined) {
           push(n);
         }
       };
@@ -122,9 +122,9 @@ describe("behavior", () => {
     it("samples in same timestamp", () => {
       const f = jest.fn(() => 0);
       const b = fromFunction(f);
-      let result = -1;
+      const result = -1;
       b.observe(
-        (n) => result,
+        (_) => result,
         (pull) => {
           pull();
           return () => {};
@@ -346,7 +346,7 @@ describe("behavior", () => {
     it("handles a constant behavior", () => {
       const b1 = Behavior.of(12);
       const b2 = b1.flatMap((x) => Behavior.of(x * x));
-      b2.observe((v) => {}, () => () => {});
+      b2.observe((_v) => {}, () => () => {});
       assert.strictEqual(at(b2), 144);
     });
     it("handles changing outer behavior", () => {
@@ -573,12 +573,14 @@ describe("behavior", () => {
       const b1 = H.sinkBehavior(1);
       const b2 = H.moment((at) => at(b1) * 2);
       const snapped = H.snapshot(b2, H.empty);
-      const cb = subscribeSpy(snapped);
+      subscribeSpy(snapped);
     });
     it("time doesn't pass inside moment", () => {
       const b = moment((at) => {
         const t1 = at(time);
-        while (Date.now() <= t1) {}
+        while (Date.now() <= t1) {
+          undefined;
+        }
         const t2 = at(time);
         assert.strictEqual(t1, t2);
       });
@@ -697,7 +699,7 @@ describe("Behavior and Future", () => {
     it("changes from pull to push", () => {
       let beginPull = false;
       let endPull = false;
-      let pushed: number[] = [];
+      const pushed: number[] = [];
       let x = 0;
       const b1 = fromFunction(() => x);
       const b2 = sinkBehavior(2);
@@ -816,7 +818,7 @@ describe("Behavior and Stream", () => {
   });
   describe("accum", () => {
     it("has accumFrom as method on stream", () => {
-      const accumulated = H.empty.accumFrom(sum, 0);
+      H.empty.accumFrom(sum, 0);
     });
     it("accumulates in a pure way", () => {
       const s = H.sinkStream<number>();
@@ -852,9 +854,9 @@ describe("Behavior and Stream", () => {
       const b = runNow(
         H.accumCombine(
           [
-            [add, (n, m) => n + m],
-            [sub, (n, m) => m - n],
-            [mul, (n, m) => n * m]
+            [add, (n: number, m: number) => n + m],
+            [sub, (n: number, m: number) => m - n],
+            [mul, (n: number, m: number) => n * m]
           ],
           1
         )

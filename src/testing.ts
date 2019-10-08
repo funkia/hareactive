@@ -170,7 +170,7 @@ MapStream.prototype.model = function<A, B>(this: MapStream<A, B>) {
 };
 
 MapToStream.prototype.model = function<A, B>(this: MapToStream<A, B>) {
-  const s = (<Stream<A>>this.parents.value).model();
+  const s = (this.parents.value as Stream<A>).model();
   return s.map(({ time }) => ({ time, value: this.b }));
 };
 
@@ -215,7 +215,7 @@ SnapshotStream.prototype.model = function<B>(this: SnapshotStream<B>) {
 };
 
 DelayStream.prototype.model = function<A>(this: DelayStream<A>) {
-  const s = (<Stream<A>>this.parents.value).model();
+  const s = (this.parents.value as Stream<A>).model();
   return s.map(({ time, value }) => ({ time: time + this.ms, value }));
 };
 

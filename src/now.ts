@@ -1,7 +1,7 @@
 import { IO, runIO } from "@funkia/io";
 import { placeholder } from "./placeholder";
 import { Time } from "./common";
-import { Future, fromPromise, mapCbFuture, sinkFuture } from "./future";
+import { Future, fromPromise, mapCbFuture } from "./future";
 import { Behavior } from "./behavior";
 import { Stream, mapCbStream, isStream } from "./stream";
 import { tick } from "./clock";
@@ -23,8 +23,8 @@ export abstract class Now<A> {
   static of<B>(b: B): Now<B> {
     return new OfNow(b);
   }
-  static multi: boolean = false;
-  multi: boolean = false;
+  static multi = false;
+  multi = false;
   map<B>(f: (a: A) => B): Now<B> {
     return new MapNow(f, this);
   }
@@ -195,7 +195,7 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
       }
     }
     const result = this.fn(placeholderObject).run(t);
-    const returned: (keyof A)[] = <any>Object.keys(result);
+    const returned: (keyof A)[] = Object.keys(result) as any;
     for (const name of returned) {
       placeholderObject[name].replaceWith(result[name]);
     }

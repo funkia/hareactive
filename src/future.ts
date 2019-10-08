@@ -176,7 +176,7 @@ export class LiftFuture<A> extends Future<A> {
 }
 
 export class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
-  private parentOccurred: boolean = false;
+  private parentOccurred = false;
   private node: Node<this> = new Node(this);
   constructor(private f: (a: A) => Future<B>, readonly parent: Future<A>) {
     super();

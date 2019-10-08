@@ -2,7 +2,6 @@ import { transitionBehavior, TransitionConfig, linear } from "../src/animation";
 import { sinkBehavior, at } from "../src/behavior";
 import { sinkStream } from "../src/stream";
 import { assert } from "chai";
-import { spy } from "sinon";
 
 describe("animation", () => {
   describe("transitionBehavior", () => {

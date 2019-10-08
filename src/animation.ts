@@ -81,8 +81,8 @@ export function capToRange(lower: number, upper: number, a: number): number {
   return Math.min(Math.max(lower, a), upper);
 }
 
-export const linear = (t) => t;
-export const easeIn = (p) => (t) => t ** p;
-export const easeOut = (p) => (t) => 1 - (1 - t) ** p;
-export const easeInOut = (p) => (t) =>
+export const linear = (t: number) => t;
+export const easeIn = (p: number) => (t: number) => t ** p;
+export const easeOut = (p: number) => (t: number) => 1 - (1 - t) ** p;
+export const easeInOut = (p: number) => (t: number) =>
   t < 0.5 ? easeIn(p)(t * 2) / 2 : easeOut(p)(t * 2 - 1) / 2 + 0.5;

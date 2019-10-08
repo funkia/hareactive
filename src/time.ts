@@ -28,7 +28,7 @@ class ThrottleStream<A> extends Stream<A> {
     super();
     this.parents = cons(parent);
   }
-  private isSilenced: boolean = false;
+  private isSilenced = false;
   pushS(t: number, a: A): void {
     if (!this.isSilenced) {
       this.pushSToChildren(t, a);

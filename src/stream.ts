@@ -10,7 +10,7 @@ import {
   accum
 } from "./behavior";
 import { tick } from "./clock";
-import { Now, sample, perform } from "./now";
+import { Now, sample } from "./now";
 import { Future } from ".";
 
 /**
@@ -494,8 +494,8 @@ export class FlatFuturesOrdered<A> extends Stream<A> {
     super();
     this.parents = cons(stream);
   }
-  nextId: number = 0;
-  next: number = 0;
+  nextId = 0;
+  next = 0;
   buffer: { value: A }[] = []; // Object-wrapper to support a result as undefined
   pushS(_t: number, fut: Future<A>): void {
     const id = this.nextId++;
@@ -524,9 +524,9 @@ export class FlatFuturesLatest<A> extends Stream<A>
     super();
     this.parents = cons(stream);
   }
-  next: number = 0;
-  newest: number = 0;
-  running: number = 0;
+  next = 0;
+  newest = 0;
+  running = 0;
   pushS(_t: number, fut: Future<A>): void {
     const time = ++this.next;
     this.running++;

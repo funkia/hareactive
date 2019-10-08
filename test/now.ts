@@ -187,8 +187,8 @@ describe("Now", () => {
   });
   describe("performStream", () => {
     it("runs io actions", (done: Function) => {
-      let actions: number[] = [];
-      let results: number[] = [];
+      const actions: number[] = [];
+      const results: number[] = [];
       const impure = withEffects((n: number) => {
         actions.push(n);
         return n + 2;
@@ -234,7 +234,7 @@ describe("Now", () => {
   });
   describe("loopNow", () => {
     it("should loop the reactives", () => {
-      let result = [];
+      const result = [];
       let s: SinkStream<string>;
       const now = loopNow(({ stream }) => {
         stream.subscribe((a) => result.push(a));
@@ -249,7 +249,7 @@ describe("Now", () => {
       assert.deepEqual(result, ["a", "b", "c"]);
     });
     it("should return the reactives", () => {
-      let result = [];
+      const result = [];
       let s: SinkStream<string>;
       const now = loopNow(({ stream }) => {
         stream.subscribe((a) => a);
@@ -268,7 +268,9 @@ describe("Now", () => {
     it("time doesn't pass in a Now", () => {
       const now = go(function*() {
         const t1: number = yield sample(time);
-        while (Date.now() <= t1) {}
+        while (Date.now() <= t1) {
+          undefined;
+        }
         const t2 = yield sample(time);
         assert.strictEqual(t1, t2);
       });
@@ -279,7 +281,9 @@ describe("Now", () => {
     it("time doesn't pass", () => {
       const now = instant((start) => {
         const t1 = start(sample(time));
-        while (Date.now() <= t1) {}
+        while (Date.now() <= t1) {
+          undefined;
+        }
         const t2 = start(sample(time));
         assert.strictEqual(t1, t2);
       });

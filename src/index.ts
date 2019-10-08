@@ -1,4 +1,4 @@
-import { Now, MapNowTuple, InstantRun, instant, sample } from "./now";
+import { Now, MapNowTuple } from "./now";
 import { Behavior, SinkBehavior, MapBehaviorTuple } from "./behavior";
 import { Stream, SinkStream } from "./stream";
 import { Future, MapFutureTuple } from "./future";

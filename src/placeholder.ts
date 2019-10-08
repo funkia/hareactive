@@ -1,4 +1,4 @@
-import { Reactive, State, SListener, BListener, Time } from "./common";
+import { Reactive, State, SListener, BListener } from "./common";
 import { Behavior, isBehavior, MapBehavior, pushToChildren } from "./behavior";
 import { Node, cons } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
@@ -6,7 +6,7 @@ import { tick } from "./clock";
 import { Future } from "./future";
 
 class SamplePlaceholderError {
-  message: string = "Attempt to sample non-replaced placeholder";
+  message = "Attempt to sample non-replaced placeholder";
   constructor(public placeholder: Placeholder<any>) {}
   toString(): string {
     return this.message;
@@ -32,7 +32,7 @@ export class Placeholder<A> extends Behavior<A> {
   }
   pushS(t: number, a: A): void {
     for (const child of this.children) {
-      (<any>child).pushS(t, a);
+      (child as any).pushS(t, a);
     }
   }
   pull(t: number) {
@@ -61,7 +61,7 @@ export class Placeholder<A> extends Behavior<A> {
       this.changeStateDown(this.source.state);
     }
   }
-  deactivate(_done: Boolean = false): void {
+  deactivate(_done = false): void {
     this.state = State.Inactive;
     if (this.source !== undefined) {
       this.source.removeListener(this.node);
@@ -71,7 +71,7 @@ export class Placeholder<A> extends Behavior<A> {
     return new MapPlaceholder<A, B>(this, fn);
   }
   mapTo<B>(b: B): Behavior<B> {
-    return <any>new MapToPlaceholder<A, B>(<any>this, b);
+    return new MapToPlaceholder<A, B>(this as any, b) as any;
   }
 }
 
@@ -92,7 +92,7 @@ class MapToPlaceholder<A, B> extends MapToStream<A, B> {
     super(parent, last);
   }
   update(_t): B {
-    return (<any>this).b;
+    return (this as any).b;
   }
   pull(t) {
     if (this.changedAt === undefined) {
@@ -112,10 +112,10 @@ function install(target: Function, source: Function): void {
 function installMethods(): void {
   install(Placeholder, Stream);
   install(Placeholder, Future);
-  MapPlaceholder.prototype.map = <any>Placeholder.prototype.map;
-  MapPlaceholder.prototype.mapTo = <any>Placeholder.prototype.mapTo;
-  MapToPlaceholder.prototype.map = <any>Placeholder.prototype.map;
-  MapToPlaceholder.prototype.mapTo = <any>Placeholder.prototype.mapTo;
+  MapPlaceholder.prototype.map = Placeholder.prototype.map as any;
+  MapPlaceholder.prototype.mapTo = Placeholder.prototype.mapTo as any;
+  MapToPlaceholder.prototype.map = Placeholder.prototype.map as any;
+  MapToPlaceholder.prototype.mapTo = Placeholder.prototype.mapTo as any;
   install(MapPlaceholder, Stream);
   install(MapPlaceholder, Future);
   install(MapToPlaceholder, Behavior);
@@ -123,11 +123,11 @@ function installMethods(): void {
 }
 
 export function placeholder<A>(): Placeholder<A> & Stream<A> & Future<A> {
-  if ((<any>Placeholder).prototype.scanFrom === undefined) {
+  if ((Placeholder as any).prototype.scanFrom === undefined) {
     // The methods are installed lazily when the placeholder is first
     // used. This avoids a top-level impure expression that would
     // prevent tree-shaking.
     installMethods();
   }
-  return <any>new Placeholder();
+  return new Placeholder() as any;
 }

@@ -54,8 +54,8 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   ): Behavior<R> {
     return new LiftBehavior(f, args);
   }
-  static multi: boolean = true;
-  multi: boolean = true;
+  static multi = true;
+  multi = true;
   flatMap<B>(fn: (a: A) => Behavior<B>): Behavior<B> {
     return new FlatMapBehavior(this, fn);
   }
@@ -102,7 +102,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       refresh(this, t);
     }
   }
-  log(prefix?: string, ms: number = 100): Behavior<A> {
+  log(prefix?: string, ms = 100): Behavior<A> {
     this.observe(
       (a) => (prefix !== undefined ? console.log(prefix, a) : console.log(a)),
       (pull) => {
@@ -358,7 +358,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
       future.addListener(this.node, tick());
     }
   }
-  pushS(t: number, val: A): void {
+  pushS(t: number, _val: A): void {
     this.last.resolve(this.parent.at(t), t);
     this.parents = cons(this.parent);
     this.changeStateDown(this.state);
@@ -439,7 +439,7 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     this.last = b.last;
     next.addListener(this.nNode, t);
   }
-  update(t: Time): A {
+  update(_t: Time): A {
     return this.b.last;
   }
   pushS(t: number, value: Behavior<A>): void {
@@ -740,7 +740,7 @@ class FormatBehavior extends Behavior<string> {
     for (let i = 0; i < this.behaviors.length; ++i) {
       const b = this.behaviors[i];
       const value = isBehavior(b) ? b.last : b;
-      resultString += value + this.strings[i + 1];
+      resultString += value.toString() + this.strings[i + 1];
     }
     return resultString;
   }

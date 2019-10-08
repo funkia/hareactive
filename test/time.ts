@@ -102,7 +102,7 @@ describe("behavior", () => {
       it("gives time since UNIX epoch", () => {
         let beginPull = false;
         let endPull = false;
-        let pushed: number[] = [];
+        const pushed: number[] = [];
         H.observe(
           (n: number) => pushed.push(n),
           (_pull) => {

@@ -92,6 +92,7 @@ describe("Future", () => {
       combined.subscribe((a) => (result2 = a));
       future1.resolve(1);
       assert.strictEqual(result1, 1);
+      assert.strictEqual(result2, 1);
     });
   });
   describe("Monoid", () => {
@@ -172,7 +173,7 @@ describe("Future", () => {
   });
   describe("flatMap", () => {
     it("flatMaps value", () => {
-      let result: number[] = [];
+      const result: number[] = [];
       const fut1 = sinkFuture<number>();
       const fut2 = sinkFuture<number>();
       const chained = fut1.flatMap((n: number) => {
@@ -229,8 +230,8 @@ describe("Future", () => {
     it("resolves with result when done callback invoked", () => {
       const fut = sinkFuture<number>();
       const cb = spy();
-      let value;
-      let done;
+      let value: number;
+      let done: (result: unknown) => void;
       const fut2 = mapCbFuture((v, d) => {
         value = v;
         done = d;

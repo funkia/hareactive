@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import * as H from "../src";
-import { Behavior, Stream, Now, sinkBehavior } from "../src";
+import { Behavior, Stream, Now } from "../src";
 import {
   testFuture,
   assertFutureEqual,
@@ -89,7 +89,7 @@ describe("testing", () => {
         assertFutureEqual(fut, testFuture(5, "foobar"));
       });
       it("returns never on never", () => {
-        const fut = H.never.flatMap((s) => testFuture(5, s + "bar"));
+        const fut = H.never.flatMap((s: string) => testFuture(5, s + "bar"));
         assertFutureEqual(fut, H.never);
       });
     });
@@ -369,7 +369,7 @@ describe("testing", () => {
     });
     describe("performStream", () => {
       it("can be tested", () => {
-        let requests: number[] = [];
+        const requests: number[] = [];
         const model = fgo(function*({ click }) {
           const request = click.mapTo(
             withEffects((n: number) => {
@@ -400,7 +400,7 @@ describe("testing", () => {
     });
     describe("instant", () => {
       it("can be tested", () => {
-        let requests: number[] = [];
+        const requests: number[] = [];
         const model = (click: Stream<number>) =>
           H.instant((run) => {
             const request = click.map(

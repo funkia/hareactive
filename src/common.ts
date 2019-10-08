@@ -48,8 +48,8 @@ export class PushOnlyObserver<A> implements BListener, SListener<A> {
       callback(source.at());
     }
   }
-  pushB(t: number): void {
-    this.callback((<Behavior<A>>this.source).last);
+  pushB(_t: number): void {
+    this.callback((this.source as Behavior<A>).last);
   }
   pushS(_t: number, value: A): void {
     this.callback(value);
@@ -117,7 +117,7 @@ export abstract class Reactive<A, C extends Child> implements Child {
       this.state = newState;
     }
   }
-  deactivate(done: Boolean = false): void {
+  deactivate(done = false): void {
     if (this.listenerNodes !== undefined) {
       for (const { node, parent } of this.listenerNodes) {
         parent.removeListener(node);
@@ -153,7 +153,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
     }
   }
   pushB(_t: number): void {
-    this.callback((<Behavior<A>>this.source).last);
+    this.callback((this.source as Behavior<A>).last);
   }
   pushS(_t: number, value: A): void {
     this.callback(value);
