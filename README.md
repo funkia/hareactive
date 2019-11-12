@@ -56,7 +56,7 @@ time.
 
 - [Installation](#installation)
 - [Conceptual overview](#conceptual-overview)
-- [Tutorial/cookbook](#tutorial-cookbook)
+- [Tutorial/cookbook](#tutorialcookbook)
 - [API documentation](#api)
 - [Contributing](#contributing)
 - [Benchmark](#benchmark)
