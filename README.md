@@ -458,7 +458,7 @@ This function does not exist. Use `empty` to create a dummy stream for testing p
 
 #### `isStream(s: any): s is Stream<any>`
 
-Returns `true` if `s` is a behavior and `false` otherwise.
+Returns `true` if `s` is a stream and `false` otherwise.
 
 #### `apply<A, B>(behavior: Behavior<(a: A) => B>, stream: Stream<A>): Stream<B>`
 
