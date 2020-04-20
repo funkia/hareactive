@@ -83,10 +83,10 @@ describe("placeholder", () => {
       let variable = 0;
       const b = fromFunction(() => variable);
       const p = placeholder<number>();
-      const mapResult = [];
+      const mapResult: unknown[] = [];
       const pm = p.map((n) => (mapResult.push(n), n));
       const result: Array<number> = [];
-      let pull;
+      let pull: (t?: number) => void;
       observe(
         (a) => {
           result.push(a);
@@ -191,8 +191,8 @@ describe("placeholder", () => {
       const sum = H.placeholder<number>();
       const change = sum.map((_) => 1);
       const sum2 = H.at(H.switcherFrom(H.at(H.integrateFrom(change)), H.empty));
-      const results = [];
-      let pull;
+      const results: unknown[] = [];
+      let pull: () => void;
       observe(
         (n: number) => results.push(n),
         (p) => {

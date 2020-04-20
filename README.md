@@ -712,7 +712,7 @@ behaviors it depends on. To understand this, consider the following contrived
 example.
 
 ```js
-const lifted = lift((a, b, c, d) => a && b ? c : d, aB, bB, cB, dB);
+const lifted = lift((a, b, c, d) => (a && b ? c : d), aB, bB, cB, dB);
 ```
 
 Here the resulting behavior will _always_ depend on both `aB`, `bB`, `cB`,
@@ -725,7 +725,7 @@ it is just a "black box".
 If, on the other hand, we use `moment`:
 
 ```js
-const momented = moment((at) => at(aB) && at(bB) ? at(cB) : at(dB));
+const momented = moment((at) => (at(aB) && at(bB) ? at(cB) : at(dB)));
 ```
 
 Then `moment` can simply check which behaviors are actually sampled inside the
@@ -736,8 +736,7 @@ depends on `atB` and there is no need to recompute `momented` when any of the
 other behaviors changes.
 
 `moment` can also be very useful with behaviors nested inside behaviors. If
-`persons` is a behavior of an array of persons and is of the type `Behavior<{
-age: Behavior<number>, name: string }[]>` then the following code creates a
+`persons` is a behavior of an array of persons and is of the type `Behavior<{ age: Behavior<number>, name: string }[]>` then the following code creates a
 behavior that at any time is equal to the name of the first person in the array
 whose age is greater than 20.
 

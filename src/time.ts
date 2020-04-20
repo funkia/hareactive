@@ -49,7 +49,7 @@ class DebounceStream<A> extends Stream<A> {
     super();
     this.parents = cons(parent);
   }
-  private timer: any = undefined;
+  private timer: NodeJS.Timeout | undefined = undefined;
   pushS(t: number, a: A): void {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {

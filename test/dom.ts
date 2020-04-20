@@ -26,11 +26,15 @@ describe("dom", () => {
 
     it("applies extractor to event", () => {
       const input = document.createElement("input");
+      interface Result {
+        readonly bubbles: boolean;
+        readonly value: string;
+      }
       const s = streamFromEvent(input, "input", (e, elm) => ({
         bubbles: e.bubbles,
         value: elm.value
       }));
-      const result = [];
+      const result: Result[] = [];
       s.subscribe((ev) => result.push(ev));
       const event = new Event("input");
       input.dispatchEvent(event);
@@ -50,7 +54,7 @@ describe("dom", () => {
         (elm) => elm.value,
         (evt, elm) => elm.value
       );
-      const result = [];
+      const result: string[] = [];
       s.subscribe((ev) => result.push(ev));
       assert.strictEqual(result.length, 1);
       assert.strictEqual(result[0], "initial");
@@ -64,7 +68,7 @@ describe("dom", () => {
         (elm) => elm.value,
         (evt, elm) => elm.value
       );
-      const result = [];
+      const result: string[] = [];
       s.subscribe((ev) => result.push(ev));
       // simulate input low latency
       input.value = "second";
@@ -80,7 +84,7 @@ describe("dom", () => {
         (elm) => elm.value,
         (_evt, elm) => elm.value
       );
-      const result = [];
+      const result: string[] = [];
       const sink = H.sinkStream<number>();
       // We snapshot the behaviors without activating it
       const s = H.snapshot(b, sink);

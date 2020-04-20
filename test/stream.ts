@@ -421,7 +421,7 @@ describe("stream", () => {
   describe("log", () => {
     it("logs every value", () => {
       const origLog = console.log;
-      const strings = [];
+      const strings: string[][] = [];
       console.log = (...s: string[]) => strings.push(s);
       const s = H.sinkStream();
       s.log();
@@ -433,7 +433,7 @@ describe("stream", () => {
     });
     it("logs with prefix", () => {
       const origLog = console.log;
-      const strings = [];
+      const strings: string[][] = [];
       console.log = (...s: string[]) => strings.push(s);
       const s = H.sinkStream();
       s.log("s");

@@ -15,13 +15,13 @@ export type MapFutureTuple<A> = { [K in keyof A]: Future<A[K]> };
  * promise.
  */
 export abstract class Future<A> extends Reactive<A, SListener<A>>
-  implements Parent<SListener<any>> {
+  implements Parent<SListener<unknown>> {
   // The value of the future. Often `undefined` until occurrence.
   value: A;
   constructor() {
     super();
   }
-  abstract pushS(t: number, val: any): void;
+  abstract pushS(t: number, val: unknown): void;
   pull(): A {
     throw new Error("Pull not implemented on future");
   }
@@ -63,7 +63,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
     return new OfFuture(b);
   }
   ap: <B>(f: Future<(a: A) => B>) => Future<B>;
-  lift<A extends any[], R>(
+  lift<A extends unknown[], R>(
     f: (...args: A) => R,
     ...args: MapFutureTuple<A>
   ): Future<R> {
@@ -87,7 +87,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
   }
 }
 
-export function isFuture(a: any): a is Future<any> {
+export function isFuture(a: unknown): a is Future<unknown> {
   return typeof a === "object" && "resolve" in a;
 }
 
@@ -112,11 +112,11 @@ export class MapFuture<A, B> extends Future<B> {
 }
 
 export class MapToFuture<A> extends Future<A> {
-  constructor(public value: A, readonly parent: Future<any>) {
+  constructor(public value: A, readonly parent: Future<unknown>) {
     super();
     this.parents = cons(parent);
   }
-  pushS(t: any, _val: any): void {
+  pushS(t: Time): void {
     this.resolve(this.value, t);
   }
 }
@@ -127,21 +127,21 @@ export class OfFuture<A> extends Future<A> {
     this.state = State.Done;
   }
   /* istanbul ignore next */
-  pushS(_: any): void {
+  pushS(): void {
     throw new Error("A PureFuture should never be pushed to.");
   }
 }
 
-export class NeverFuture extends Future<any> {
+export class NeverFuture extends Future<never> {
   constructor() {
     super();
     this.state = State.Done;
   }
-  addListener(node: Node<SListener<any>>, t: number): State {
+  addListener(): State {
     return State.Done;
   }
   /* istanbul ignore next */
-  pushS(_: any): void {
+  pushS(): void {
     throw new Error("A NeverFuture should never be pushed to.");
   }
 }
@@ -164,7 +164,7 @@ export class LiftFuture<A> extends Future<A> {
     this.missing = futures.length;
     this.parents = fromArray(futures);
   }
-  pushS(t: number, _val: any): void {
+  pushS(t: Time): void {
     if (--this.missing === 0) {
       // All the dependencies have occurred.
       for (let i = 0; i < this.futures.length; ++i) {
@@ -182,6 +182,7 @@ export class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
     super();
     this.parents = cons(parent);
   }
+  //FIXME: remove any by splitting listeners to accept A and forward it to B through f
   pushS(t: number, val: any): void {
     if (this.parentOccurred === false) {
       // The first future occurred. We can now call `f` with its value
@@ -201,7 +202,7 @@ export class FlatMapFuture<A, B> extends Future<B> implements SListener<A> {
  */
 export class SinkFuture<A> extends ActiveFuture<A> {
   /* istanbul ignore next */
-  pushS(_t: number, _val: any): void {
+  pushS(): void {
     throw new Error("A sink should not be pushed to.");
   }
 }
@@ -249,7 +250,7 @@ export class NextOccurrenceFuture<A> extends Future<A> implements SListener<A> {
     super();
     this.parents = cons(s);
   }
-  pushS(t: number, val: any): void {
+  pushS(t: Time, val: A): void {
     this.resolve(val, t);
   }
 }

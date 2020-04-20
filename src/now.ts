@@ -8,13 +8,16 @@ import { tick } from "./clock";
 
 export type MapNowTuple<A> = { [K in keyof A]: Now<A[K]> };
 
+const isRecord = (a: unknown): a is Record<PropertyKey, unknown> =>
+  typeof a === "object";
+
 export abstract class Now<A> {
   isNow: true;
   constructor() {
     this.isNow = true;
   }
-  static is(a: any): a is Now<any> {
-    return typeof a === "object" && a.isNow === true;
+  static is(a: unknown): a is Now<unknown> {
+    return isRecord(a) && a.isNow === true;
   }
   abstract run(time: Time): A;
   of<B>(b: B): Now<B> {
@@ -43,7 +46,7 @@ export abstract class Now<A> {
   ap<B>(a: Now<(a: A) => B>): Now<B> {
     return this.lift((f, a) => f(a), a, this);
   }
-  lift<A extends any[], R>(
+  lift<A extends unknown[], R>(
     f: (...args: A) => R,
     ...args: MapNowTuple<A>
   ): Now<R> {
@@ -71,7 +74,7 @@ export class MapNow<A, B> extends Now<B> {
   }
 }
 
-export class LiftNow<A extends any[], R> extends Now<R> {
+export class LiftNow<A extends Now<unknown>[], R> extends Now<R> {
   constructor(readonly f: Function, readonly parents: A) {
     super();
   }
@@ -165,11 +168,14 @@ export function runNow<A>(now: Now<A>, time: Time = tick()): A {
 }
 
 export interface ReactivesObject {
-  [a: string]: Behavior<any> | Stream<any>;
+  [a: string]: Behavior<unknown> | Stream<unknown>;
 }
 
 const placeholderProxyHandler = {
-  get: function(target: any, name: string): Behavior<any> | Stream<any> {
+  get: function(
+    target: ReactivesObject,
+    name: string
+  ): ReactivesObject[string] {
     if (!(name in target)) {
       target[name] = placeholder();
     }
@@ -195,7 +201,7 @@ class LoopNow<A extends ReactivesObject> extends Now<A> {
       }
     }
     const result = this.fn(placeholderObject).run(t);
-    const returned: (keyof A)[] = Object.keys(result) as any;
+    const returned: (keyof A)[] = Object.keys(result);
     for (const name of returned) {
       placeholderObject[name].replaceWith(result[name]);
     }

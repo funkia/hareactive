@@ -234,7 +234,7 @@ describe("Now", () => {
   });
   describe("loopNow", () => {
     it("should loop the reactives", () => {
-      const result = [];
+      const result: unknown[] = [];
       let s: SinkStream<string>;
       const now = loopNow(({ stream }) => {
         stream.subscribe((a) => result.push(a));
@@ -249,7 +249,7 @@ describe("Now", () => {
       assert.deepEqual(result, ["a", "b", "c"]);
     });
     it("should return the reactives", () => {
-      const result = [];
+      const result: unknown[] = [];
       let s: SinkStream<string>;
       const now = loopNow(({ stream }) => {
         stream.subscribe((a) => a);

@@ -13,6 +13,10 @@ export * from "./placeholder";
 export * from "./animation";
 export * from "./clock";
 
+export interface UnknownMappable<A> {
+  readonly map: <B>(f: (a: A) => B) => UnknownMappable<B>;
+}
+
 /**
  * Map a function over a behavior or stream. This means that if at some point in
  * time the value of `b` is `bVal` then the value of the returned
@@ -22,7 +26,10 @@ export function map<A, B>(fn: (a: A) => B, future: Future<A>): Future<B>;
 export function map<A, B>(fn: (a: A) => B, stream: Stream<A>): Stream<B>;
 export function map<A, B>(fn: (a: A) => B, behavior: Behavior<A>): Behavior<B>;
 export function map<A, B>(fn: (a: A) => B, behavior: Now<A>): Now<B>;
-export function map<A, B>(fn: (a: A) => B, b: any): any {
+export function map<A, B>(
+  fn: (a: A) => B,
+  b: UnknownMappable<A>
+): UnknownMappable<B> {
   return b.map(fn);
 }
 
