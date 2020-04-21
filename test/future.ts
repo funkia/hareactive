@@ -30,7 +30,7 @@ describe("Future", () => {
   });
   describe("sink", () => {
     it("notifies subscriber", () => {
-      let result: number;
+      let result: number | undefined;
       const s = sinkFuture<number>();
       s.subscribe((x: number) => {
         result = x;
@@ -40,7 +40,7 @@ describe("Future", () => {
       assert.strictEqual(result, 2);
     });
     it("notifies subscriber several layers down", () => {
-      let result: number;
+      let result: number | undefined;
       const s = sinkFuture<number>();
       const s2 = s.map((n) => n + 2).mapTo(9);
       s2.subscribe((x: number) => {
@@ -61,7 +61,7 @@ describe("Future", () => {
   });
   describe("Semigroup", () => {
     it("returns the first future if it occurs first", () => {
-      let result: number;
+      let result: number | undefined;
       const future1 = sinkFuture<number>();
       const future2 = sinkFuture<number>();
       const combined = future1.combine(future2);
@@ -71,7 +71,7 @@ describe("Future", () => {
       assert.strictEqual(result, 1);
     });
     it("returns the seconds future if it occurs first", () => {
-      let result: number;
+      let result: number | undefined;
       const future1 = sinkFuture<number>();
       const future2 = sinkFuture<number>();
       const combined = future1.combine(future2);
@@ -81,8 +81,8 @@ describe("Future", () => {
       assert.strictEqual(result, 2);
     });
     it("returns when only one occurs", () => {
-      let result1: number;
-      let result2: number;
+      let result1: number | undefined;
+      let result2: number | undefined;
       const future1 = sinkFuture<number>();
       const future2 = sinkFuture<number>();
       const combined = future1.combine(future2);
@@ -106,7 +106,7 @@ describe("Future", () => {
   });
   describe("Functor", () => {
     it("maps over value", () => {
-      let result: number;
+      let result: number | undefined;
       const s = sinkFuture<number>();
       const mapped = s.map((x) => x * x);
       mapped.subscribe((x: number) => {
@@ -117,7 +117,7 @@ describe("Future", () => {
       assert.strictEqual(result, 16);
     });
     it("maps to constant", () => {
-      let result: string;
+      let result: string | undefined;
       const s = sinkFuture<number>();
       const mapped = s.mapTo("horse");
       mapped.subscribe((x: string) => {
@@ -130,7 +130,7 @@ describe("Future", () => {
   });
   describe("Apply", () => {
     it("lifts a function of one argument", () => {
-      let result: string;
+      let result: string | undefined;
       const fut = sinkFuture<string>();
       const lifted = H.lift((s: string) => s + "!", fut);
       lifted.subscribe((s: string) => (result = s));
@@ -139,7 +139,7 @@ describe("Future", () => {
       assert.strictEqual(result, "Hello!");
     });
     it("lifts a function of three arguments", () => {
-      let result: string;
+      let result: string | undefined;
       const fut1 = sinkFuture<string>();
       const fut2 = sinkFuture<string>();
       const fut3 = sinkFuture<string>();
@@ -163,7 +163,7 @@ describe("Future", () => {
   });
   describe("Applicative", () => {
     it("of gives future that has occurred", () => {
-      let result: number;
+      let result: number | undefined;
       const o = Future.of(12);
       o.subscribe((x) => (result = x));
       assert.strictEqual(result, 12);
@@ -203,19 +203,21 @@ describe("Future", () => {
     });
   });
   it("can convert Promise to Future", async () => {
-    let result: number;
-    let resolve: (n: number) => void;
+    let result: number | undefined;
+    let resolve: ((n: number) => void) | undefined;
     const promise = new Promise((res) => (resolve = res));
     const future = fromPromise(promise);
     future.subscribe((res: number) => (result = res));
     assert.strictEqual(result, undefined);
-    resolve(12);
+    if (resolve !== undefined) {
+      resolve(12);
+    }
     await promise;
     assert.strictEqual(result, 12);
   });
   describe("nextOccurence", () => {
     it("resolves on next occurence", () => {
-      let result: string;
+      let result: string | undefined;
       const s = new SinkStream<string>();
       const next = nextOccurrenceFrom(s);
       s.push("a");
@@ -230,8 +232,8 @@ describe("Future", () => {
     it("resolves with result when done callback invoked", () => {
       const fut = sinkFuture<number>();
       const cb = spy();
-      let value: number;
-      let done: (result: unknown) => void;
+      let value: number | undefined;
+      let done: ((result: unknown) => void) | undefined;
       const fut2 = mapCbFuture((v, d) => {
         value = v;
         done = d;
@@ -240,7 +242,9 @@ describe("Future", () => {
       fut.resolve(3);
       assert.equal(value, 3);
       assert.equal(cb.callCount, 0);
-      done(value + 1);
+      if (done !== undefined && value !== undefined) {
+        done(value + 1);
+      }
       assert.equal(cb.callCount, 1);
       assert.deepEqual(cb.args, [[4]]);
     });

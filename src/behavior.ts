@@ -1,16 +1,23 @@
-import { cons, DoubleLinkedList, Node, fromArray, nil } from "./datastructures";
-import { combine, isPlaceholder } from "./index";
-import { State, Reactive, Time, BListener, Parent, SListener } from "./common";
-import { Future, BehaviorFuture } from "./future";
-import * as F from "./future";
 import {
-  Stream,
-  FlatFuturesOrdered,
+  Cons,
+  cons,
+  DoubleLinkedList,
+  fromArray,
+  nil,
+  Node
+} from "./datastructures";
+import { combine, isPlaceholder } from "./index";
+import { BListener, Parent, Reactive, SListener, State, Time } from "./common";
+import * as F from "./future";
+import { BehaviorFuture, Future } from "./future";
+import {
+  FlatFutures,
   FlatFuturesLatest,
-  FlatFutures
+  FlatFuturesOrdered,
+  Stream
 } from "./stream";
-import { tick, getTime } from "./clock";
-import { sample, Now } from "./now";
+import { getTime, tick } from "./clock";
+import { Now, sample } from "./now";
 
 export type MapBehaviorTuple<A> = { [K in keyof A]: Behavior<A[K]> };
 
@@ -88,7 +95,11 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       for (const parent of this.parents) {
         if (isBehavior(parent)) {
           parent.pull(t);
-          shouldRefresh = shouldRefresh || this.changedAt < parent.changedAt;
+          shouldRefresh =
+            shouldRefresh ||
+            (this.changedAt !== undefined &&
+              parent.changedAt !== undefined &&
+              this.changedAt < parent.changedAt);
         }
       }
       if (shouldRefresh) {
@@ -139,7 +150,7 @@ function refresh<A>(b: Behavior<A>, t: number) {
 
 export function isBehavior<A>(b: unknown): b is Behavior<A> {
   return (
-    (typeof b === "object" && "at" in b && !isPlaceholder(b)) ||
+    (typeof b === "object" && b !== null && "at" in b && !isPlaceholder(b)) ||
     (isPlaceholder(b) && (b.source === undefined || isBehavior(b.source)))
   );
 }
@@ -302,7 +313,10 @@ class FlatMapBehavior<A, B> extends Behavior<B> {
     this.parents = cons(this.outer);
   }
   update(t: number): B {
-    const outerChanged = this.outer.changedAt > this.changedAt;
+    const outerChanged =
+      this.outer.changedAt !== undefined &&
+      this.changedAt !== undefined &&
+      this.outer.changedAt > this.changedAt;
     if (outerChanged || this.changedAt === undefined) {
       if (this.innerB !== undefined) {
         this.innerB.removeListener(this.innerNode);
@@ -703,9 +717,8 @@ class MomentBehavior<A> extends Behavior<A> {
         parent.removeListener(node);
       }
     }
-    this.parents = undefined;
-    const value = this.f(this.sampleBound);
-    return value;
+    this.parents = nil;
+    return this.f(this.sampleBound);
   }
   sample<B>(b: Behavior<B>): B {
     const node = new Node(this);
@@ -727,7 +740,7 @@ class FormatBehavior extends Behavior<string> {
     private behaviors: Array<string | number | Behavior<string | number>>
   ) {
     super();
-    let parents = undefined;
+    let parents: Cons<Behavior<string | number>> = nil;
     for (const b of behaviors) {
       if (isBehavior(b)) {
         parents = cons(b, parents);

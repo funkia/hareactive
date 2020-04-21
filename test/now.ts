@@ -157,7 +157,9 @@ describe("Now", () => {
     function loop(n: number): Now<Behavior<number>> {
       return go(function*() {
         const nextNumber: Future<number> = yield performIO(getNextNr(1));
-        const future = yield plan(nextNumber.map(loop));
+        const future: Future<Behavior<number>> = yield plan(
+          nextNumber.map(loop)
+        );
         return switchTo(Behavior.of(n), future);
       });
     }
@@ -235,22 +237,24 @@ describe("Now", () => {
   describe("loopNow", () => {
     it("should loop the reactives", () => {
       const result: unknown[] = [];
-      let s: SinkStream<string>;
+      let s: SinkStream<string> | undefined;
       const now = loopNow(({ stream }) => {
         stream.subscribe((a) => result.push(a));
         s = sinkStream();
         return Now.of({ stream: s });
       });
       runNow(now);
-      s.push("a");
-      s.push("b");
-      s.push("c");
+      if (s !== undefined) {
+        s.push("a");
+        s.push("b");
+        s.push("c");
+      }
 
       assert.deepEqual(result, ["a", "b", "c"]);
     });
     it("should return the reactives", () => {
       const result: unknown[] = [];
-      let s: SinkStream<string>;
+      let s: SinkStream<string> | undefined;
       const now = loopNow(({ stream }) => {
         stream.subscribe((a) => a);
         s = sinkStream();
@@ -258,9 +262,11 @@ describe("Now", () => {
       });
       const { stream } = runNow(now);
       stream.subscribe((a) => result.push(a));
-      s.push("a");
-      s.push("b");
-      s.push("c");
+      if (s !== undefined) {
+        s.push("a");
+        s.push("b");
+        s.push("c");
+      }
       assert.deepEqual(result, ["a", "b", "c"]);
     });
   });
