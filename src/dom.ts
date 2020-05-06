@@ -12,7 +12,7 @@ class DomEventStream<A> extends ProducerStream<A> {
   constructor(
     private target: EventTarget,
     private eventName: string,
-    private extractor: Extractor<any, EventTarget, A>
+    private extractor: Extractor<unknown, EventTarget, A>
   ) {
     super();
   }
@@ -61,12 +61,12 @@ export function streamFromEvent<
 export function streamFromEvent<A>(
   target: EventTarget,
   eventName: string,
-  extractor: Extractor<any, EventTarget, A>
+  extractor: Extractor<unknown, EventTarget, A>
 ): Stream<A>;
 export function streamFromEvent<A>(
   target: EventTarget,
   eventName: string,
-  extractor: Extractor<any, EventTarget, A> = id
+  extractor: Extractor<A, EventTarget, A> = id
 ): Stream<A> {
   return new DomEventStream(target, eventName, extractor);
 }
@@ -76,7 +76,7 @@ class DomEventBehavior<A> extends ProducerBehavior<A> {
     private target: EventTarget,
     private eventName: string,
     private getter: (t: EventTarget) => A,
-    private extractor: Extractor<any, EventTarget, A>
+    private extractor: Extractor<unknown, EventTarget, A>
   ) {
     super();
     this.last = getter(target);
@@ -123,13 +123,13 @@ export function behaviorFromEvent<A>(
   target: EventTarget,
   eventName: string,
   getter: (t: EventTarget) => A,
-  extractor: Extractor<any, EventTarget, A>
+  extractor: Extractor<unknown, EventTarget, A>
 ): Behavior<A>;
 export function behaviorFromEvent<A>(
   target: EventTarget,
   eventName: string,
   getter: (t: EventTarget) => A,
-  extractor: Extractor<any, EventTarget, A>
+  extractor: Extractor<unknown, EventTarget, A>
 ): Behavior<A> {
   return new DomEventBehavior(target, eventName, getter, extractor);
 }

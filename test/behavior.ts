@@ -17,7 +17,8 @@ import {
   freezeTo,
   Stream,
   time,
-  runNow
+  runNow,
+  Time
 } from "../src";
 
 import * as H from "../src";
@@ -94,8 +95,8 @@ describe("behavior", () => {
     });
     it("can push and pull", () => {
       let variable = 0;
-      let push = undefined;
-      const setVar = (n) => {
+      let push: (t: Time) => void;
+      const setVar = (n: number) => {
         variable = n;
         if (push !== undefined) {
           push(n);
@@ -166,7 +167,7 @@ describe("behavior", () => {
         assert.strictEqual(at(b, 1), 3);
         const mapped = map(double, b);
         let a;
-        mapped.observe((v) => (a = v), () => {});
+        mapped.observe((v: unknown) => (a = v), () => {});
         assert.strictEqual(a, 6);
       });
       it("maps constant function", () => {
@@ -186,7 +187,7 @@ describe("behavior", () => {
         });
         const mapped = map(double, b);
         const cb = spy();
-        mapped.observe(cb, (pull) => {
+        mapped.observe(cb, (pull: (t: Time) => void) => {
           pull(1);
           time = 1;
           pull(2);
@@ -418,7 +419,7 @@ describe("behavior", () => {
       const pushSpy = spy();
       const beginPullingSpy = spy();
       const endPullingSpy = spy();
-      const handlePulling = (...args) => {
+      const handlePulling = (...args: unknown[]) => {
         beginPullingSpy(...args);
         return endPullingSpy;
       };
@@ -676,7 +677,7 @@ describe("Behavior and Future", () => {
       const pushSpy = spy();
       const beginPullingSpy = spy();
       const endPullingSpy = spy();
-      const handlePulling = (...args) => {
+      const handlePulling = (...args: unknown[]) => {
         beginPullingSpy(...args);
         return endPullingSpy;
       };
@@ -935,7 +936,7 @@ describe("Behavior and Stream", () => {
       const flattened = H.flat(outer);
       const pushSpy = spy();
       let pull: () => void;
-      const handlePulling = (p) => {
+      const handlePulling = (p: () => void): (() => void) => {
         pull = p;
         return () => undefined;
       };
@@ -953,7 +954,7 @@ describe("Behavior and Stream", () => {
   describe("log", () => {
     it("logs every change on push behavior", () => {
       const origLog = console.log;
-      const strings = [];
+      const strings: unknown[] = [];
       console.log = (...s: string[]) => strings.push(s);
       const b = sinkBehavior("hello");
       b.log();
@@ -963,7 +964,7 @@ describe("Behavior and Stream", () => {
     });
     it("logs with prefix", () => {
       const origLog = console.log;
-      const strings = [];
+      const strings: unknown[] = [];
       console.log = (...s: string[]) => strings.push(s);
       const b = sinkBehavior("hello");
       b.log("b");
@@ -974,7 +975,7 @@ describe("Behavior and Stream", () => {
     it("logs on pull behavior", () => {
       const clock = useFakeTimers();
       const origLog = console.log;
-      const strings = [];
+      const strings: unknown[] = [];
       console.log = (...s: string[]) => strings.push(s);
 
       let v = "zero";

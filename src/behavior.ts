@@ -30,7 +30,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   constructor() {
     super();
   }
-  static is(a: any): a is Behavior<any> {
+  static is(a: unknown): a is Behavior<unknown> {
     return isBehavior(a);
   }
   map<B>(fn: (a: A) => B): Behavior<B> {
@@ -48,7 +48,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   ap<B>(f: Behavior<(a: A) => B>): Behavior<B> {
     return new ApBehavior<A, B>(f, this);
   }
-  lift<A extends any[], R>(
+  lift<A extends unknown[], R>(
     f: (...args: A) => R,
     ...args: MapBehaviorTuple<A>
   ): Behavior<R> {
@@ -122,7 +122,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   }
 }
 
-export function pushToChildren(t: number, b: Behavior<any>): void {
+export function pushToChildren(t: number, b: Behavior<unknown>): void {
   for (const child of b.children) {
     child.pushB(t);
   }
@@ -137,7 +137,7 @@ function refresh<A>(b: Behavior<A>, t: number) {
   b.last = newValue;
 }
 
-export function isBehavior(b: any): b is Behavior<any> {
+export function isBehavior<A>(b: unknown): b is Behavior<A> {
   return (
     (typeof b === "object" && "at" in b && !isPlaceholder(b)) ||
     (isPlaceholder(b) && (b.source === undefined || isBehavior(b.source)))
@@ -238,7 +238,7 @@ export function at<B>(b: Behavior<B>, t?: number): B {
 }
 
 export class MapBehavior<A, B> extends Behavior<B> {
-  constructor(private parent: Behavior<any>, private f: (a: A) => B) {
+  constructor(private parent: Behavior<A>, private f: (a: A) => B) {
     super();
     this.parents = cons(parent);
   }
@@ -250,7 +250,7 @@ export class MapBehavior<A, B> extends Behavior<B> {
 class ApBehavior<A, B> extends Behavior<B> {
   constructor(private fn: Behavior<(a: A) => B>, private val: Behavior<A>) {
     super();
-    this.parents = cons<any>(fn, cons(val));
+    this.parents = cons<Behavior<((a: A) => B) | A>>(fn, cons(val));
   }
   update(_t: number): B {
     return this.fn.last(this.val.last);
@@ -271,7 +271,7 @@ export function ap<A, B>(
   return valB.ap(fnB);
 }
 
-export class LiftBehavior<A extends any[], R> extends Behavior<R> {
+export class LiftBehavior<A extends unknown[], R> extends Behavior<R> {
   constructor(private f: (...as: A) => R, private bs: MapBehaviorTuple<A>) {
     super();
     this.parents = fromArray(bs);
@@ -344,7 +344,7 @@ export function when(b: Behavior<boolean>): Now<Future<{}>> {
 
 class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
   private node: Node<this> = new Node(this);
-  constructor(private parent: Behavior<A>, private future: Future<any>) {
+  constructor(private parent: Behavior<A>, private future: Future<unknown>) {
     super();
     if (future.state === State.Done) {
       // Future has occurred at some point in the past
@@ -375,7 +375,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
 
 export function snapshotAt<A>(
   b: Behavior<A>,
-  f: Future<any>
+  f: Future<unknown>
 ): Behavior<Future<A>> {
   return new SnapshotBehavior(b, f);
 }
@@ -505,14 +505,14 @@ export function freezeTo<A>(
 
 export function freezeAtFrom<A>(
   behavior: Behavior<A>,
-  shouldFreeze: Future<any>
+  shouldFreeze: Future<unknown>
 ): Behavior<Behavior<A>> {
   return snapshotAt(behavior, shouldFreeze).map((f) => freezeTo(behavior, f));
 }
 
 export function freezeAt<A>(
   behavior: Behavior<A>,
-  shouldFreeze: Future<any>
+  shouldFreeze: Future<unknown>
 ): Now<Behavior<A>> {
   return sample(freezeAtFrom(behavior, shouldFreeze));
 }
@@ -583,7 +583,7 @@ export function accum<A, B>(
   return sample(accumFrom(f, initial, source));
 }
 
-export type AccumPair<A> = [Stream<any>, (a: any, b: A) => A];
+export type AccumPair<A> = [Stream<unknown>, (a: unknown, b: A) => A];
 
 function accumPairToApp<A>([stream, fn]: AccumPair<A>): Stream<(a: A) => A> {
   return stream.map((a) => (b: A) => fn(a, b));
@@ -607,7 +607,7 @@ export function accumCombine<B>(
   return sample(accumCombineFrom(pairs, initial));
 }
 
-const firstArg = <A>(a: A, _: any): A => a;
+const firstArg = <A>(a: A, _: unknown): A => a;
 
 /**
  * Creates a Behavior whose value is the last occurrence in the stream.
@@ -638,8 +638,8 @@ export function stepper<B>(initial: B, steps: Stream<B>): Now<Behavior<B>> {
  */
 export function toggleFrom(
   initial: boolean,
-  turnOn: Stream<any>,
-  turnOff: Stream<any>
+  turnOn: Stream<unknown>,
+  turnOff: Stream<unknown>
 ): Behavior<Behavior<boolean>> {
   return stepperFrom(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
 }
@@ -652,8 +652,8 @@ export function toggleFrom(
  */
 export function toggle(
   initial: boolean,
-  turnOn: Stream<any>,
-  turnOff: Stream<any>
+  turnOn: Stream<unknown>,
+  turnOff: Stream<unknown>
 ): Now<Behavior<boolean>> {
   return sample(toggleFrom(initial, turnOn, turnOff));
 }

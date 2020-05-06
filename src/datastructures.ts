@@ -14,7 +14,7 @@ export class Cons<A> {
   }
 }
 
-export const nil: Cons<any> = new Cons(undefined, undefined, true);
+export const nil: Cons<undefined> = new Cons(undefined, undefined, true);
 
 export function cons<A>(value: A, tail: Cons<A> = nil): Cons<A> {
   return new Cons(value, tail, false);

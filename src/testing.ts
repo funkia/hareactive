@@ -40,7 +40,8 @@ import {
   PerformMapNow,
   Now,
   MapNow,
-  InstantNow
+  InstantNow,
+  InstantRun
 } from "./now";
 import { time, DelayStream } from "./time";
 
@@ -99,7 +100,7 @@ NeverFuture.prototype.model = function() {
 };
 
 LiftFuture.prototype.model = function() {
-  const sems = (this.futures as Future<any>[]).map((f) => f.model());
+  const sems = (this.futures as Future<unknown>[]).map((f) => f.model());
   const time = Math.max(...sems.map((s) => (doesOccur(s) ? s.time : Infinity)));
   return time !== Infinity
     ? { time, value: this.f(...sems.map((s) => s.value)) }
@@ -279,9 +280,7 @@ export function testStreamFromArray<A>(array: ([Time, A])[]): Stream<A> {
   return new TestStream(semanticStream);
 }
 
-export function testStreamFromObject<A>(object: {
-  [time: number]: A;
-}): Stream<A> {
+export function testStreamFromObject<A>(object: Record<string, A>): Stream<A> {
   const semanticStream = Object.keys(object).map((key) => ({
     time: parseFloat(key),
     value: object[key]
@@ -297,7 +296,10 @@ export function assertStreamEqual<A>(
   }
 ): void;
 export function assertStreamEqual<A>(s1: Stream<A>, s2: ([Time, A])[]): void;
-export function assertStreamEqual<A>(s1: Stream<A>, s2: any): void {
+export function assertStreamEqual<A>(
+  s1: Stream<A>,
+  s2: Stream<A> | ([Time, A])[]
+): void {
   const s2_ = isStream(s2)
     ? s2
     : Array.isArray(s2)
@@ -381,29 +383,39 @@ export function assertBehaviorEqual<A>(
 
 // * Now
 
-type NowModel<A> = { value: A; mocks: any[] };
+type NowModel<A> = { value: A; mocks: unknown[] };
 
 declare module "./now" {
   interface Now<A> {
-    model(mocks: any[], t: Time): NowModel<A>;
+    model(mocks: unknown[], t: Time): NowModel<A>;
   }
 }
 
-OfNow.prototype.model = function<A>(mocks: any[], _t: Time): NowModel<A> {
+OfNow.prototype.model = function<A>(mocks: unknown[], _t: Time): NowModel<A> {
   return { value: this.value, mocks };
 };
 
-MapNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
+MapNow.prototype.model = function<A>(mocks: unknown[], t: Time): NowModel<A> {
   const { value, mocks: m } = this.parent.model(mocks, t);
   return { value: this.f(value), mocks: m };
 };
 
-FlatMapNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
+FlatMapNow.prototype.model = function<A>(
+  mocks: unknown[],
+  t: Time
+): NowModel<A> {
   const { value, mocks: m } = this.first.model(mocks, t);
   return this.f(value).model(m, t);
 };
 
-InstantNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
+interface TestInstanceNow<A> extends Now<A> {
+  readonly fn: (run: InstantRun) => A;
+}
+InstantNow.prototype.model = function<A>(
+  this: TestInstanceNow<A>,
+  mocks: unknown[],
+  t: Time
+): NowModel<A> {
   let m = mocks;
   const value = this.fn((now) => {
     const r = now.model(m, t);
@@ -416,12 +428,15 @@ InstantNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
   };
 };
 
-SampleNow.prototype.model = function<A>(mocks: any[], t: Time): NowModel<A> {
+SampleNow.prototype.model = function<A>(
+  mocks: unknown[],
+  t: Time
+): NowModel<A> {
   return { value: testAt(t, this.b), mocks };
 };
 
 PerformNow.prototype.model = function<A>(
-  [value, ...mocks]: any[],
+  [value, ...mocks]: [A, ...unknown[]],
   _t: Time
 ): NowModel<A> {
   return { value, mocks };
@@ -429,18 +444,23 @@ PerformNow.prototype.model = function<A>(
 
 PerformMapNow.prototype.model = function<A, B>(
   this: PerformMapNow<A, B>,
-  [value, ...mocks]: any[],
+  [value, ...mocks]: [Stream<B> | Future<B>, ...unknown[]],
   _t: Time
-): { value: Stream<B> | Future<B>; mocks: any } {
+): { value: Stream<B> | Future<B>; mocks: unknown[] } {
   return { value, mocks };
 };
 
 /**
  * Test run a now computation without executing its side-effects.
  * @param now The now computation to test.
+ * @param mocks
  * @param time The point in time at which the now computation should
  * be run. Defaults to 0.
  */
-export function testNow<A>(now: Now<A>, mocks: any[] = [], time: Time = 0): A {
+export function testNow<A>(
+  now: Now<A>,
+  mocks: unknown[] = [],
+  time: Time = 0
+): A {
   return now.model(mocks, time).value;
 }

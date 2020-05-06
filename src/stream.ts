@@ -18,7 +18,7 @@ import { Future } from ".";
  * happens at a point in time and has an associated value.
  */
 export abstract class Stream<A> extends Reactive<A, SListener<A>>
-  implements Parent<SListener<any>> {
+  implements Parent<SListener<unknown>> {
   constructor() {
     super();
   }
@@ -54,8 +54,8 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
     );
     return this;
   }
-  abstract pushS(t: number, value: any): void;
-  pushSToChildren(t: number, value: any): void {
+  abstract pushS(t: number, value: unknown): void;
+  pushSToChildren(t: number, value: A): void {
     for (const child of this.children) {
       child.pushS(t, value);
     }
@@ -146,12 +146,12 @@ export abstract class ActiveStream<A> extends Stream<A> {
   deactivate(): void {}
 }
 
-class EmptyStream extends ActiveStream<any> {
+class EmptyStream extends ActiveStream<unknown> {
   constructor() {
     super();
   }
   /* istanbul ignore next */
-  pushS(_t: number): void {
+  pushS(): void {
     throw new Error("You cannot push to an empty stream");
   }
 }
@@ -378,11 +378,11 @@ export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
 
 export class SnapshotStream<B> extends Stream<B> {
   private node: Node<this> = new Node(this);
-  constructor(readonly target: Behavior<B>, readonly trigger: Stream<any>) {
+  constructor(readonly target: Behavior<B>, readonly trigger: Stream<unknown>) {
     super();
     this.parents = cons(trigger);
   }
-  pushS(t: number, _: any): void {
+  pushS(t: Time): void {
     const b = this.target.at(t);
     this.pushSToChildren(t, b);
   }
@@ -396,7 +396,7 @@ export class SnapshotStream<B> extends Stream<B> {
 
 export function snapshot<B>(
   target: Behavior<B>,
-  trigger: Stream<any>
+  trigger: Stream<unknown>
 ): Stream<B> {
   return new SnapshotStream(target, trigger);
 }
@@ -447,7 +447,7 @@ export function selfie<A>(stream: Stream<Behavior<A>>): Stream<A> {
   return new SelfieStream(stream);
 }
 
-export function isStream(s: any): s is Stream<any> {
+export function isStream(s: unknown): s is Stream<unknown> {
   return typeof s === "object" && "scanFrom" in s;
 }
 
@@ -461,7 +461,7 @@ class PerformCbStream<A, B> extends ActiveStream<B> implements SListener<A> {
     super();
     stream.addListener(this.node, tick());
   }
-  pushS(_: number, value: A): void {
+  pushS(_: Time, value: A): void {
     this.cb(value, this.doneCb);
   }
 }

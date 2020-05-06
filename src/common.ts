@@ -4,7 +4,7 @@ import { tick } from "./clock";
 
 export type Time = number;
 
-function isBehavior(b: any): b is Behavior<any> {
+function isBehavior(b: unknown): b is Behavior<unknown> {
   return typeof b === "object" && "at" in b;
 }
 
@@ -40,9 +40,16 @@ export interface SListener<A> extends Child {
   pushS(t: number, value: A): void;
 }
 
+export interface ParentBehavior<A> extends Parent<Child> {
+  readonly at?: () => A;
+  readonly last?: A;
+}
 export class PushOnlyObserver<A> implements BListener, SListener<A> {
   node: Node<this> = new Node(this);
-  constructor(private callback: (a: A) => void, private source: Parent<Child>) {
+  constructor(
+    private callback: (a: A) => void,
+    private source: ParentBehavior<A>
+  ) {
     source.addListener(this.node, tick());
     if (isBehavior(source) && source.state === State.Push) {
       callback(source.at());
@@ -61,13 +68,13 @@ export class PushOnlyObserver<A> implements BListener, SListener<A> {
 }
 
 export type NodeParentPair = {
-  parent: Parent<any>;
-  node: Node<any>;
+  parent: Parent<unknown>;
+  node: Node<unknown>;
 };
 
 export abstract class Reactive<A, C extends Child> implements Child {
   state: State;
-  parents: Cons<Parent<any>>;
+  parents: Cons<Parent<unknown>>;
   listenerNodes: Cons<NodeParentPair> | undefined;
   children: DoubleLinkedList<C> = new DoubleLinkedList();
   constructor() {
@@ -110,7 +117,7 @@ export abstract class Reactive<A, C extends Child> implements Child {
     for (const parent of this.parents) {
       const node = new Node(this);
       this.listenerNodes = cons({ node, parent }, this.listenerNodes);
-      parent.addListener(node as any, t);
+      parent.addListener(node, t);
       newState = Math.max(newState, parent.state);
     }
     if (this.state === State.Inactive) {
@@ -134,7 +141,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
     private callback: (a: A) => void,
     readonly handlePulling: PullHandler,
     private time: Time,
-    readonly source: Parent<Child>
+    readonly source: ParentBehavior<A>
   ) {
     source.addListener(this.node, tick());
     if (source.state === State.Pull) {

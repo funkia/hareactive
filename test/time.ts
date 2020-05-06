@@ -78,7 +78,7 @@ describe("behavior", () => {
         setTime(3);
         const time = H.runNow(H.measureTime);
         let pull: (t?: number) => void;
-        const results = [];
+        const results: number[] = [];
         H.observe(
           (n: number) => {
             results.push(n);
