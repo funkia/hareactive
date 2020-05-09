@@ -1,4 +1,4 @@
-import { Cons, cons, DoubleLinkedList, Node } from "./datastructures";
+import { Cons, cons, DoubleLinkedList, nil, Node } from "./datastructures";
 import { Behavior } from "./behavior";
 import { tick } from "./clock";
 
@@ -9,6 +9,19 @@ function isBehavior(b: unknown): b is Behavior<unknown> {
 }
 
 export type PullHandler = (pull: (t?: number) => void) => () => void;
+
+/**
+ * @internal
+ * Do not use!
+ * @throws {Error}
+ */
+export const __UNSAFE_GET_LAST_BEHAVIOR_VALUE = <A>(b: Behavior<A>): A => {
+  if (b.last === undefined) {
+    // panic!
+    throw new Error("Behavior#last value should be defined");
+  }
+  return b.last;
+};
 
 /**
  * The various states that a reactive can be in. The order matters here: Done <
@@ -56,7 +69,7 @@ export class PushOnlyObserver<A> implements BListener, SListener<A> {
     }
   }
   pushB(_t: number): void {
-    this.callback((this.source as Behavior<A>).last);
+    this.callback(__UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.source as Behavior<A>));
   }
   pushS(_t: number, value: A): void {
     this.callback(value);
@@ -73,13 +86,10 @@ export type NodeParentPair = {
 };
 
 export abstract class Reactive<A, C extends Child> implements Child {
-  state: State;
-  parents: Cons<Parent<unknown>>;
+  state: State = State.Inactive;
+  parents: Cons<Parent<unknown>> = nil;
   listenerNodes: Cons<NodeParentPair> | undefined;
   children: DoubleLinkedList<C> = new DoubleLinkedList();
-  constructor() {
-    this.state = State.Inactive;
-  }
   addListener(node: Node<C>, t: number): State {
     const firstChild = this.children.head === undefined;
     this.children.prepend(node);
@@ -166,7 +176,7 @@ export class CbObserver<A> implements BListener, SListener<A> {
     }
   }
   pushB(_t: number): void {
-    this.callback((this.source as Behavior<A>).last);
+    this.callback(__UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.source as Behavior<A>));
   }
   pushS(_t: number, value: A): void {
     this.callback(value);

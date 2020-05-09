@@ -1,4 +1,12 @@
-import { Reactive, State, Time, SListener, Parent, BListener } from "./common";
+import {
+  Reactive,
+  State,
+  Time,
+  SListener,
+  Parent,
+  BListener,
+  __UNSAFE_GET_LAST_BEHAVIOR_VALUE
+} from "./common";
 import { cons, Node, DoubleLinkedList } from "./datastructures";
 import {
   Behavior,
@@ -19,11 +27,7 @@ import { Future } from ".";
  */
 export abstract class Stream<A> extends Reactive<A, SListener<A>>
   implements Parent<SListener<unknown>> {
-  constructor() {
-    super();
-  }
   children: DoubleLinkedList<SListener<A>> = new DoubleLinkedList();
-  state: State;
   combine<B>(stream: Stream<B>): Stream<A | B> {
     return new CombineStream(stream, this);
   }
@@ -201,23 +205,25 @@ export function scan<A, B>(
 class ShiftBehaviorStream<A> extends Stream<A> implements BListener {
   private bNode: Node<this> = new Node(this);
   private sNode: Node<this> = new Node(this);
-  private currentSource: Stream<A>;
+  private currentSource?: Stream<A>;
   constructor(private b: Behavior<Stream<A>>) {
     super();
   }
   activate(t: number): void {
     this.b.addListener(this.bNode, t);
     if (this.b.state !== State.Inactive) {
-      this.currentSource = this.b.last;
+      this.currentSource = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.b);
       this.currentSource.addListener(this.sNode, t);
     }
   }
   deactivate(): void {
     this.b.removeListener(this.bNode);
-    this.currentSource.removeListener(this.sNode);
+    if (this.currentSource !== undefined) {
+      this.currentSource.removeListener(this.sNode);
+    }
   }
   pushB(t: number): void {
-    const newStream = this.b.last;
+    const newStream = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.b);
     if (this.currentSource !== undefined) {
       this.currentSource.removeListener(this.sNode);
     }
@@ -254,7 +260,7 @@ export function shiftFrom<A>(s: Stream<Stream<A>>): Behavior<Stream<A>> {
 }
 
 class ChangesStream<A> extends Stream<A> implements BListener {
-  last: A;
+  last?: A;
   initialized: boolean;
   constructor(
     readonly parent: Behavior<A>,
@@ -269,17 +275,20 @@ class ChangesStream<A> extends Stream<A> implements BListener {
     // The parent may be an unreplaced placeholder and in that case
     // we can't read its current value.
     if (this.parent.state === State.Push) {
-      this.last = this.parent.last;
+      this.last = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.parent);
       this.initialized = true;
     }
   }
   pushB(t: number): void {
     if (!this.initialized) {
       this.initialized = true;
-      this.last = this.parent.last;
-    } else if (!this.comparator(this.last, this.parent.last)) {
-      this.pushSToChildren(t, this.parent.last);
-      this.last = this.parent.last;
+      this.last = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.parent);
+    } else {
+      const parentLast = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.parent);
+      if (this.last !== undefined && !this.comparator(this.last, parentLast)) {
+        this.pushSToChildren(t, parentLast);
+        this.last = parentLast;
+      }
     }
   }
   pushS(_t: number, _a: A): void {}
@@ -325,7 +334,7 @@ class ProducerStreamFromFunction<A> extends ProducerStream<A> {
   constructor(private activateFn: ProducerStreamFunction<A>) {
     super();
   }
-  deactivateFn: () => void;
+  deactivateFn?: () => void;
   publish(a: A, t: number = tick()): void {
     this.pushS(t, a);
   }
@@ -335,7 +344,9 @@ class ProducerStreamFromFunction<A> extends ProducerStream<A> {
   }
   deactivate(): void {
     this.state = State.Inactive;
-    this.deactivateFn();
+    if (this.deactivateFn !== undefined) {
+      this.deactivateFn();
+    }
   }
 }
 

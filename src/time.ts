@@ -1,7 +1,10 @@
-import { Time, State } from "./common";
+import { Time, State, __UNSAFE_GET_LAST_BEHAVIOR_VALUE } from "./common";
 import { cons } from "./datastructures";
 import { Stream } from "./stream";
-import { Behavior, fromFunction } from "./behavior";
+import {
+  Behavior,
+  fromFunction
+} from "./behavior";
 import { sample, Now, perform } from "./now";
 
 /*
@@ -83,19 +86,20 @@ export const measureTime = sample(measureTimeFrom);
 
 class IntegrateBehavior extends Behavior<number> {
   private lastPullTime: Time;
+  last = 0;
+  state = State.Pull;
   constructor(private parent: Behavior<number>, t: number) {
     super();
     this.lastPullTime = time.at(t);
-    this.state = State.Pull;
-    this.last = 0;
     this.pulledAt = t;
     this.changedAt = t;
     this.parents = cons(parent, cons(time));
   }
   update(_t: Time): number {
-    const currentPullTime = time.last;
+    const currentPullTime = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(time);
     const deltaMs = currentPullTime - this.lastPullTime;
-    const value = this.last + deltaMs * this.parent.last;
+    const value =
+      this.last + deltaMs * __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.parent);
     this.lastPullTime = currentPullTime;
     return value;
   }

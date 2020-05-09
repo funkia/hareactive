@@ -1,5 +1,10 @@
-import { Reactive, State, SListener, BListener, Time } from "./common";
-import { Behavior, isBehavior, MapBehavior, pushToChildren } from "./behavior";
+import { Reactive, State, SListener, BListener, Time, __UNSAFE_GET_LAST_BEHAVIOR_VALUE } from "./common";
+import {
+  Behavior,
+  isBehavior,
+  MapBehavior,
+  pushToChildren
+} from "./behavior";
 import { Node, cons } from "./datastructures";
 import { Stream, MapToStream } from "./stream";
 import { tick } from "./clock";
@@ -14,7 +19,7 @@ class SamplePlaceholderError {
 }
 
 export class Placeholder<A> extends Behavior<A> {
-  source: Reactive<A, SListener<A> | BListener>;
+  source?: Reactive<A, SListener<A> | BListener>;
   private node: Node<this> = new Node(this);
   replaceWith(parent: Reactive<A, SListener<A> | BListener>, t?: Time): void {
     this.source = parent;
@@ -45,7 +50,7 @@ export class Placeholder<A> extends Behavior<A> {
     }
   }
   update(_t: number): A {
-    return (this.source as Behavior<A>).last;
+    return __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.source as Behavior<A>);
   }
   activate(t: number): void {
     if (this.source !== undefined) {
@@ -84,7 +89,7 @@ class MapPlaceholder<A, B> extends MapBehavior<A, B> {
 }
 
 class MapToPlaceholder<A, B> extends MapToStream<A, B> {
-  changedAt: Time;
+  changedAt?: Time;
   constructor(parent: Stream<A>, public last: B) {
     super(parent, last);
   }

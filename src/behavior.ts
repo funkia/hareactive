@@ -6,7 +6,11 @@ import {
   nil,
   Node
 } from "./datastructures";
-import { combine, isPlaceholder } from "./index";
+import {
+  __UNSAFE_GET_LAST_BEHAVIOR_VALUE,
+  combine,
+  isPlaceholder
+} from "./index";
 import { BListener, Parent, Reactive, SListener, State, Time } from "./common";
 import * as F from "./future";
 import { BehaviorFuture, Future } from "./future";
@@ -29,7 +33,7 @@ export type MapBehaviorTuple<A> = { [K in keyof A]: Behavior<A[K]> };
 export abstract class Behavior<A> extends Reactive<A, BListener>
   implements Parent<BListener> {
   // Behaviors cache their last value in `last`.
-  last: A;
+  last?: A;
   children: DoubleLinkedList<BListener> = new DoubleLinkedList();
   pulledAt: number | undefined;
   changedAt: number | undefined;
@@ -77,7 +81,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
       const time = t === undefined ? tick() : t;
       this.pull(time);
     }
-    return this.last;
+    return __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this);
   }
   abstract update(t: number): A;
   pushB(t: number): void {
@@ -195,14 +199,16 @@ class ProducerBehaviorFromFunction<A> extends ProducerBehavior<A> {
   ) {
     super();
   }
-  deactivateFn: () => void;
+  deactivateFn?: () => void;
   activateProducer(): void {
     this.state = State.Push;
     this.deactivateFn = this.activateFn(this.newValue.bind(this));
   }
   deactivateProducer(): void {
     this.state = State.Inactive;
-    this.deactivateFn();
+    if (this.deactivateFn !== undefined) {
+      this.deactivateFn();
+    }
   }
 }
 
@@ -254,7 +260,7 @@ export class MapBehavior<A, B> extends Behavior<B> {
     this.parents = cons(parent);
   }
   update(_t: number): B {
-    return this.f(this.parent.last);
+    return this.f(__UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.parent));
   }
 }
 
@@ -264,7 +270,9 @@ class ApBehavior<A, B> extends Behavior<B> {
     this.parents = cons<Behavior<((a: A) => B) | A>>(fn, cons(val));
   }
   update(_t: number): B {
-    return this.fn.last(this.val.last);
+    return __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.fn)(
+      __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.val)
+    );
   }
 }
 
@@ -306,7 +314,7 @@ export class LiftBehavior<A extends unknown[], R> extends Behavior<R> {
 
 class FlatMapBehavior<A, B> extends Behavior<B> {
   // The last behavior returned by the chain function
-  private innerB: Behavior<B>;
+  private innerB?: Behavior<B> | undefined;
   private innerNode: Node<this> = new Node(this);
   constructor(private outer: Behavior<A>, private fn: (a: A) => Behavior<B>) {
     super();
@@ -321,7 +329,7 @@ class FlatMapBehavior<A, B> extends Behavior<B> {
       if (this.innerB !== undefined) {
         this.innerB.removeListener(this.innerNode);
       }
-      this.innerB = this.fn(this.outer.last);
+      this.innerB = this.fn(__UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.outer));
       this.innerB.addListener(this.innerNode, t);
       if (this.state !== this.innerB.state) {
         this.changeStateDown(this.innerB.state);
@@ -331,7 +339,11 @@ class FlatMapBehavior<A, B> extends Behavior<B> {
         this.innerB.pull(t);
       }
     }
-    return this.innerB.last;
+    if (this.innerB === undefined) {
+      // panic!
+      throw new Error("FlatMapBehavior#innerB should be defined");
+    }
+    return __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.innerB);
   }
 }
 
@@ -373,7 +385,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
     }
   }
   pushS(t: number, _val: A): void {
-    this.last.resolve(this.parent.at(t), t);
+    __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this).resolve(this.parent.at(t), t);
     this.parents = cons(this.parent);
     this.changeStateDown(this.state);
     this.parent.addListener(this.node, t);
@@ -382,7 +394,7 @@ class SnapshotBehavior<A> extends Behavior<Future<A>> implements SListener<A> {
     if (this.future.state === State.Done) {
       return Future.of(this.parent.at(t));
     } else {
-      return this.last;
+      return __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this);
     }
   }
 }
@@ -454,7 +466,7 @@ class SwitcherBehavior<A> extends ActiveBehavior<A>
     next.addListener(this.nNode, t);
   }
   update(_t: Time): A {
-    return this.b.last;
+    return __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.b);
   }
   pushS(t: number, value: Behavior<A>): void {
     this.doSwitch(t, value);
@@ -676,7 +688,7 @@ export type SampleAt = <B>(b: Behavior<B>) => B;
 
 class MomentBehavior<A> extends Behavior<A> {
   private sampleBound: SampleAt;
-  private currentSampleTime: Time;
+  private currentSampleTime?: Time;
   constructor(private f: (at: SampleAt) => A) {
     super();
     this.sampleBound = (b) => this.sample(b);
@@ -723,10 +735,12 @@ class MomentBehavior<A> extends Behavior<A> {
   sample<B>(b: Behavior<B>): B {
     const node = new Node(this);
     this.listenerNodes = cons({ node, parent: b }, this.listenerNodes);
-    b.addListener(node, this.currentSampleTime);
-    b.at(this.currentSampleTime);
+    if (this.currentSampleTime !== undefined) {
+      b.addListener(node, this.currentSampleTime);
+      b.at(this.currentSampleTime);
+    }
     this.parents = cons(b, this.parents);
-    return b.last;
+    return __UNSAFE_GET_LAST_BEHAVIOR_VALUE(b);
   }
 }
 
@@ -752,7 +766,7 @@ class FormatBehavior extends Behavior<string> {
     let resultString = this.strings[0];
     for (let i = 0; i < this.behaviors.length; ++i) {
       const b = this.behaviors[i];
-      const value = isBehavior(b) ? b.last : b;
+      const value = isBehavior(b) ? __UNSAFE_GET_LAST_BEHAVIOR_VALUE(b) : b;
       resultString += value.toString() + this.strings[i + 1];
     }
     return resultString;
