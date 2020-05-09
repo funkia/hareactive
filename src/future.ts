@@ -1,10 +1,14 @@
-import { State, SListener, Parent, BListener, Time, __UNSAFE_GET_LAST_BEHAVIOR_VALUE } from "./common";
+import {
+  State,
+  SListener,
+  Parent,
+  BListener,
+  Time,
+  __UNSAFE_GET_LAST_BEHAVIOR_VALUE
+} from "./common";
 import { Reactive } from "./common";
 import { cons, fromArray, Node } from "./datastructures";
-import {
-  Behavior,
-  FunctionBehavior
-} from "./behavior";
+import { Behavior, FunctionBehavior } from "./behavior";
 import { tick } from "./clock";
 import { Stream } from "./stream";
 import { sample, Now } from "./now";
@@ -62,7 +66,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
     return new MapFuture(f, this);
   }
   mapTo<B>(b: B): Future<B> {
-    return new MapToFuture<B>(b, this);
+    return new MapToFuture(b, this);
   }
   // A future is an applicative. `of` gives a future that has always
   // occurred at all points in time.
@@ -121,8 +125,8 @@ export class MapFuture<A, B> extends Future<B> {
   }
 }
 
-export class MapToFuture<A> extends Future<A> {
-  constructor(public value: A, readonly parent: Future<unknown>) {
+export class MapToFuture<A, _> extends Future<A> {
+  constructor(public value: A, readonly parent: Future<_>) {
     super();
     this.parents = cons(parent);
   }
@@ -266,7 +270,9 @@ export class NextOccurrenceFuture<A> extends Future<A> implements SListener<A> {
 }
 
 export function nextOccurrenceFrom<A>(stream: Stream<A>): Behavior<Future<A>> {
-  return new FunctionBehavior((t: Time) => new NextOccurrenceFuture(stream, t));
+  return new FunctionBehavior<Future<A>>(
+    (t: Time) => new NextOccurrenceFuture(stream, t)
+  );
 }
 
 export function nextOccurrence<A>(stream: Stream<A>): Now<Future<A>> {

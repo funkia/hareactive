@@ -221,7 +221,7 @@ CombineStream.prototype.model = function<A, B>(this: CombineStream<A, B>) {
   return result;
 };
 
-SnapshotStream.prototype.model = function<B>(this: SnapshotStream<B>) {
+SnapshotStream.prototype.model = function<B, _>(this: SnapshotStream<B, _>) {
   return this.trigger
     .model()
     .map(({ time }) => occurrence(time, testAt(time, this.target)));
@@ -305,16 +305,14 @@ export function testStreamFromObject<A>(object: Record<string, A>): Stream<A> {
 export function assertStreamEqual<A>(s1: Stream<A>, s2: Stream<A>): void;
 export function assertStreamEqual<A>(
   s1: Stream<A>,
-  s2: {
-    [time: number]: A;
-  }
+  s2: Record<number, A>
 ): void;
 export function assertStreamEqual<A>(s1: Stream<A>, s2: ([Time, A])[]): void;
 export function assertStreamEqual<A>(
   s1: Stream<A>,
-  s2: Stream<A> | ([Time, A])[]
+  s2: Stream<A> | ([Time, A])[] | Record<number, A>
 ): void {
-  const s2_ = isStream(s2)
+  const s2_ = isStream<A>(s2)
     ? s2
     : Array.isArray(s2)
     ? testStreamFromArray(s2)

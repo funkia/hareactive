@@ -44,7 +44,9 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
     return scan(fn, startingValue, this);
   }
   scanFrom<B>(fn: (a: A, b: B) => B, startingValue: B): Behavior<Stream<B>> {
-    return fromFunction((t) => new ScanStream(fn, startingValue, this, t));
+    return fromFunction<Stream<B>>(
+      (t) => new ScanStream(fn, startingValue, this, t)
+    );
   }
   accum<B>(fn: (a: A, b: B) => B, init: B): Now<Behavior<B>> {
     return accum(fn, init, this);
@@ -309,7 +311,7 @@ export function changes<A>(
 export class CombineStream<A, B> extends Stream<A | B> {
   constructor(readonly s1: Stream<A>, readonly s2: Stream<B>) {
     super();
-    this.parents = cons<Stream<A | B>>(s1, cons(s2));
+    this.parents = cons<Stream<A> | Stream<B>>(s1, cons(s2));
   }
   pushS(t: number, a: A | B): void {
     this.pushSToChildren(t, a);
@@ -387,9 +389,9 @@ export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
   stream.subscribe(fn);
 }
 
-export class SnapshotStream<B> extends Stream<B> {
+export class SnapshotStream<B, _> extends Stream<B> {
   private node: Node<this> = new Node(this);
-  constructor(readonly target: Behavior<B>, readonly trigger: Stream<unknown>) {
+  constructor(readonly target: Behavior<B>, readonly trigger: Stream<_>) {
     super();
     this.parents = cons(trigger);
   }
@@ -405,9 +407,9 @@ export class SnapshotStream<B> extends Stream<B> {
   }
 }
 
-export function snapshot<B>(
+export function snapshot<B, _>(
   target: Behavior<B>,
-  trigger: Stream<unknown>
+  trigger: Stream<_>
 ): Stream<B> {
   return new SnapshotStream(target, trigger);
 }
@@ -458,7 +460,7 @@ export function selfie<A>(stream: Stream<Behavior<A>>): Stream<A> {
   return new SelfieStream(stream);
 }
 
-export function isStream(s: unknown): s is Stream<unknown> {
+export function isStream<A>(s: unknown): s is Stream<A> {
   return typeof s === "object" && s !== null && "scanFrom" in s;
 }
 

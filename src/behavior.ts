@@ -1,25 +1,9 @@
-import {
-  Cons,
-  cons,
-  DoubleLinkedList,
-  fromArray,
-  nil,
-  Node
-} from "./datastructures";
-import {
-  __UNSAFE_GET_LAST_BEHAVIOR_VALUE,
-  combine,
-  isPlaceholder
-} from "./index";
+import { Cons, cons, DoubleLinkedList, fromArray, nil, Node } from "./datastructures";
+import { __UNSAFE_GET_LAST_BEHAVIOR_VALUE, combine, isPlaceholder } from "./index";
 import { BListener, Parent, Reactive, SListener, State, Time } from "./common";
 import * as F from "./future";
 import { BehaviorFuture, Future } from "./future";
-import {
-  FlatFutures,
-  FlatFuturesLatest,
-  FlatFuturesOrdered,
-  Stream
-} from "./stream";
+import { FlatFutures, FlatFuturesLatest, FlatFuturesOrdered, Stream } from "./stream";
 import { getTime, tick } from "./clock";
 import { Now, sample } from "./now";
 
@@ -137,7 +121,7 @@ export abstract class Behavior<A> extends Reactive<A, BListener>
   }
 }
 
-export function pushToChildren(t: number, b: Behavior<unknown>): void {
+export function pushToChildren<_>(t: number, b: Behavior<_>): void {
   for (const child of b.children) {
     child.pushB(t);
   }
@@ -267,7 +251,7 @@ export class MapBehavior<A, B> extends Behavior<B> {
 class ApBehavior<A, B> extends Behavior<B> {
   constructor(private fn: Behavior<(a: A) => B>, private val: Behavior<A>) {
     super();
-    this.parents = cons<Behavior<((a: A) => B) | A>>(fn, cons(val));
+    this.parents = cons<Behavior<(a: A) => B> | Behavior<A>>(fn, cons(val));
   }
   update(_t: number): B {
     return __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.fn)(
@@ -348,23 +332,23 @@ class FlatMapBehavior<A, B> extends Behavior<B> {
 }
 
 /** @private */
-class WhenBehavior extends Behavior<Future<{}>> {
+class WhenBehavior extends Behavior<Future<boolean>> {
   constructor(private parent: Behavior<boolean>) {
     super();
     this.parents = cons(parent);
   }
-  update(_t: number): Future<{}> {
+  update(_t: number): Future<boolean> {
     return this.parent.last === true
-      ? Future.of({})
+      ? Future.of<boolean>(true)
       : new BehaviorFuture(this.parent);
   }
 }
 
-export function whenFrom(b: Behavior<boolean>): Behavior<Future<{}>> {
+export function whenFrom(b: Behavior<boolean>): Behavior<Future<boolean>> {
   return new WhenBehavior(b);
 }
 
-export function when(b: Behavior<boolean>): Now<Future<{}>> {
+export function when(b: Behavior<boolean>): Now<Future<boolean>> {
   return sample(whenFrom(b));
 }
 
@@ -512,7 +496,9 @@ export function switcherFrom<A>(
   init: Behavior<A>,
   stream: Stream<Behavior<A>>
 ): Behavior<Behavior<A>> {
-  return fromFunction((t) => new SwitcherBehavior(init, stream, t));
+  return fromFunction<Behavior<A>>(
+    (t) => new SwitcherBehavior(init, stream, t)
+  );
 }
 
 export function switcher<A>(
@@ -662,10 +648,10 @@ export function stepper<B>(initial: B, steps: Stream<B>): Now<Behavior<B>> {
  * @param turnOn the streams that turn the behavior on
  * @param turnOff the streams that turn the behavior off
  */
-export function toggleFrom(
+export function toggleFrom<A, B>(
   initial: boolean,
-  turnOn: Stream<unknown>,
-  turnOff: Stream<unknown>
+  turnOn: Stream<A>,
+  turnOff: Stream<B>
 ): Behavior<Behavior<boolean>> {
   return stepperFrom(initial, turnOn.mapTo(true).combine(turnOff.mapTo(false)));
 }
@@ -676,10 +662,10 @@ export function toggleFrom(
  * @param turnOn the streams that turn the behavior on
  * @param turnOff the streams that turn the behavior off
  */
-export function toggle(
+export function toggle<A, B>(
   initial: boolean,
-  turnOn: Stream<unknown>,
-  turnOff: Stream<unknown>
+  turnOn: Stream<A>,
+  turnOff: Stream<B>
 ): Now<Behavior<boolean>> {
   return sample(toggleFrom(initial, turnOn, turnOff));
 }
@@ -756,7 +742,7 @@ class FormatBehavior extends Behavior<string> {
     super();
     let parents: Cons<Behavior<string | number>> = nil;
     for (const b of behaviors) {
-      if (isBehavior(b)) {
+      if (isBehavior<string | number>(b)) {
         parents = cons(b, parents);
       }
     }
@@ -766,7 +752,9 @@ class FormatBehavior extends Behavior<string> {
     let resultString = this.strings[0];
     for (let i = 0; i < this.behaviors.length; ++i) {
       const b = this.behaviors[i];
-      const value = isBehavior(b) ? __UNSAFE_GET_LAST_BEHAVIOR_VALUE(b) : b;
+      const value = isBehavior<string | number>(b)
+        ? __UNSAFE_GET_LAST_BEHAVIOR_VALUE(b)
+        : b;
       resultString += value.toString() + this.strings[i + 1];
     }
     return resultString;
@@ -790,7 +778,8 @@ export function flatFutures<A>(stream: Stream<Future<A>>): Now<Stream<A>> {
 
 export const flatFuturesOrderedFrom = <A>(
   stream: Stream<Future<A>>
-): Behavior<Stream<A>> => fromFunction(() => new FlatFuturesOrdered(stream));
+): Behavior<Stream<A>> =>
+  fromFunction<Stream<A>>(() => new FlatFuturesOrdered(stream));
 
 export function flatFuturesOrdered<A>(
   stream: Stream<Future<A>>
@@ -800,7 +789,8 @@ export function flatFuturesOrdered<A>(
 
 export const flatFuturesLatestFrom = <A>(
   stream: Stream<Future<A>>
-): Behavior<Stream<A>> => fromFunction(() => new FlatFuturesLatest(stream));
+): Behavior<Stream<A>> =>
+  fromFunction<Stream<A>>(() => new FlatFuturesLatest(stream));
 
 export function flatFuturesLatest<A>(
   stream: Stream<Future<A>>

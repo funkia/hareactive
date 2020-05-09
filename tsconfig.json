@@ -9,7 +9,9 @@
     "skipLibCheck": true,
     "lib": ["dom", "es5", "es2015", "es2019"],
     "strictNullChecks": true,
-    "strictPropertyInitialization": true
+    "strictPropertyInitialization": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true
   },
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules"]

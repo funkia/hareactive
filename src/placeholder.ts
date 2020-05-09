@@ -10,9 +10,9 @@ import { Stream, MapToStream } from "./stream";
 import { tick } from "./clock";
 import { Future } from "./future";
 
-class SamplePlaceholderError {
+class SamplePlaceholderError<A> {
   message = "Attempt to sample non-replaced placeholder";
-  constructor(public placeholder: Placeholder<unknown>) {}
+  constructor(public placeholder: Placeholder<A>) {}
   toString(): string {
     return this.message;
   }

@@ -123,5 +123,5 @@ export function integrate(behavior: Behavior<number>): Now<Behavior<number>> {
 export function integrateFrom(
   behavior: Behavior<number>
 ): Behavior<Behavior<number>> {
-  return fromFunction((t) => new IntegrateBehavior(behavior, t));
+  return fromFunction<Behavior<number>>((t) => new IntegrateBehavior(behavior, t));
 }
