@@ -74,7 +74,7 @@ export function doesOccur<A>(
 CombineFuture.prototype.model = function() {
   const a = this.parentA.model();
   const b = this.parentB.model();
-  return a.time <= b.time ? a : b;
+  return doesOccur(a) && (!doesOccur(b) || a.time <= b.time) ? a : b;
 };
 
 MapFuture.prototype.model = function() {

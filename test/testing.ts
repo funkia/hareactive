@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import * as H from "../src";
-import { Behavior, Stream, Now } from "../src";
+import { Behavior, Stream, never, Now } from "../src";
 import {
   testFuture,
   assertFutureEqual,
@@ -43,6 +43,20 @@ describe("testing", () => {
         const fut2 = testFuture(3, "bar");
         const res = H.combine(fut1, fut2);
         assertFutureEqual(res, fut2);
+      });
+      it("gives first future if only resolved", () => {
+        const fut1 = testFuture(4, "foo");
+        const res = H.combine(fut1, never);
+        assertFutureEqual(res, fut1);
+      });
+      it("gives second future if only resolved", () => {
+        const fut2 = testFuture(3, "bar");
+        const res = H.combine(never, fut2);
+        assertFutureEqual(res, fut2);
+      });
+      it("gives never if none resolved", () => {
+        const res = H.combine(never, never);
+        assertFutureEqual(res, never);
       });
     });
     describe("functor", () => {
