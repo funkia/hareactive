@@ -51,7 +51,9 @@ class DebounceStream<A> extends Stream<A> {
   }
   private timer: NodeJS.Timeout | undefined = undefined;
   pushS(t: number, a: A): void {
-    clearTimeout(this.timer);
+    if (this.timer !== undefined) {
+      clearTimeout(this.timer);
+    }
     this.timer = setTimeout(() => {
       this.pushSToChildren(t, a);
     }, this.ms);

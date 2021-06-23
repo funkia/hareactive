@@ -73,7 +73,7 @@ export class Placeholder<A> extends Behavior<A> {
 }
 
 export function isPlaceholder<A>(p: unknown): p is Placeholder<A> {
-  return typeof p === "object" && "replaceWith" in p;
+  return typeof p === "object" && p !== null && "replaceWith" in p;
 }
 
 class MapPlaceholder<A, B> extends MapBehavior<A, B> {

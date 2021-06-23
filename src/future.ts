@@ -88,7 +88,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
 }
 
 export function isFuture(a: unknown): a is Future<unknown> {
-  return typeof a === "object" && "resolve" in a;
+  return typeof a === "object" && a !== null && "resolve" in a;
 }
 
 export class CombineFuture<A> extends Future<A> {

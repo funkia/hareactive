@@ -448,7 +448,7 @@ export function selfie<A>(stream: Stream<Behavior<A>>): Stream<A> {
 }
 
 export function isStream(s: unknown): s is Stream<unknown> {
-  return typeof s === "object" && "scanFrom" in s;
+  return typeof s === "object" && s !== null && "scanFrom" in s;
 }
 
 class PerformCbStream<A, B> extends ActiveStream<B> implements SListener<A> {
@@ -509,11 +509,12 @@ export class FlatFuturesOrdered<A> extends Stream<A> {
     });
   }
   pushFromBuffer(): void {
-    while (this.buffer[0] !== undefined) {
+    let a = this.buffer.shift();
+    while (a !== undefined) {
       const t = tick();
-      const { value } = this.buffer.shift();
-      this.pushSToChildren(t, value);
+      this.pushSToChildren(t, a.value);
       this.next++;
+      a = this.buffer.shift();
     }
   }
 }

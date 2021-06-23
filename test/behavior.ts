@@ -18,13 +18,22 @@ import {
   Stream,
   time,
   runNow,
-  Time
+  Time,
+  SinkBehavior
 } from "../src";
 
 import * as H from "../src";
 
 import { subscribeSpy } from "./helpers";
 import { placeholder } from "../src/placeholder";
+import { MonadDictionary } from "@funkia/jabz/dist/monad";
+
+declare module "@funkia/jabz" {
+  export function go<T, TReturn, TYield>(
+    gen: () => Generator<T, TReturn, TYield>,
+    monad?: MonadDictionary
+  ): any; // sorry
+}
 
 function double(n: number): number {
   return n * 2;
@@ -95,7 +104,7 @@ describe("behavior", () => {
     });
     it("can push and pull", () => {
       let variable = 0;
-      let push: (t: Time) => void;
+      let push: undefined | ((t: Time) => void);
       const setVar = (n: number) => {
         variable = n;
         if (push !== undefined) {
@@ -257,20 +266,22 @@ describe("behavior", () => {
         const numE = H.fromFunction(() => n);
         const applied = H.ap(fnB, numE);
         const cb = spy();
-        let pull: () => void;
+        let pull: (() => void) | undefined;
         applied.observe(cb, (pull_) => {
           pull = pull_;
           return () => {};
         });
-        pull();
-        push(add(2), fnB);
-        pull();
-        n = 4;
-        pull();
-        push(double, fnB);
-        pull();
-        n = 8;
-        pull();
+        if (pull !== undefined) {
+          pull();
+          push(add(2), fnB);
+          pull();
+          n = 4;
+          pull();
+          push(double, fnB);
+          pull();
+          n = 8;
+          pull();
+        }
         assert.deepEqual(cb.args, [[6], [3], [6], [8], [16]]);
       });
     });
@@ -389,13 +400,12 @@ describe("behavior", () => {
       const inner1 = sinkBehavior(1);
       const inner2 = sinkBehavior(3);
       const b = outer.flatMap((n) => {
-        if (n === 0) {
-          return Behavior.of(0);
-        } else if (n === 1) {
+        if (n === 1) {
           return inner1;
         } else if (n === 2) {
           return inner2;
         }
+        return Behavior.of(0);
       });
       b.observe(() => {}, () => () => {});
       assert.strictEqual(at(b), 0);
@@ -444,8 +454,12 @@ describe("behavior", () => {
     });
     it("works with go-notation", () => {
       const a = H.sinkBehavior(1);
-      const b = go(function*(): IterableIterator<any> {
-        const val: number = yield a;
+      const b: SinkBehavior<unknown> = go(function*(): Generator<
+        SinkBehavior<number>,
+        number,
+        number
+      > {
+        const val = yield a;
         return val * 2;
       });
       const cb = spy();
@@ -624,7 +638,7 @@ describe("Behavior and Future", () => {
   });
   describe("snapshotAt", () => {
     it("snapshots behavior at future occurring in future", () => {
-      let result: number;
+      let result: number | undefined = undefined;
       const bSink = sinkBehavior(1);
       const futureSink = H.sinkFuture();
       const mySnapshot = at(H.snapshotAt(bSink, futureSink));
@@ -636,7 +650,7 @@ describe("Behavior and Future", () => {
       assert.strictEqual(result, 3);
     });
     it("uses current value when future occurred in the past", () => {
-      let result: number;
+      let result: number | undefined = undefined;
       const bSink = sinkBehavior(1);
       const occurredFuture = H.Future.of({});
       bSink.push(2);
@@ -935,7 +949,7 @@ describe("Behavior and Stream", () => {
       const outer = sinkBehavior<Behavior<number>>(pushingB);
       const flattened = H.flat(outer);
       const pushSpy = spy();
-      let pull: () => void;
+      let pull: undefined | (() => void);
       const handlePulling = (p: () => void): (() => void) => {
         pull = p;
         return () => undefined;
@@ -943,11 +957,13 @@ describe("Behavior and Stream", () => {
       flattened.observe(pushSpy, handlePulling);
       outer.push(pullingB);
       variable = 1;
-      pull();
-      variable = 2;
-      pull();
-      variable = 3;
-      pull();
+      if (pull !== undefined) {
+        pull();
+        variable = 2;
+        pull();
+        variable = 3;
+        pull();
+      }
       assert.deepEqual(pushSpy.args, [[0], [1], [2], [3]]);
     });
   });

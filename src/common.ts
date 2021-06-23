@@ -5,7 +5,7 @@ import { tick } from "./clock";
 export type Time = number;
 
 function isBehavior(b: unknown): b is Behavior<unknown> {
-  return typeof b === "object" && "at" in b;
+  return typeof b === "object" && b !== null && "at" in b;
 }
 
 export type PullHandler = (pull: (t?: number) => void) => () => void;
@@ -135,18 +135,22 @@ export abstract class Reactive<A, C extends Child> implements Child {
 }
 
 export class CbObserver<A> implements BListener, SListener<A> {
-  private endPulling: () => void;
+  private endPulling?: () => void;
   node: Node<CbObserver<A>> = new Node(this);
   constructor(
     private callback: (a: A) => void,
     readonly handlePulling: PullHandler,
-    private time: Time,
+    private time: Time | undefined,
     readonly source: ParentBehavior<A>
   ) {
     source.addListener(this.node, tick());
     if (source.state === State.Pull) {
       this.endPulling = handlePulling(this.pull.bind(this));
-    } else if (isBehavior(source) && source.state === State.Push) {
+    } else if (
+      isBehavior(source) &&
+      source.state === State.Push &&
+      source.last !== undefined
+    ) {
       callback(source.last);
     }
     this.time = undefined;
@@ -156,7 +160,9 @@ export class CbObserver<A> implements BListener, SListener<A> {
       time !== undefined ? time : this.time !== undefined ? this.time : tick();
     if (isBehavior(this.source) && this.source.state === State.Pull) {
       this.source.pull(t);
-      this.callback(this.source.last);
+      if (this.source.last !== undefined) {
+        this.callback(this.source.last);
+      }
     }
   }
   pushB(_t: number): void {
