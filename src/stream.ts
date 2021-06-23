@@ -1,4 +1,12 @@
-import { Reactive, State, Time, SListener, Parent, BListener } from "./common";
+import {
+  Reactive,
+  State,
+  Time,
+  SListener,
+  Parent,
+  BListener,
+  __UNSAFE_GET_LAST_BEHAVIOR_VALUE
+} from "./common";
 import { cons, Node, DoubleLinkedList } from "./datastructures";
 import {
   Behavior,
@@ -19,11 +27,7 @@ import { Future } from ".";
  */
 export abstract class Stream<A> extends Reactive<A, SListener<A>>
   implements Parent<SListener<unknown>> {
-  constructor() {
-    super();
-  }
   children: DoubleLinkedList<SListener<A>> = new DoubleLinkedList();
-  state: State;
   combine<B>(stream: Stream<B>): Stream<A | B> {
     return new CombineStream(stream, this);
   }
@@ -40,7 +44,9 @@ export abstract class Stream<A> extends Reactive<A, SListener<A>>
     return scan(fn, startingValue, this);
   }
   scanFrom<B>(fn: (a: A, b: B) => B, startingValue: B): Behavior<Stream<B>> {
-    return fromFunction((t) => new ScanStream(fn, startingValue, this, t));
+    return fromFunction<Stream<B>>(
+      (t) => new ScanStream(fn, startingValue, this, t)
+    );
   }
   accum<B>(fn: (a: A, b: B) => B, init: B): Now<Behavior<B>> {
     return accum(fn, init, this);
@@ -201,23 +207,25 @@ export function scan<A, B>(
 class ShiftBehaviorStream<A> extends Stream<A> implements BListener {
   private bNode: Node<this> = new Node(this);
   private sNode: Node<this> = new Node(this);
-  private currentSource: Stream<A>;
+  private currentSource?: Stream<A>;
   constructor(private b: Behavior<Stream<A>>) {
     super();
   }
   activate(t: number): void {
     this.b.addListener(this.bNode, t);
     if (this.b.state !== State.Inactive) {
-      this.currentSource = this.b.last;
+      this.currentSource = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.b);
       this.currentSource.addListener(this.sNode, t);
     }
   }
   deactivate(): void {
     this.b.removeListener(this.bNode);
-    this.currentSource.removeListener(this.sNode);
+    if (this.currentSource !== undefined) {
+      this.currentSource.removeListener(this.sNode);
+    }
   }
   pushB(t: number): void {
-    const newStream = this.b.last;
+    const newStream = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.b);
     if (this.currentSource !== undefined) {
       this.currentSource.removeListener(this.sNode);
     }
@@ -254,7 +262,7 @@ export function shiftFrom<A>(s: Stream<Stream<A>>): Behavior<Stream<A>> {
 }
 
 class ChangesStream<A> extends Stream<A> implements BListener {
-  last: A;
+  last?: A;
   initialized: boolean;
   constructor(
     readonly parent: Behavior<A>,
@@ -269,17 +277,20 @@ class ChangesStream<A> extends Stream<A> implements BListener {
     // The parent may be an unreplaced placeholder and in that case
     // we can't read its current value.
     if (this.parent.state === State.Push) {
-      this.last = this.parent.last;
+      this.last = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.parent);
       this.initialized = true;
     }
   }
   pushB(t: number): void {
     if (!this.initialized) {
       this.initialized = true;
-      this.last = this.parent.last;
-    } else if (!this.comparator(this.last, this.parent.last)) {
-      this.pushSToChildren(t, this.parent.last);
-      this.last = this.parent.last;
+      this.last = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.parent);
+    } else {
+      const parentLast = __UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.parent);
+      if (this.last !== undefined && !this.comparator(this.last, parentLast)) {
+        this.pushSToChildren(t, parentLast);
+        this.last = parentLast;
+      }
     }
   }
   pushS(_t: number, _a: A): void {}
@@ -300,7 +311,7 @@ export function changes<A>(
 export class CombineStream<A, B> extends Stream<A | B> {
   constructor(readonly s1: Stream<A>, readonly s2: Stream<B>) {
     super();
-    this.parents = cons<Stream<A | B>>(s1, cons(s2));
+    this.parents = cons<Stream<A> | Stream<B>>(s1, cons(s2));
   }
   pushS(t: number, a: A | B): void {
     this.pushSToChildren(t, a);
@@ -325,7 +336,7 @@ class ProducerStreamFromFunction<A> extends ProducerStream<A> {
   constructor(private activateFn: ProducerStreamFunction<A>) {
     super();
   }
-  deactivateFn: () => void;
+  deactivateFn?: () => void;
   publish(a: A, t: number = tick()): void {
     this.pushS(t, a);
   }
@@ -335,7 +346,9 @@ class ProducerStreamFromFunction<A> extends ProducerStream<A> {
   }
   deactivate(): void {
     this.state = State.Inactive;
-    this.deactivateFn();
+    if (this.deactivateFn !== undefined) {
+      this.deactivateFn();
+    }
   }
 }
 
@@ -376,9 +389,9 @@ export function subscribe<A>(fn: (a: A) => void, stream: Stream<A>): void {
   stream.subscribe(fn);
 }
 
-export class SnapshotStream<B> extends Stream<B> {
+export class SnapshotStream<B, _> extends Stream<B> {
   private node: Node<this> = new Node(this);
-  constructor(readonly target: Behavior<B>, readonly trigger: Stream<unknown>) {
+  constructor(readonly target: Behavior<B>, readonly trigger: Stream<_>) {
     super();
     this.parents = cons(trigger);
   }
@@ -394,9 +407,9 @@ export class SnapshotStream<B> extends Stream<B> {
   }
 }
 
-export function snapshot<B>(
+export function snapshot<B, _>(
   target: Behavior<B>,
-  trigger: Stream<unknown>
+  trigger: Stream<_>
 ): Stream<B> {
   return new SnapshotStream(target, trigger);
 }
@@ -447,8 +460,8 @@ export function selfie<A>(stream: Stream<Behavior<A>>): Stream<A> {
   return new SelfieStream(stream);
 }
 
-export function isStream(s: unknown): s is Stream<unknown> {
-  return typeof s === "object" && "scanFrom" in s;
+export function isStream<A>(s: unknown): s is Stream<A> {
+  return typeof s === "object" && s !== null && "scanFrom" in s;
 }
 
 class PerformCbStream<A, B> extends ActiveStream<B> implements SListener<A> {
@@ -509,11 +522,12 @@ export class FlatFuturesOrdered<A> extends Stream<A> {
     });
   }
   pushFromBuffer(): void {
-    while (this.buffer[0] !== undefined) {
+    let a = this.buffer.shift();
+    while (a !== undefined) {
       const t = tick();
-      const { value } = this.buffer.shift();
-      this.pushSToChildren(t, value);
+      this.pushSToChildren(t, a.value);
       this.next++;
+      a = this.buffer.shift();
     }
   }
 }

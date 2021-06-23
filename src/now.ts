@@ -137,7 +137,7 @@ export class PerformMapNow<A, B> extends Now<Stream<B> | Future<B>> {
     super();
   }
   run(): Stream<B> | Future<B> {
-    return isStream(this.s)
+    return isStream<A>(this.s)
       ? mapCbStream((value, done) => done(this.cb(value)), this.s)
       : mapCbFuture((value, done) => done(this.cb(value)), this.s);
   }
@@ -153,7 +153,7 @@ export function performMap<A, B>(
   s: Stream<A> | Future<A>
 ): Now<Stream<B> | Future<B>> {
   return perform(() =>
-    isStream(s)
+    isStream<A>(s)
       ? mapCbStream((value, done) => done(cb(value)), s)
       : mapCbFuture((value, done) => done(cb(value)), s)
   );

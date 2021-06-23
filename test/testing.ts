@@ -10,11 +10,42 @@ import {
   assertStreamEqual,
   testBehavior,
   testNow,
-  assertBehaviorEqual
+  assertBehaviorEqual,
+  neverOccurringFuture,
+  occurrence
 } from "../src/testing";
 import { createRef, mutateRef } from "./helpers";
 import { fgo } from "@funkia/jabz";
 import { withEffects } from "@funkia/io";
+import { MonadDictionary } from "@funkia/jabz/dist/monad";
+import { F1, F2, F3, F4, F5 } from "@funkia/jabz/dist/utils";
+
+declare module "@funkia/jabz" {
+  export function fgo<A, T, TReturn, TYield>(
+    gen: (a: A) => Generator<T, TReturn, TYield>,
+    monad?: MonadDictionary
+  ): F1<A, any>;
+  export function fgo<A, B, T, TReturn, TYield>(
+    gen: (a: A, b: B) => Generator<T, TReturn, TYield>,
+    monad?: MonadDictionary
+  ): F2<A, B, any>;
+  export function fgo<A, B, C, T, TReturn, TYield>(
+    gen: (a: A, b: B, c: C) => Generator<T, TReturn, TYield>,
+    monad?: MonadDictionary
+  ): F3<A, B, C, any>;
+  export function fgo<A, B, C, D, T, TReturn, TYield>(
+    gen: (a: A, b: B, c: C, d: D) => Generator<T, TReturn, TYield>,
+    monad?: MonadDictionary
+  ): F4<A, B, C, D, any>;
+  export function fgo<A, B, C, D, E, T, TReturn, TYield>(
+    gen: (a: A, b: B, c: C, d: D, e: E) => Generator<T, TReturn, TYield>,
+    monad?: MonadDictionary
+  ): F5<A, B, C, D, E, any>;
+  export function fgo(
+    gen: (...a: any[]) => Generator<any, any, any>,
+    monad?: MonadDictionary
+  ): any;
+}
 
 describe("testing", () => {
   describe("future", () => {
@@ -59,7 +90,7 @@ describe("testing", () => {
     });
     describe("never", () => {
       it("never occurs", () => {
-        assert.strictEqual(H.never.model().time, "infinity");
+        assert.strictEqual(H.never.model(), neverOccurringFuture);
       });
     });
     describe("lift", () => {
@@ -110,10 +141,10 @@ describe("testing", () => {
       it("creates test stream with increasing times from array", () => {
         const s = testStreamFromArray([[0, 0], [1, 1], [2, 2], [3, 3]]);
         assert.deepEqual(s.model(), [
-          { value: 0, time: 0 },
-          { value: 1, time: 1 },
-          { value: 2, time: 2 },
-          { value: 3, time: 3 }
+          occurrence(0, 0),
+          occurrence(1, 1),
+          occurrence(2, 2),
+          occurrence(3, 3)
         ]);
       });
       it("creates test stream from object", () => {
@@ -123,9 +154,9 @@ describe("testing", () => {
           5.5: "three"
         });
         assert.deepEqual(s.model(), [
-          { value: "one", time: 2 },
-          { value: "two", time: 4 },
-          { value: "three", time: 5.5 }
+          occurrence(2, "one"),
+          occurrence(4, "two"),
+          occurrence(5.5, "three")
         ]);
       });
     });
@@ -156,11 +187,11 @@ describe("testing", () => {
         const s2 = testStreamFromObject({ 1: "#2", 2: "#4", 3: "#5" });
         const combined = s2.combine(s1);
         assert.deepEqual(combined.model(), [
-          { time: 0, value: "#1" },
-          { time: 1, value: "#2" },
-          { time: 2, value: "#3" },
-          { time: 2, value: "#4" },
-          { time: 3, value: "#5" }
+          occurrence(0, "#1"),
+          occurrence(1, "#2"),
+          occurrence(2, "#3"),
+          occurrence(2, "#4"),
+          occurrence(3, "#5")
         ]);
       });
     });
@@ -344,7 +375,7 @@ describe("testing", () => {
         const ref1 = createRef(1);
         const comp = H.performIO(mutateRef(2, ref1));
         const result = testNow(comp, [testFuture(0, "foo")]);
-        assert(result.model().value, "foo");
+        assert.deepStrictEqual(result.model(), occurrence(0, "foo"));
       });
     });
     describe("sample", () => {
@@ -370,6 +401,9 @@ describe("testing", () => {
     describe("performStream", () => {
       it("can be tested", () => {
         const requests: number[] = [];
+        interface Foo {
+          readonly click: Stream<unknown>;
+        }
         const model = fgo(function*({ click }) {
           const request = click.mapTo(
             withEffects((n: number) => {

@@ -24,7 +24,7 @@ import { createTestProducerBehavior } from "./helpers";
 describe("placeholder", () => {
   describe("behavior", () => {
     it("subscribers are notified when placeholder is replaced", () => {
-      let result: number;
+      let result: number | undefined;
       const p = placeholder<string>();
       const mapped = p.map((s) => s.length);
       mapped.subscribe((n: number) => (result = n));
@@ -32,7 +32,7 @@ describe("placeholder", () => {
       assert.strictEqual(result, 5);
     });
     it("subscribers are notified when placeholder is replaced 2", () => {
-      let result: string;
+      let result: string | undefined;
       const p = placeholder<string>();
       p.subscribe((s) => (result = s));
       p.replaceWith(Behavior.of("Hello"));
@@ -86,7 +86,7 @@ describe("placeholder", () => {
       const mapResult: unknown[] = [];
       const pm = p.map((n) => (mapResult.push(n), n));
       const result: Array<number> = [];
-      let pull: (t?: number) => void;
+      let pull: ((t?: number) => void) | undefined;
       observe(
         (a) => {
           result.push(a);
@@ -100,11 +100,13 @@ describe("placeholder", () => {
         pm
       );
       p.replaceWith(b);
-      pull();
-      variable = 1;
-      pull();
-      variable = 2;
-      pull();
+      if (pull !== undefined) {
+        pull();
+        variable = 1;
+        pull();
+        variable = 2;
+        pull();
+      }
       assert.deepEqual(result, [0, 1, 2], "result");
       assert.deepEqual(mapResult, [0, 1, 2], "mapResult");
     });
@@ -192,7 +194,7 @@ describe("placeholder", () => {
       const change = sum.map((_) => 1);
       const sum2 = H.at(H.switcherFrom(H.at(H.integrateFrom(change)), H.empty));
       const results: unknown[] = [];
-      let pull: () => void;
+      let pull: (() => void) | undefined;
       observe(
         (n: number) => results.push(n),
         (p) => {
@@ -202,11 +204,13 @@ describe("placeholder", () => {
         sum
       );
       sum.replaceWith(sum2);
-      pull();
-      setTime(4000);
-      pull();
-      setTime(7000);
-      pull();
+      if (pull !== undefined) {
+        pull();
+        setTime(4000);
+        pull();
+        setTime(7000);
+        pull();
+      }
       assert.deepEqual(results, [0, 2000, 5000]);
       restore();
     });
@@ -373,14 +377,14 @@ describe("placeholder", () => {
       assert.isTrue(H.isFuture(placeholder()));
     });
     it("subscribers are notified when replaced with occurred future", () => {
-      let result: string;
+      let result: string | undefined;
       const p = placeholder<string>();
       p.subscribe((n: string) => (result = n));
       p.replaceWith(H.Future.of("Hello"));
       assert.strictEqual(result, "Hello");
     });
     it("subscribers are notified when placeholder has been replaced", () => {
-      let result: string;
+      let result: string | undefined;
       const p = placeholder<string>();
       p.replaceWith(H.Future.of("Hello"));
       p.subscribe((n: string) => (result = n));

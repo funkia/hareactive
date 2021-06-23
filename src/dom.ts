@@ -12,7 +12,7 @@ class DomEventStream<A> extends ProducerStream<A> {
   constructor(
     private target: EventTarget,
     private eventName: string,
-    private extractor: Extractor<unknown, EventTarget, A>
+    private extractor: Extractor<Event, EventTarget, A>
   ) {
     super();
   }
@@ -66,8 +66,8 @@ export function streamFromEvent<A>(
 export function streamFromEvent<A>(
   target: EventTarget,
   eventName: string,
-  extractor: Extractor<A, EventTarget, A> = id
-): Stream<A> {
+  extractor: Extractor<Event, EventTarget, Event> = id
+): Stream<Event> {
   return new DomEventStream(target, eventName, extractor);
 }
 
