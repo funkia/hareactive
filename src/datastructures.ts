@@ -1,24 +1,39 @@
-export class Cons<A> {
-  constructor(
-    public readonly value: A,
-    public readonly tail: Cons<A>,
-    public readonly isNil: boolean
-  ) {}
-  *[Symbol.iterator](): IterableIterator<A> {
-    let head: Cons<A> = this;
-    while (head.isNil === false) {
-      const v = head.value;
-      head = head.tail;
-      yield v;
-    }
+export interface ConsNil {
+  readonly isNil: true;
+  [Symbol.iterator](): Generator<never, void, undefined>;
+}
+
+export interface ConsValue<A> {
+  readonly isNil: false;
+  readonly value: A;
+  readonly tail: Cons<A>;
+  [Symbol.iterator](): Generator<A, void, undefined>;
+}
+
+export type Cons<A> = ConsNil | ConsValue<A>;
+
+function* generator<A>(this: Cons<A>) {
+  let head: Cons<A> = this;
+  while (!head.isNil) {
+    const v = head.value;
+    head = head.tail;
+    yield v;
   }
 }
 
-export const nil: Cons<undefined> = new Cons(undefined, undefined, true);
+export const nil: Cons<never> = {
+  isNil: true,
+  [Symbol.iterator]: generator
+};
 
-export function cons<A>(value: A, tail: Cons<A> = nil): Cons<A> {
-  return new Cons(value, tail, false);
-}
+export const cons = <A>(value: A, tail: Cons<A> = nil): Cons<A> => {
+  return {
+    isNil: false,
+    value,
+    tail,
+    [Symbol.iterator]: generator
+  };
+};
 
 export function fromArray<A>(values: A[]): Cons<A> {
   let list = cons(values[0]);

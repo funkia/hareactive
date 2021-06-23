@@ -1,13 +1,23 @@
-import { State, SListener, Parent, BListener, Time } from "./common";
+import { State, SListener, Parent, BListener, Time, __UNSAFE_GET_LAST_BEHAVIOR_VALUE } from "./common";
 import { Reactive } from "./common";
 import { cons, fromArray, Node } from "./datastructures";
-import { Behavior, FunctionBehavior } from "./behavior";
+import {
+  Behavior,
+  FunctionBehavior
+} from "./behavior";
 import { tick } from "./clock";
 import { Stream } from "./stream";
 import { sample, Now } from "./now";
 
 export type MapFutureTuple<A> = { [K in keyof A]: Future<A[K]> };
 
+const __UNSAFE_GET_LAST_FUTURE_VALUE = <A>(f: Future<A>): A => {
+  if (f.value === undefined) {
+    // panic!
+    throw new Error("Future#value should be defined");
+  }
+  return f.value;
+};
 /**
  * A future is a thing that occurs at some point in time with a value.
  * It can be understood as a pair consisting of the time the future
@@ -17,7 +27,7 @@ export type MapFutureTuple<A> = { [K in keyof A]: Future<A[K]> };
 export abstract class Future<A> extends Reactive<A, SListener<A>>
   implements Parent<SListener<unknown>> {
   // The value of the future. Often `undefined` until occurrence.
-  value: A;
+  value?: A;
   constructor() {
     super();
   }
@@ -37,7 +47,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
   }
   addListener(node: Node<SListener<A>>, t: number): State {
     if (this.state === State.Done) {
-      node.value.pushS(t, this.value);
+      node.value.pushS(t, __UNSAFE_GET_LAST_FUTURE_VALUE(this));
       return State.Done;
     } else {
       return super.addListener(node, t);
@@ -62,7 +72,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
   of<B>(b: B): Future<B> {
     return new OfFuture(b);
   }
-  ap: <B>(f: Future<(a: A) => B>) => Future<B>;
+  // ap: <B>(f: Future<(a: A) => B>) => Future<B>;
   lift<A extends unknown[], R>(
     f: (...args: A) => R,
     ...args: MapFutureTuple<A>
@@ -88,7 +98,7 @@ export abstract class Future<A> extends Reactive<A, SListener<A>>
 }
 
 export function isFuture(a: unknown): a is Future<unknown> {
-  return typeof a === "object" && "resolve" in a;
+  return typeof a === "object" && a !== null && "resolve" in a;
 }
 
 export class CombineFuture<A> extends Future<A> {
@@ -241,7 +251,7 @@ export class BehaviorFuture<A> extends SinkFuture<A> implements BListener {
   }
   pushB(t: number): void {
     this.b.removeListener(this.node);
-    this.resolve(this.b.last, t);
+    this.resolve(__UNSAFE_GET_LAST_BEHAVIOR_VALUE(this.b), t);
   }
 }
 

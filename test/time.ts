@@ -77,7 +77,7 @@ describe("behavior", () => {
         const [setTime, restore] = mockNow();
         setTime(3);
         const time = H.runNow(H.measureTime);
-        let pull: (t?: number) => void;
+        let pull: ((t?: number) => void) | undefined;
         const results: number[] = [];
         H.observe(
           (n: number) => {
@@ -89,11 +89,13 @@ describe("behavior", () => {
           },
           time
         );
-        pull();
-        setTime(4);
-        pull();
-        setTime(7);
-        pull();
+        if (pull !== undefined) {
+          pull();
+          setTime(4);
+          pull();
+          setTime(7);
+          pull();
+        }
         assert.deepEqual(results, [0, 1, 4]);
         restore();
       });

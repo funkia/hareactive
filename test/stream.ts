@@ -89,7 +89,7 @@ describe("stream", () => {
     });
     it("pushes to listener", () => {
       const callback = spy();
-      let push: (t: number, n: number) => void;
+      let push: ((t: number, n: number) => void) | undefined;
       class MyProducer<A> extends H.ProducerStream<A> {
         activate(): void {
           push = this.pushS.bind(this);
@@ -100,8 +100,10 @@ describe("stream", () => {
       }
       const producer = new MyProducer();
       producer.subscribe(callback);
-      push(1, 1);
-      push(2, 2);
+      if (push !== undefined) {
+        push(1, 1);
+        push(2, 2);
+      }
       assert.deepEqual(callback.args, [[1], [2]]);
     });
   });
@@ -120,14 +122,16 @@ describe("stream", () => {
     });
     it("pushes to listener", () => {
       const callback = spy();
-      let push: (n: number) => void;
+      let push: ((n: number) => void) | undefined;
       const producer = H.producerStream((p) => {
         push = p;
         return () => (push = undefined);
       });
       producer.subscribe(callback);
-      push(1);
-      push(2);
+      if (push !== undefined) {
+        push(1);
+        push(2);
+      }
       assert.deepEqual(callback.args, [[1], [2]]);
     });
   });

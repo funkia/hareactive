@@ -44,13 +44,9 @@ import {
   InstantRun
 } from "./now";
 import { time, DelayStream } from "./time";
+import { ConsValue } from "./datastructures";
 
 // Future
-
-export type Occurrence<A> = {
-  time: Time;
-  value: A;
-};
 
 declare module "./future" {
   interface Future<A> {
@@ -58,17 +54,32 @@ declare module "./future" {
   }
 }
 
-export const neverOccurringFuture = {
-  time: "infinity" as "infinity",
-  value: undefined as undefined
+export interface Occurrence<A> {
+  tag: "Occurrence";
+  time: Time;
+  value: A;
+}
+
+export const occurrence = <A>(time: Time, value: A): Occurrence<A> => ({
+  tag: "Occurrence",
+  time,
+  value
+});
+
+export interface NeverOccurringFuture {
+  readonly tag: "NeverOccurringFuture";
+}
+
+export const neverOccurringFuture: NeverOccurringFuture = {
+  tag: "NeverOccurringFuture"
 };
 
-export type SemanticFuture<A> = Occurrence<A> | typeof neverOccurringFuture;
+export type SemanticFuture<A> = Occurrence<A> | NeverOccurringFuture;
 
 export function doesOccur<A>(
   future: SemanticFuture<A>
 ): future is Occurrence<A> {
-  return future.time !== "infinity";
+  return future.tag === "Occurrence";
 }
 
 CombineFuture.prototype.model = function() {
@@ -80,30 +91,31 @@ CombineFuture.prototype.model = function() {
 MapFuture.prototype.model = function() {
   const p = this.parent.model();
   return doesOccur(p)
-    ? { time: p.time, value: this.f(p.value) }
+    ? occurrence(p.time, this.f(p.value))
     : neverOccurringFuture;
 };
 
 MapToFuture.prototype.model = function() {
   const p = this.parent.model();
-  return doesOccur(p)
-    ? { time: p.time, value: this.value }
-    : neverOccurringFuture;
+  return doesOccur(p) ? occurrence(p.time, this.value) : neverOccurringFuture;
 };
 
 OfFuture.prototype.model = function() {
-  return { time: -Infinity, value: this.value };
+  return occurrence(-Infinity, this.value);
 };
 
 NeverFuture.prototype.model = function() {
   return neverOccurringFuture;
 };
 
+const allOccurred = <A>(fs: SemanticFuture<A>[]): fs is Occurrence<A>[] =>
+  fs.every((f) => f.tag === "Occurrence");
+
 LiftFuture.prototype.model = function() {
   const sems = (this.futures as Future<unknown>[]).map((f) => f.model());
   const time = Math.max(...sems.map((s) => (doesOccur(s) ? s.time : Infinity)));
-  return time !== Infinity
-    ? { time, value: this.f(...sems.map((s) => s.value)) }
+  return time !== Infinity && allOccurred(sems)
+    ? occurrence(time, this.f(...sems.map((s) => s.value)))
     : neverOccurringFuture;
 };
 
@@ -112,7 +124,7 @@ FlatMapFuture.prototype.model = function() {
   if (doesOccur(a)) {
     const b = this.f(a.value).model();
     if (doesOccur(b)) {
-      return { time: Math.max(a.time, b.time), value: b.value };
+      return occurrence(Math.max(a.time, b.time), b.value);
     }
   }
   return neverOccurringFuture;
@@ -143,7 +155,7 @@ class TestFuture<A> extends Future<A> {
 }
 
 export function testFuture<A>(time: number, value: A): Future<A> {
-  return new TestFuture({ time, value });
+  return new TestFuture(occurrence(time, value));
 }
 
 export function assertFutureEqual<A>(
@@ -167,12 +179,12 @@ declare module "./stream" {
 
 MapStream.prototype.model = function<A, B>(this: MapStream<A, B>) {
   const s = this.parent.model();
-  return s.map(({ time, value }) => ({ time, value: this.f(value) }));
+  return s.map(({ time, value }) => occurrence(time, this.f(value)));
 };
 
 MapToStream.prototype.model = function<A, B>(this: MapToStream<A, B>) {
-  const s = (this.parents.value as Stream<A>).model();
-  return s.map(({ time }) => ({ time, value: this.b }));
+  const s = (this.parents as ConsValue<Stream<A>>).value.model();
+  return s.map(({ time }) => occurrence(time, this.b));
 };
 
 FilterStream.prototype.model = function<A>(this: FilterStream<A>) {
@@ -189,7 +201,7 @@ ScanStream.prototype.model = function<A, B>(this: ScanStream<A, B>) {
     .filter((o) => this.t < o.time)
     .map(({ time, value }) => {
       acc = this.f(value, acc);
-      return { time, value: acc };
+      return occurrence(time, acc);
     });
 };
 
@@ -212,45 +224,48 @@ CombineStream.prototype.model = function<A, B>(this: CombineStream<A, B>) {
 SnapshotStream.prototype.model = function<B>(this: SnapshotStream<B>) {
   return this.trigger
     .model()
-    .map(({ time }) => ({ time, value: testAt(time, this.target) }));
+    .map(({ time }) => occurrence(time, testAt(time, this.target)));
 };
 
 DelayStream.prototype.model = function<A>(this: DelayStream<A>) {
-  const s = (this.parents.value as Stream<A>).model();
-  return s.map(({ time, value }) => ({ time: time + this.ms, value }));
+  const s = (this.parents as ConsValue<Stream<A>>).value.model();
+  return s.map(({ time, value }) => occurrence(time + this.ms, value));
 };
 
-const flatFuture = <A>(o: Occurrence<Future<A>>) => {
-  const { time, value } = o.value.model();
-  return time === "infinity" ? [] : [{ time: Math.max(o.time, time), value }];
+const flatFuture = <A>(o: Occurrence<Future<A>>): Occurrence<A>[] => {
+  const f = o.value.model();
+  if (f.tag === "NeverOccurringFuture") {
+    return [];
+  } else {
+    return [occurrence(Math.max(o.time, f.time), f.value)];
+  }
 };
 
 FlatFutures.prototype.model = function<A>(this: FlatFutures<A>) {
-  return (this.parents.value as Stream<Future<A>>)
+  return (this.parents as ConsValue<Stream<Future<A>>>).value
     .model()
     .flatMap(flatFuture)
     .sort((o, p) => o.time - p.time); // FIXME: Should use stable sort here
 };
 
 FlatFuturesOrdered.prototype.model = function<A>(this: FlatFuturesOrdered<A>) {
-  return (this.parents.value as Stream<Future<A>>)
+  return (this.parents as ConsValue<Stream<Future<A>>>).value
     .model()
     .flatMap(flatFuture)
-    .reduce((acc, o) => {
-      const last = acc.length === 0 ? -Infinity : acc[acc.length - 1].time;
-      return acc.concat([{ time: Math.max(last, o.time), value: o.value }]);
+    .reduce<Occurrence<A>[]>((acc, o) => {
+      const last: Time =
+        acc.length === 0 ? -Infinity : acc[acc.length - 1].time;
+      return acc.concat([occurrence(Math.max(last, o.time), o.value)]);
     }, []);
 };
 
 FlatFuturesLatest.prototype.model = function<A>(this: FlatFuturesLatest<A>) {
-  return (this.parents.value as Stream<Future<A>>)
+  return (this.parents as ConsValue<Stream<Future<A>>>).value
     .model()
     .flatMap(flatFuture)
     .reduceRight<Occurrence<A>[]>((acc, o) => {
       const last = acc.length === 0 ? Infinity : acc[0].time;
-      return last < o.time
-        ? acc
-        : [{ time: o.time, value: o.value }].concat(acc);
+      return last < o.time ? acc : [occurrence(o.time, o.value)].concat(acc);
     }, []);
 };
 
@@ -276,15 +291,14 @@ class TestStream<A> extends Stream<A> {
 }
 
 export function testStreamFromArray<A>(array: ([Time, A])[]): Stream<A> {
-  const semanticStream = array.map(([t, value]) => ({ value, time: t }));
+  const semanticStream = array.map(([t, value]) => occurrence(t, value));
   return new TestStream(semanticStream);
 }
 
 export function testStreamFromObject<A>(object: Record<string, A>): Stream<A> {
-  const semanticStream = Object.keys(object).map((key) => ({
-    time: parseFloat(key),
-    value: object[key]
-  }));
+  const semanticStream = Object.keys(object).map((key) =>
+    occurrence(parseFloat(key), object[key])
+  );
   return new TestStream(semanticStream);
 }
 
