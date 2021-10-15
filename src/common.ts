@@ -5,7 +5,7 @@ import { tick } from "./clock";
 export type Time = number;
 
 function isBehavior(b: unknown): b is Behavior<unknown> {
-  return typeof b === "object" && "at" in b;
+  return typeof b === "object" && "at" in b && "pull" in b;
 }
 
 export type PullHandler = (pull: (t?: number) => void) => () => void;

@@ -139,7 +139,7 @@ function refresh<A>(b: Behavior<A>, t: number) {
 
 export function isBehavior<A>(b: unknown): b is Behavior<A> {
   return (
-    (typeof b === "object" && "at" in b && !isPlaceholder(b)) ||
+    (typeof b === "object" && "at" in b && "pull" in b && !isPlaceholder(b)) ||
     (isPlaceholder(b) && (b.source === undefined || isBehavior(b.source)))
   );
 }
