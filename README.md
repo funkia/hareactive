@@ -822,6 +822,8 @@ point in time.
 
 #### `performStream<A>(s: Stream<IO<A>>): Now<Stream<A>>`
 
+![](https://user-images.githubusercontent.com/2288939/50018272-9e586200-ffc6-11e8-8ea9-e13abc607a0b.png)
+
 Takes a stream of `IO` actions and return a stream in a now
 computation. When run the now computation executes each `IO` action
 and delivers their result into the created stream.
